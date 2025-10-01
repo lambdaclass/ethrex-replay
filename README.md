@@ -125,7 +125,7 @@ cargo install --locked --git https://github.com/lambdaclass/ethrex-replay.git et
 ```
 git clone git@github.com:lambdaclass/ethrex-replay.git
 
-cd ethrex
+cd ethrex-replay
 
 # L1 replay
 
