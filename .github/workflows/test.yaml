@@ -1,5 +1,4 @@
-# .github/workflows/test.yaml
-name: Rust CI
+name: Replay Basic Run
 
 on:
   push:
