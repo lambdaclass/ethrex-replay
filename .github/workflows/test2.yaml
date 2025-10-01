@@ -1,0 +1,20 @@
+# .github/workflows/test.yaml
+name: Rust CI Fast
+
+on:
+  push:
+    branches: ["main", "workflow_call"]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Setup Rust Environment
+        uses: ./.github/actions/setup-rust
+
+      - name: Build with Cargo
+        run: cargo check
