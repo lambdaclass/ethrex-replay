@@ -1,0 +1,22 @@
+# .github/workflows/test.yaml
+name: replay-test
+
+on:
+  workflow_call:
+    inputs:
+      a_repo:
+        required: true
+        type: string
+      a_ref:
+        required: true
+        type: string
+    # only if you plan to inherit secrets:
+    # secrets:
+    #   ACCESS_TOKEN:
+    #     required: false
+
+jobs:
+  say-hi:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Hello from B. a_repo=${{ inputs.a_repo }} a_ref=${{ inputs.a_ref }}"
