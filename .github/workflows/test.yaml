@@ -2,6 +2,9 @@
 name: replay-test
 
 on:
+  # Run on push just for testing
+  push:
+    branches: ["**"]
   workflow_call:
     inputs:
       a_repo:
