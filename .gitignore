@@ -17,3 +17,6 @@ target
 *json*
 # Generated Charts
 *.svg
+
+# Necessary caches
+!cache_hoodi_1281069.json
