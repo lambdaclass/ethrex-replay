@@ -2,8 +2,7 @@ name: Replay Basic Run
 
 on:
   push:
-    branches: ["main", "workflow_call"]
-  pull_request:
+    branches: ["**"]
 
 jobs:
   build:
