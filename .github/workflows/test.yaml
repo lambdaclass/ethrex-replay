@@ -1,25 +1,20 @@
 # .github/workflows/test.yaml
-name: replay-test
+name: Rust CI
 
 on:
-  # Run on push just for testing
   push:
-    branches: ["**"]
-  workflow_call:
-    inputs:
-      a_repo:
-        required: true
-        type: string
-      a_ref:
-        required: true
-        type: string
-    # only if you plan to inherit secrets:
-    # secrets:
-    #   ACCESS_TOKEN:
-    #     required: false
+    branches: ["main", "workflow_call"]
+  pull_request:
 
 jobs:
-  say-hi:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Hello from B. a_repo=${{ inputs.a_repo }} a_ref=${{ inputs.a_ref }}"
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Setup Rust Environment
+        uses: ./.github/actions/setup-rust
+
+      - name: Build with Cargo
+        run: cargo build --release
