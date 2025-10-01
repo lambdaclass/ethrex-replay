@@ -17,4 +17,4 @@ jobs:
         uses: ./.github/actions/setup-rust
 
       - name: Build with Cargo
-        run: cargo build --release
+        run: cargo run -- block 1281069 --cache-dir ./caches --network hoodi --cached
