@@ -30,6 +30,9 @@ jobs:
       - name: Install rustfmt
         run: rustup component add rustfmt
 
+      - name: Install clippy
+        run: rustup component add clippy
+
       - name: cargo fmt --check --all
         run: cargo fmt --check --all
 
