@@ -1,4 +1,6 @@
 name: Replay
+permissions:
+  contents: read
 on:
   # For now on every push so that i test it
   push:
