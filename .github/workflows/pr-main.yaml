@@ -108,8 +108,6 @@ jobs:
 
       - name: RISC-V Risc0 toolchain install
         if: matrix.backend == 'risc0'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # should be able to specify a version for `rzup install rust` (toolchain version)
         # but it throws a "error decoding response body" in that case
         run: |
@@ -117,9 +115,8 @@ jobs:
           ~/.risc0/bin/rzup install cargo-risczero 3.0.3
           ~/.risc0/bin/rzup install risc0-groth16
           ~/.risc0/bin/rzup install rust
+
       - name: RISC-V SP1 toolchain install
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: matrix.backend == 'sp1'
         run: |
           curl -L https://sp1.succinct.xyz | bash
