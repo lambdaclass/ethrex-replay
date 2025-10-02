@@ -1,3 +1,4 @@
+#[cfg(not(feature = "l2"))]
 use crate::helpers::get_block_numbers_in_cache_dir;
 use bytes::Bytes;
 use std::{
@@ -23,10 +24,11 @@ use ethrex_common::{
 };
 use ethrex_prover::backend::Backend;
 use ethrex_rlp::{decode::RLPDecode, encode::RLPEncode};
+#[cfg(not(feature = "l2"))]
+use ethrex_rpc::types::block_identifier::BlockIdentifier;
 use ethrex_rpc::{
     EthClient,
     debug::execution_witness::{RpcExecutionWitness, execution_witness_from_rpc_chain_config},
-    types::block_identifier::BlockIdentifier,
 };
 use ethrex_storage::{
     EngineType, Store, hash_address, store_db::in_memory::Store as InMemoryStore,
@@ -40,7 +42,10 @@ use ethrex_trie::{
 use reqwest::Url;
 #[cfg(feature = "l2")]
 use std::path::Path;
-use tracing::{debug, info};
+#[cfg(not(feature = "l2"))]
+use tracing::debug;
+
+use tracing::info;
 
 #[cfg(feature = "l2")]
 use crate::fetcher::get_batchdata;
@@ -1179,8 +1184,10 @@ pub async fn replay_custom_l2_blocks(
         rollup_store
     };
 
-    let mut blockchain_options = BlockchainOptions::default();
-    blockchain_options.r#type = BlockchainType::L2;
+    let blockchain_options = BlockchainOptions {
+        r#type: BlockchainType::L2,
+        ..Default::default()
+    };
     let blockchain = Arc::new(Blockchain::new(store.clone(), blockchain_options));
 
     let genesis_hash = genesis.get_block().hash();
@@ -1364,6 +1371,7 @@ async fn fetch_latest_block_number(
     Ok(latest_block_number)
 }
 
+#[cfg(not(feature = "l2"))]
 fn format_duration(duration: &Duration) -> String {
     let total_seconds = duration.as_secs();
     let hours = total_seconds / 3600;

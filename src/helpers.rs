@@ -1,11 +1,11 @@
-use std::{
-    collections::{BTreeMap, HashSet},
-    path::Path,
-};
-
-use ethrex_config::networks::Network;
 use ethrex_rlp::decode::RLPDecode;
 use ethrex_trie::{Node, NodeHash, NodeRef};
+use std::collections::{BTreeMap, HashSet};
+
+#[cfg(not(feature = "l2"))]
+use ethrex_config::networks::Network;
+#[cfg(not(feature = "l2"))]
+use std::path::Path;
 
 /// Given a mapping of nodes with their corresponding hash get all hashes referenced by branch and extension nodes.
 pub fn get_referenced_hashes(
@@ -39,6 +39,7 @@ pub fn get_referenced_hashes(
     Ok(referenced_hashes)
 }
 
+#[cfg(not(feature = "l2"))]
 /// Get block numbers inside the cache directory for a given network.
 pub fn get_block_numbers_in_cache_dir(dir: &Path, network: &Network) -> eyre::Result<Vec<u64>> {
     let mut block_numbers = Vec::new();
