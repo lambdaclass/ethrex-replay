@@ -1,13 +1,22 @@
 name: Replay Lint
 permissions:
   contents: read
+
 on:
-  # For now on every push so that i test it
   push:
     branches: ["**"]
-  # pull_request:
-  #   branches: ["**"]
   workflow_call:
+    inputs:
+      caller_repo:
+        description: "Repository to lint (owner/name)"
+        required: false
+        type: string
+        default: ${{ github.repository }}
+      caller_ref:
+        description: "Git ref (sha/branch/tag) to lint"
+        required: false
+        type: string
+        default: ${{ github.sha }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -24,6 +33,10 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.caller_repo }}
+          ref: ${{ inputs.caller_ref }}
+          fetch-depth: 0
 
       - name: Setup Rust Environment
         uses: ./.github/actions/setup-rust
@@ -71,12 +84,9 @@ jobs:
           cargo clippy "${args[@]}" -- -D warnings
 
   all-lints:
-    # The purpose of this job is to add it as a required check in GitHub so that we don't have to add every individual job as a required check
     name: Lint
     runs-on: ubuntu-latest
-    needs:
-      - lint
-    # Run regardless of matrix outcome so this job can report overall status
+    needs: [lint]
     if: ${{ always() }}
     steps:
       - name: Aggregate lint results
