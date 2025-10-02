@@ -13,7 +13,15 @@ target
 # Contains mutation testing data
 **/mutants.out*/
 
-# Json files (Used in Caches and maybe profiling)
+# Json files (Used for caches and maybe profiling)
 *json*
+
 # Generated Charts
 *.svg
+
+# Default replay cache directory (JIC)
+replay_cache/
+
+# Caches we want to store
+!caches/*.json
+!caches/**/*.json

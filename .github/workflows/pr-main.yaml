@@ -33,6 +33,15 @@ jobs:
       - name: Install clippy
         run: rustup component add clippy
 
+      - name: RISC-V Risc0 toolchain install
+        if: contains(matrix.features, 'risc0')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # We need this in order to do cargo check
+        run: |
+          curl -L https://risczero.com/install | bash
+          ~/.risc0/bin/rzup install rust
+
       - name: cargo fmt --check --all
         if: matrix.features == '' # Run only without features because it's redundant to run it on all jobs
         run: cargo fmt --check --all
