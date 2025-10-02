@@ -43,6 +43,9 @@ jobs:
       - name: Setup Rust Environment
         uses: ./.github/actions/setup-rust
 
+      - name: Install rustfmt
+        run: rustup component add rustfmt
+
       - name: cargo fmt --check --all (${{ matrix.label }})
         run: cargo fmt --check --all
 
