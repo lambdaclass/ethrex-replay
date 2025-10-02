@@ -35,8 +35,6 @@ jobs:
 
       - name: RISC-V Risc0 toolchain install
         if: contains(matrix.features, 'risc0')
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # We need this in order to do cargo check
         run: |
           curl -L https://risczero.com/install | bash
