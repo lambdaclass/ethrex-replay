@@ -61,7 +61,8 @@ jobs:
           fi
           cargo clippy "${args[@]}" -- -D warnings
 
-  all_lints:
+  # The purpose of this job is to add it as a required check in GitHub so that we don't have to add every individual job as a required check
+  all-lints:
     name: Lint
     runs-on: ubuntu-latest
     needs:
@@ -84,7 +85,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        backend: ["sp1", "risc0"]
+        backend: ["sp1", "risc0", ""]
     steps:
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@v1.3.1
@@ -127,37 +128,39 @@ jobs:
         run: |
           cargo b -r --features "${{ matrix.backend }}"
 
-      - name: Run
-        env:
-          # TODO(): use RPC
-          # RPC_URL: $${{ secrets.ETHREX_L2_RPC_URL }}
-          RPC_URL: "http://45.76.185.153:8545"
-        run: |
-          install -D caches/cache_hoodi_1265656.json replay_cache/cache_hoodi_1265656.json
-          make execute-${{ matrix.backend }}-ci BLOCK_NUMBER=1265656 NETWORK=hoodi
-
-  run-replay-no-backend:
-    # "Test" is a required check, don't change the name
-    name: Test
-    # It is not working properly, skipping for now
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-
-      - name: Setup Rust Environment
-        uses: ./.github/actions/setup-rust
-
-      - name: Build Replay
+      - name: Build No backend
+        if: matrix.backend == ''
         run: |
           cargo b -r
 
-      - name: Execute Hoodi block with Replay
+      - name: Run
         env:
-          # TODO(): use RPC
-          # RPC_URL: $${{ secrets.ETHREX_L2_RPC_URL }}
+          # TODO: Use cached attribute instead of RPC URL.
           RPC_URL: "http://45.76.185.153:8545"
         run: |
-          # IMPORTANT: If you change the cache block number, remember to also change it in `main_prover_l1.yaml`
+          # Install cache file before running
           install -D caches/cache_hoodi_1265656.json replay_cache/cache_hoodi_1265656.json
-          make execute BLOCK_NUMBER=1265656 NETWORK=hoodi
+
+          if [ "${{ matrix.backend }}" = "" ]; then
+            make execute BLOCK_NUMBER=1265656 NETWORK=hoodi
+          else
+            make execute-${{ matrix.backend }}-ci BLOCK_NUMBER=1265656 NETWORK=hoodi
+          fi
+
+  all-tests:
+    # Test is required check, don't change the name
+    name: Test
+    runs-on: ubuntu-latest
+    needs:
+      - test
+    # Run regardless of matrix outcome so this job can report overall status
+    if: ${{ always() }}
+    steps:
+      - name: Aggregate test results
+        run: |
+          if [ "${{ needs.test.result }}" = "success" ]; then
+            echo "All test jobs succeeded."
+            exit 0
+          fi
+          echo "Some test jobs failed" >&2
+          exit 1
