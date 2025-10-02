@@ -146,7 +146,7 @@ jobs:
           install -D caches/cache_hoodi_${BLOCK_NUMBER}.json replay_cache/cache_hoodi_${BLOCK_NUMBER}.json
 
           if [ "${{ matrix.backend }}" = "exec" ]; then
-            make execute BLOCK_NUMBER=${BLOCK_NUMBER} NETWORK=${NETWORK}
+            make execute-ci BLOCK_NUMBER=${BLOCK_NUMBER} NETWORK=${NETWORK}
           else
             make execute-${{ matrix.backend }}-ci BLOCK_NUMBER=${BLOCK_NUMBER} NETWORK=${NETWORK}
           fi
