@@ -167,15 +167,6 @@ fn get_l1_input(cache: Cache) -> eyre::Result<ProgramInput> {
         blocks,
         execution_witness,
         elasticity_multiplier: ELASTICITY_MULTIPLIER,
-        // The L2 specific fields (blob_commitment, blob_proof)
-        // will be filled by Default::default() if the 'l2' feature of
-        // 'zkvm_interface' is active (due to workspace compilation).
-        // If 'zkvm_interface' is compiled without 'l2' (e.g. standalone build),
-        // these fields won't exist in ProgramInput, and ..Default::default()
-        // will correctly not try to fill them.
-        // A better solution would involve rethinking the `l2` feature or the
-        // inclusion of this crate in the workspace.
-        ..Default::default()
     })
 }
 
