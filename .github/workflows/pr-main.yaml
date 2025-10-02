@@ -19,19 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - label: no-feature
-            features: ""
-          - label: l2
-            features: "l2"
-          - label: l2+sp1
-            features: "l2,sp1"
-          - label: l2+risc0
-            features: "l2,risc0"
-          - label: sp1
-            features: "sp1"
-          - label: risc0
-            features: "risc0"
+        features: ["", "l2", "l2,sp1", "l2,risc0", "sp1", "risc0"]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -42,10 +30,10 @@ jobs:
       - name: Install rustfmt
         run: rustup component add rustfmt
 
-      - name: cargo fmt --check --all (${{ matrix.label }})
+      - name: cargo fmt --check --all
         run: cargo fmt --check --all
 
-      - name: cargo check (${{ matrix.label }})
+      - name: cargo check
         shell: bash
         env:
           FEATURE_ARGS: ${{ matrix.features }}
@@ -57,7 +45,7 @@ jobs:
           fi
           cargo check "${args[@]}"
 
-      - name: cargo clippy (${{ matrix.label }})
+      - name: cargo clippy
         shell: bash
         env:
           FEATURE_ARGS: ${{ matrix.features }}
