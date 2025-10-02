@@ -34,6 +34,7 @@ jobs:
         run: rustup component add clippy
 
       - name: cargo fmt --check --all
+        if: matrix.features == ''
         run: cargo fmt --check --all
 
       - name: cargo check
