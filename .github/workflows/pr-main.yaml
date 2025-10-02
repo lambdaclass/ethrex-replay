@@ -11,6 +11,73 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    name: Lint
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: no-feature
+            features: ""
+            no_default: true
+          - label: l2
+            features: "l2"
+            no_default: true
+          - label: l2+sp1
+            features: "l2,sp1"
+            no_default: true
+          - label: l2+risc0
+            features: "l2,risc0"
+            no_default: true
+          - label: sp1
+            features: "sp1"
+            no_default: true
+          - label: risc0
+            features: "risc0"
+            no_default: true
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Setup Rust Environment
+        uses: ./.github/actions/setup-rust
+
+      - name: cargo fmt --check --all (${{ matrix.label }})
+        run: cargo fmt --check --all
+
+      - name: cargo check (${{ matrix.label }})
+        shell: bash
+        env:
+          FEATURE_ARGS: ${{ matrix.features }}
+          NO_DEFAULT_FEATURES: ${{ matrix.no_default }}
+        run: |
+          set -euxo pipefail
+          args=(--release)
+          if [ "${NO_DEFAULT_FEATURES}" = "true" ]; then
+            args+=("--no-default-features")
+          fi
+          if [ -n "${FEATURE_ARGS}" ]; then
+            args+=("--features" "${FEATURE_ARGS}")
+          fi
+          cargo check "${args[@]}"
+
+      - name: cargo clippy (${{ matrix.label }})
+        shell: bash
+        env:
+          FEATURE_ARGS: ${{ matrix.features }}
+          NO_DEFAULT_FEATURES: ${{ matrix.no_default }}
+        run: |
+          set -euxo pipefail
+          args=(--release)
+          if [ "${NO_DEFAULT_FEATURES}" = "true" ]; then
+            args+=("--no-default-features")
+          fi
+          if [ -n "${FEATURE_ARGS}" ]; then
+            args+=("--features" "${FEATURE_ARGS}")
+          fi
+          cargo clippy "${args[@]}" -- -D warnings
+
   test:
     runs-on: ubuntu-latest
     name: Execute an L1 block with ${{ matrix.backend }} backend
