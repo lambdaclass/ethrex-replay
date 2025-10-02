@@ -85,7 +85,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        backend: ["sp1", "risc0", ""]
+        backend: ["sp1", "risc0", "exec"]
     steps:
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@v1.3.1
@@ -129,7 +129,7 @@ jobs:
           cargo b -r --features "${{ matrix.backend }}"
 
       - name: Build No backend
-        if: matrix.backend == ''
+        if: matrix.backend == 'exec'
         run: |
           cargo b -r
 
@@ -141,7 +141,7 @@ jobs:
           # Install cache file before running
           install -D caches/cache_hoodi_1265656.json replay_cache/cache_hoodi_1265656.json
 
-          if [ "${{ matrix.backend }}" = "" ]; then
+          if [ "${{ matrix.backend }}" = "exec" ]; then
             make execute BLOCK_NUMBER=1265656 NETWORK=hoodi
           else
             make execute-${{ matrix.backend }}-ci BLOCK_NUMBER=1265656 NETWORK=hoodi
