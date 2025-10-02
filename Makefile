@@ -1,13 +1,19 @@
 .PHONY: execute prove-sp1-gpu-ci prove-risc0-gpu-ci execute-sp1-ci execute-risc0-ci
 
-# Block parameters
-ifdef BLOCK_NUMBER
-REPLAY_BLOCK_ARGS = ${BLOCK_NUMBER}
+ifeq ($(origin RPC_URL), undefined)
+	ifeq ($(origin NETWORK), undefined)
+		REPLAY_BLOCK_ARGS =
+	else
+		REPLAY_BLOCK_ARGS = ${BLOCK_NUMBER} --cached --network ${NETWORK}
+	endif
+else
+	REPLAY_BLOCK_ARGS = ${BLOCK_NUMBER} --rpc-url ${RPC_URL}
 endif
-REPLAY_BLOCK_ARGS += --rpc-url ${RPC_URL}
+
+
 
 ## Execution block
-execute:
+execute-ci:
 	cargo r -r --no-default-features -- block ${REPLAY_BLOCK_ARGS}
   
 prove-sp1-gpu-ci:

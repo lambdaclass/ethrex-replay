@@ -139,16 +139,16 @@ jobs:
 
       - name: Run
         env:
-          # TODO: Use cached attribute instead of RPC URL.
-          RPC_URL: "http://45.76.185.153:8545"
+          BLOCK_NUMBER: 1265656
+          NETWORK: hoodi
         run: |
           # Install cache file before running
-          install -D caches/cache_hoodi_1265656.json replay_cache/cache_hoodi_1265656.json
+          install -D caches/cache_hoodi_${BLOCK_NUMBER}.json replay_cache/cache_hoodi_${BLOCK_NUMBER}.json
 
           if [ "${{ matrix.backend }}" = "exec" ]; then
-            make execute BLOCK_NUMBER=1265656 NETWORK=hoodi
+            make execute BLOCK_NUMBER=${BLOCK_NUMBER} NETWORK=${NETWORK}
           else
-            make execute-${{ matrix.backend }}-ci BLOCK_NUMBER=1265656 NETWORK=hoodi
+            make execute-${{ matrix.backend }}-ci BLOCK_NUMBER=${BLOCK_NUMBER} NETWORK=${NETWORK}
           fi
 
   all-tests:
