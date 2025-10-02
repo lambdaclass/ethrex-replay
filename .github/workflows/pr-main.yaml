@@ -61,6 +61,23 @@ jobs:
           fi
           cargo clippy "${args[@]}" -- -D warnings
 
+  all_lints:
+    name: all_lints
+    runs-on: ubuntu-latest
+    needs:
+      - lint
+    # Run regardless of matrix outcome so this job can report overall status
+    if: ${{ always() }}
+    steps:
+      - name: Aggregate lint results
+        run: |
+          if [ "${{ needs.lint.result }}" = "success" ]; then
+            echo "All lint jobs succeeded."
+            exit 0
+          fi
+          echo "Some lint jobs failed" >&2
+          exit 1
+
   test:
     runs-on: ubuntu-latest
     name: Execute an L1 block with ${{ matrix.backend }} backend
