@@ -62,7 +62,7 @@ jobs:
           cargo clippy "${args[@]}" -- -D warnings
 
   all_lints:
-    name: all_lints
+    name: Lint
     runs-on: ubuntu-latest
     needs:
       - lint
