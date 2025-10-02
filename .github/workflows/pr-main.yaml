@@ -92,7 +92,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Execute an L1 block with ${{ matrix.backend }} backend
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         backend: ["sp1", "risc0", "exec"]
     steps:
