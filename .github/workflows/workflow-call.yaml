@@ -2,17 +2,6 @@ name: Replay Workflow Call
 
 on:
   workflow_call:
-    inputs:
-      caller_repo:
-        description: "Repository to test (owner/name)"
-        required: false
-        type: string
-        default: ${{ github.repository }}
-      caller_ref:
-        description: "Git ref (sha/branch/tag) to test"
-        required: false
-        type: string
-        default: ${{ github.sha }}
 
 jobs:
   run:
