@@ -2,23 +2,27 @@ name: Replay Workflow Call
 
 on:
   workflow_call:
+    inputs:
+      caller_repo:
+        description: "Repository to test (owner/name)"
+        required: false
+        type: string
+        default: ${{ github.repository }}
+      caller_ref:
+        description: "Git ref (sha/branch/tag) to test"
+        required: false
+        type: string
+        default: ${{ github.sha }}
 
 jobs:
   run:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ethrex-replay
     steps:
-      - name: Checkout ethrex-replay sources
+      - name: Checkout sources
         uses: actions/checkout@v4
-        with:
-          repository: lambdaclass/ethrex-replay
-          fetch-depth: 0
-          path: ethrex-replay
 
       - name: Setup Rust Environment
-        uses: ./ethrex-replay/.github/actions/setup-rust
+        uses: ./.github/actions/setup-rust
 
       - name: Run block
         run: cargo run -- block 1281069 --cache-dir ./caches --network hoodi --cached
