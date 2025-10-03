@@ -1,0 +1,28 @@
+name: Replay Workflow Call
+
+on:
+  workflow_call:
+    inputs:
+      caller_repo:
+        description: "Repository to lint (owner/name)"
+        required: false
+        type: string
+        default: ${{ github.repository }}
+      caller_ref:
+        description: "Git ref (sha/branch/tag) to lint"
+        required: false
+        type: string
+        default: ${{ github.sha }}
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Setup Rust Environment
+        uses: ./.github/actions/setup-rust
+
+      - name: Run block
+        run: cargo run -- block 1281069 --cache-dir ./caches --network hoodi --cached
