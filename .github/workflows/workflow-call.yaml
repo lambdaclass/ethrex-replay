@@ -9,6 +9,10 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
+        with:
+          repository: lambdaclass/ethrex-replay
+          ref: move_replay
+          path: ethrex-replay
 
       - name: Setup Rust Environment
         uses: ./.github/actions/setup-rust
