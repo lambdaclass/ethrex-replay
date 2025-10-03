@@ -12,16 +12,36 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
+      - name: Decide replay ref from ethrex branch
+        id: pick_ref
+        shell: bash
+        env:
+          ETHREX_BRANCH: ${{ inputs.ethrex_branch }}
+        run: |
+          # Policy: try "ethrex/<ethrex_branch>", else fall back
+          CANDIDATE="ethrex/$ETHREX_BRANCH"
+
+          if git ls-remote --exit-code --heads https://github.com/lambdaclass/ethrex-replay.git "$CANDIDATE" >/dev/null; then
+            echo "ref=$CANDIDATE" >> "$GITHUB_OUTPUT"
+            echo "Picked replay branch: $CANDIDATE"
+            exit 0
+          fi
+
+          # Fallback (stable default)
+          echo "ref=add_remote_workflow" >> "$GITHUB_OUTPUT"
+          echo "No matching branch found; falling back to add_remote_workflow"
+
       - name: Checkout called repo
         uses: actions/checkout@v4
         with:
           repository: lambdaclass/ethrex-replay
-          ref: add_remote_workflow
+          ref: ${{ steps.pick_ref.outputs.ref }}
 
-      - name: Change ethrex branch being used in Cargo.toml
+      - name: Update Cargo.toml dependency branch
+        shell: bash
         run: |
           branch='${{ inputs.ethrex_branch }}'
-          sed -i "s/branch = \"main\"/branch = \"$branch\"/g" Cargo.toml
+          sed -i "/ethrex/s/branch = \"main\"/branch = \"$branch\"/" Cargo.toml
 
       - name: Setup Rust Environment
         uses: ./.github/actions/setup-rust
