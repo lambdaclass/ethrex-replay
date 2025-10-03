@@ -2,6 +2,11 @@ name: Replay Workflow Call
 
 on:
   workflow_call:
+    inputs:
+      ethrex_branch:
+        description: "Branch name of ethrex repo that invoked this workflow"
+        type: string
+        required: true
 
 jobs:
   run:
@@ -12,6 +17,11 @@ jobs:
         with:
           repository: lambdaclass/ethrex-replay
           ref: add_remote_workflow
+
+      - name: Change ethrex branch being used in Cargo.toml
+        run: |
+          branch='${{ inputs.ethrex_branch }}'
+          sed -i "s/branch = \"main\"/branch = \"$branch\"/g" Cargo.toml
 
       - name: Setup Rust Environment
         uses: ./.github/actions/setup-rust
