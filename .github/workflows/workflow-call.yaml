@@ -4,18 +4,21 @@ on:
   workflow_call:
 
 jobs:
-  quick-run:
+  run:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ethrex-replay
     steps:
-      - name: Checkout sources
+      - name: Checkout ethrex-replay sources
         uses: actions/checkout@v4
         with:
           repository: lambdaclass/ethrex-replay
-          ref: move_replay
+          fetch-depth: 0
           path: ethrex-replay
 
       - name: Setup Rust Environment
-        uses: ./.github/actions/setup-rust
+        uses: ./ethrex-replay/.github/actions/setup-rust
 
       - name: Run block
         run: cargo run -- block 1281069 --cache-dir ./caches --network hoodi --cached
