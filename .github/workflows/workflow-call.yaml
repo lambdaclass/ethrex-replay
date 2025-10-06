@@ -18,7 +18,7 @@ jobs:
         env:
           ETHREX_BRANCH: ${{ inputs.ethrex_branch }}
         run: |
-          # Policy: try "ethrex/<ethrex_branch>", else fall back
+          # Policy: try "ethrex/<ethrex_branch>", else fall back to main branch
           CANDIDATE="ethrex/$ETHREX_BRANCH"
 
           if git ls-remote --exit-code --heads https://github.com/lambdaclass/ethrex-replay.git "$CANDIDATE" >/dev/null; then
