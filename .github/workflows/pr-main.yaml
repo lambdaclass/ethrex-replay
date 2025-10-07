@@ -24,6 +24,22 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Override ethrex dependency branches if necessary
+        if: startsWith(github.ref_name, 'ethrex/')
+        shell: bash
+        env:
+          ETHREX_BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          branch="${ETHREX_BRANCH#ethrex/}"
+
+          if git ls-remote --exit-code --heads https://github.com/lambdaclass/ethrex.git "$branch" >/dev/null; then
+            echo "Using ethrex branch '$branch' for dependencies."
+            sed -i "/ethrex/s/branch = \"main\"/branch = \"$branch\"/" Cargo.toml
+          else
+            echo "Branch '$branch' not found in ethrex repo; keeping dependencies on main." >&2
+          fi
+
       - name: Setup Rust Environment
         uses: ./.github/actions/setup-rust
 
@@ -100,6 +116,22 @@ jobs:
 
       - name: Checkout sources
         uses: actions/checkout@v4
+
+      - name: Override ethrex dependency branches if necessary
+        if: startsWith(github.ref_name, 'ethrex/')
+        shell: bash
+        env:
+          ETHREX_BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          branch="${ETHREX_BRANCH#ethrex/}"
+
+          if git ls-remote --exit-code --heads https://github.com/lambdaclass/ethrex.git "$branch" >/dev/null; then
+            echo "Using ethrex branch '$branch' for dependencies."
+            sed -i "/ethrex/s/branch = \"main\"/branch = \"$branch\"/" Cargo.toml
+          else
+            echo "Branch '$branch' not found in ethrex repo; keeping dependencies on main." >&2
+          fi
 
       - name: Setup Rust Environment
         uses: ./.github/actions/setup-rust
