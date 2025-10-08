@@ -1,4 +1,4 @@
-name: Replay CI
+name: Replay
 permissions:
   contents: read
 
