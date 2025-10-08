@@ -314,3 +314,7 @@ Run:
 ```sh
 cargo r -r -p ethrex-replay -- --help
 ```
+
+## Contributing
+
+If you are working on the `ethrex` repository and see Replay CI failures that are triggered from Ethrex, please read the Ethrex ↔ Replay CI coordination guide: [docs/contributing-ethrex.md](./docs/contributing-ethrex.md).

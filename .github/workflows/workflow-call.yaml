@@ -1,0 +1,91 @@
+name: Replay Workflow Call
+
+on:
+  workflow_call:
+    inputs:
+      ethrex_branch:
+        description: "Branch name of ethrex repo that invoked this workflow"
+        type: string
+        required: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Decide replay ref from ethrex branch
+        id: pick_ref
+        shell: bash
+        env:
+          ETHREX_BRANCH: ${{ inputs.ethrex_branch }}
+        run: |
+          # Normalize input: allow callers to pass either "feature/foo" or "ethrex/feature/foo"
+          BRANCH_NO_PREFIX="${ETHREX_BRANCH#ethrex/}"
+          # Policy: try "ethrex/<ethrex_branch>", else fall back to main branch
+          CANDIDATE="ethrex/$BRANCH_NO_PREFIX"
+
+          if git ls-remote --exit-code --heads https://github.com/lambdaclass/ethrex-replay.git "$CANDIDATE" >/dev/null; then
+            echo "ref=$CANDIDATE" >> "$GITHUB_OUTPUT"
+            echo "Picked replay branch: $CANDIDATE"
+            exit 0
+          fi
+
+          # Fallback (stable default)
+          echo "ref=main" >> "$GITHUB_OUTPUT"
+          echo "No matching branch found; falling back to main"
+
+      - name: Checkout called repo
+        uses: actions/checkout@v4
+        with:
+          repository: lambdaclass/ethrex-replay
+          ref: ${{ steps.pick_ref.outputs.ref }}
+
+      - name: Update Cargo.toml dependency branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch='${{ inputs.ethrex_branch }}'
+          # If a prefixed branch is provided (e.g., ethrex/feature/foo), strip the prefix
+          branch="${branch#ethrex/}"
+          # replace only on lines mentioning ethrex
+          BRANCH="$branch" perl -i -pe 'BEGIN{ $b=$ENV{BRANCH} } s/branch = "main"/branch = "$b"/ if /ethrex/;' Cargo.toml
+
+      - name: Setup Rust Environment
+        uses: ./.github/actions/setup-rust
+
+      - name: Update ethrex git dependencies
+        shell: bash
+        run: |
+          set -euxo pipefail
+          # Update only ethrex git dependencies to latest commit on their branches
+          cargo update -p ethrex-config \
+                       -p ethrex-storage \
+                       -p ethrex-common \
+                       -p ethrex-vm \
+                       -p ethrex-levm \
+                       -p ethrex-rpc \
+                       -p ethrex-p2p \
+                       -p ethrex-trie \
+                       -p ethrex-rlp \
+                       -p ethrex-blockchain \
+                       -p ethrex-l2 \
+                       -p ethrex-storage-rollup \
+                       -p ethrex-l2-rpc \
+                       -p ethrex-prover \
+                       -p guest_program
+
+      - name: Run block
+        run: cargo run -- block 1265656 --cache-dir ./caches --network hoodi --cached
+
+      - name: "Help: Replay CI failure troubleshooting"
+        if: ${{ failure() }}
+        env:
+          ETHREX_BRANCH: ${{ inputs.ethrex_branch }}
+          PICKED_REF: ${{ steps.pick_ref.outputs.ref }}
+        shell: bash
+        run: |
+          branch_no_prefix="${ETHREX_BRANCH#ethrex/}"
+          echo "Replay workflow failed for ethrex branch: ${branch_no_prefix}" >&2
+          echo "Replay ref used (branch or fallback): ${PICKED_REF}" >&2
+          echo "If this failure is due to a branch mismatch, see the Ethrex ↔ Replay CI guide:" >&2
+          echo "https://github.com/lambdaclass/ethrex-replay/blob/main/docs/contributing-ethrex.md" >&2
+          echo "Tip: create a matching replay branch named 'ethrex/${branch_no_prefix}' if your ethrex changes require replay updates." >&2

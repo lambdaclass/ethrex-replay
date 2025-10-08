@@ -1,10 +1,11 @@
-name: Replay CI
+name: Replay
 permissions:
   contents: read
 
 on:
   push:
     branches: ["**"]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -24,8 +25,46 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Override ethrex dependency branches if necessary
+        if: startsWith(github.ref_name, 'ethrex/')
+        shell: bash
+        env:
+          ETHREX_BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          branch="${ETHREX_BRANCH#ethrex/}"
+
+          if git ls-remote --exit-code --heads https://github.com/lambdaclass/ethrex.git "$branch" >/dev/null; then
+            echo "Using ethrex branch '$branch' for dependencies."
+            # replace only on lines mentioning ethrex
+            BRANCH="$branch" perl -i -pe 'BEGIN{ $b=$ENV{BRANCH} } s/branch = "main"/branch = "$b"/ if /ethrex/;' Cargo.toml
+          else
+            echo "Branch '$branch' not found in ethrex repo; keeping dependencies on main." >&2
+          fi
+
       - name: Setup Rust Environment
         uses: ./.github/actions/setup-rust
+
+      - name: Update ethrex git dependencies
+        shell: bash
+        run: |
+          set -euxo pipefail
+          # Update only ethrex git dependencies to latest commit on their branches
+          cargo update -p ethrex-config \
+                       -p ethrex-storage \
+                       -p ethrex-common \
+                       -p ethrex-vm \
+                       -p ethrex-levm \
+                       -p ethrex-rpc \
+                       -p ethrex-p2p \
+                       -p ethrex-trie \
+                       -p ethrex-rlp \
+                       -p ethrex-blockchain \
+                       -p ethrex-l2 \
+                       -p ethrex-storage-rollup \
+                       -p ethrex-l2-rpc \
+                       -p ethrex-prover \
+                       -p guest_program
 
       - name: Install rustfmt
         run: rustup component add rustfmt
@@ -51,7 +90,7 @@ jobs:
           FEATURE_ARGS: ${{ matrix.features }}
         run: |
           set -euxo pipefail
-          args=(--release --no-default-features)
+          args=(--release --no-default-features --all-targets)
           if [ -n "${FEATURE_ARGS}" ]; then
             args+=("--features" "${FEATURE_ARGS}")
           fi
@@ -63,7 +102,7 @@ jobs:
           FEATURE_ARGS: ${{ matrix.features }}
         run: |
           set -euxo pipefail
-          args=(--release --no-default-features)
+          args=(--release --no-default-features --all-targets)
           if [ -n "${FEATURE_ARGS}" ]; then
             args+=("--features" "${FEATURE_ARGS}")
           fi
@@ -101,8 +140,45 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
+      - name: Override ethrex dependency branches if necessary
+        if: startsWith(github.ref_name, 'ethrex/')
+        shell: bash
+        env:
+          ETHREX_BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          branch="${ETHREX_BRANCH#ethrex/}"
+
+          if git ls-remote --exit-code --heads https://github.com/lambdaclass/ethrex.git "$branch" >/dev/null; then
+            echo "Using ethrex branch '$branch' for dependencies."
+            # replace only on lines mentioning ethrex
+            BRANCH="$branch" perl -i -pe 'BEGIN{ $b=$ENV{BRANCH} } s/branch = "main"/branch = "$b"/ if /ethrex/;' Cargo.toml
+          else
+            echo "Branch '$branch' not found in ethrex repo; keeping dependencies on main." >&2
+          fi
+
       - name: Setup Rust Environment
         uses: ./.github/actions/setup-rust
+
+      - name: Update ethrex git dependencies
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cargo update -p ethrex-config \
+                       -p ethrex-storage \
+                       -p ethrex-common \
+                       -p ethrex-vm \
+                       -p ethrex-levm \
+                       -p ethrex-rpc \
+                       -p ethrex-p2p \
+                       -p ethrex-trie \
+                       -p ethrex-rlp \
+                       -p ethrex-blockchain \
+                       -p ethrex-l2 \
+                       -p ethrex-storage-rollup \
+                       -p ethrex-l2-rpc \
+                       -p ethrex-prover \
+                       -p guest_program
 
       - name: RISC-V Risc0 toolchain install
         if: matrix.backend == 'risc0'
