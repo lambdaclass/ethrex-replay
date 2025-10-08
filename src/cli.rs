@@ -1327,7 +1327,7 @@ pub async fn produce_custom_l2_block(
         ))?;
 
     blockchain
-        .store_block(&new_block, account_updates_list, execution_result)
+        .store_block(new_block.clone(), account_updates_list, execution_result)
         .await?;
 
     rollup_store
