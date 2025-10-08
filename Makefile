@@ -1,4 +1,4 @@
-.PHONY: execute-ci prove-sp1-gpu-ci prove-risc0-gpu-ci execute-sp1-ci execute-risc0-ci
+.PHONY: execute-ci prove-sp1-gpu-ci prove-risc0-gpu-ci execute-sp1-ci execute-risc0-ci build update-ethrex-deps
 
 # If RPC URL and Network weren't provided execution will fail.
 ifeq ($(origin RPC_URL), undefined)
@@ -26,3 +26,23 @@ execute-sp1-ci:
 
 execute-risc0-ci:
 	cargo r -r --no-default-features --features "risc0" -- block --zkvm risc0 $(REPLAY_BLOCK_ARGS) --bench
+
+update-ethrex-deps:
+	cargo update -p ethrex-config \
+	             -p ethrex-storage \
+	             -p ethrex-common \
+	             -p ethrex-vm \
+	             -p ethrex-levm \
+	             -p ethrex-rpc \
+	             -p ethrex-p2p \
+	             -p ethrex-trie \
+	             -p ethrex-rlp \
+	             -p ethrex-blockchain \
+	             -p ethrex-l2 \
+	             -p ethrex-storage-rollup \
+	             -p ethrex-l2-rpc \
+	             -p ethrex-prover \
+	             -p guest_program
+
+build: update-ethrex-deps
+	cargo build --release
