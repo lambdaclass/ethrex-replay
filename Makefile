@@ -45,4 +45,4 @@ update-ethrex-deps:
 	             -p guest_program
 
 build: update-ethrex-deps
-	cargo build --release
+	cargo build --release $(if $(FEATURES),--features "$(FEATURES)",)
