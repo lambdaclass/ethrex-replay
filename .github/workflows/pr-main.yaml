@@ -35,7 +35,8 @@ jobs:
 
           if git ls-remote --exit-code --heads https://github.com/lambdaclass/ethrex.git "$branch" >/dev/null; then
             echo "Using ethrex branch '$branch' for dependencies."
-            sed -i "/ethrex/s/branch = \"main\"/branch = \"$branch\"/" Cargo.toml
+            # replace only on lines mentioning ethrex
+            BRANCH="$branch" perl -i -pe 'BEGIN{ $b=$ENV{BRANCH} } s/branch = "main"/branch = "$b"/ if /ethrex/;' Cargo.toml
           else
             echo "Branch '$branch' not found in ethrex repo; keeping dependencies on main." >&2
           fi
@@ -128,7 +129,8 @@ jobs:
 
           if git ls-remote --exit-code --heads https://github.com/lambdaclass/ethrex.git "$branch" >/dev/null; then
             echo "Using ethrex branch '$branch' for dependencies."
-            sed -i "/ethrex/s/branch = \"main\"/branch = \"$branch\"/" Cargo.toml
+            # replace only on lines mentioning ethrex
+            BRANCH="$branch" perl -i -pe 'BEGIN{ $b=$ENV{BRANCH} } s/branch = "main"/branch = "$b"/ if /ethrex/;' Cargo.toml
           else
             echo "Branch '$branch' not found in ethrex repo; keeping dependencies on main." >&2
           fi

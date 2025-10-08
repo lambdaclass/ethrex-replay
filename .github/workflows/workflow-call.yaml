@@ -18,8 +18,10 @@ jobs:
         env:
           ETHREX_BRANCH: ${{ inputs.ethrex_branch }}
         run: |
+          # Normalize input: allow callers to pass either "feature/foo" or "ethrex/feature/foo"
+          BRANCH_NO_PREFIX="${ETHREX_BRANCH#ethrex/}"
           # Policy: try "ethrex/<ethrex_branch>", else fall back to main branch
-          CANDIDATE="ethrex/$ETHREX_BRANCH"
+          CANDIDATE="ethrex/$BRANCH_NO_PREFIX"
 
           if git ls-remote --exit-code --heads https://github.com/lambdaclass/ethrex-replay.git "$CANDIDATE" >/dev/null; then
             echo "ref=$CANDIDATE" >> "$GITHUB_OUTPUT"
@@ -40,8 +42,12 @@ jobs:
       - name: Update Cargo.toml dependency branch
         shell: bash
         run: |
+          set -euo pipefail
           branch='${{ inputs.ethrex_branch }}'
-          sed -i "/ethrex/s/branch = \"main\"/branch = \"$branch\"/" Cargo.toml
+          # If a prefixed branch is provided (e.g., ethrex/feature/foo), strip the prefix
+          branch="${branch#ethrex/}"
+          # replace only on lines mentioning ethrex
+          BRANCH="$branch" perl -i -pe 'BEGIN{ $b=$ENV{BRANCH} } s/branch = "main"/branch = "$b"/ if /ethrex/;' Cargo.toml
 
       - name: Setup Rust Environment
         uses: ./.github/actions/setup-rust
@@ -56,8 +62,9 @@ jobs:
           PICKED_REF: ${{ steps.pick_ref.outputs.ref }}
         shell: bash
         run: |
-          echo "Replay workflow failed for ethrex branch: ${ETHREX_BRANCH}" >&2
+          branch_no_prefix="${ETHREX_BRANCH#ethrex/}"
+          echo "Replay workflow failed for ethrex branch: ${branch_no_prefix}" >&2
           echo "Replay ref used (branch or fallback): ${PICKED_REF}" >&2
           echo "If this failure is due to a branch mismatch, see the Ethrex ↔ Replay CI guide:" >&2
           echo "https://github.com/lambdaclass/ethrex-replay/blob/main/docs/contributing-ethrex.md" >&2
-          echo "Tip: create a matching replay branch named 'ethrex/${ETHREX_BRANCH}' if your ethrex changes require replay updates." >&2
+          echo "Tip: create a matching replay branch named 'ethrex/${branch_no_prefix}' if your ethrex changes require replay updates." >&2
