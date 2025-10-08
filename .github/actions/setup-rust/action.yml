@@ -1,5 +1,5 @@
-name: 'Setup Rust Environment'
-description: 'Sets up Rust and caches dependencies'
+name: "Setup Rust Environment"
+description: "Sets up Rust and caches dependencies"
 inputs:
   components:
     description: "Rust components to install (e.g., rustfmt, clippy)"

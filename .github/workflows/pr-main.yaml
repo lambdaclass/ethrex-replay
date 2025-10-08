@@ -45,6 +45,27 @@ jobs:
       - name: Setup Rust Environment
         uses: ./.github/actions/setup-rust
 
+      - name: Update ethrex git dependencies
+        shell: bash
+        run: |
+          set -euxo pipefail
+          # Update only ethrex git dependencies to latest commit on their branches
+          cargo update -p ethrex-config \
+                       -p ethrex-storage \
+                       -p ethrex-common \
+                       -p ethrex-vm \
+                       -p ethrex-levm \
+                       -p ethrex-rpc \
+                       -p ethrex-p2p \
+                       -p ethrex-trie \
+                       -p ethrex-rlp \
+                       -p ethrex-blockchain \
+                       -p ethrex-l2 \
+                       -p ethrex-storage-rollup \
+                       -p ethrex-l2-rpc \
+                       -p ethrex-prover \
+                       -p guest_program
+
       - name: Install rustfmt
         run: rustup component add rustfmt
 
@@ -69,7 +90,7 @@ jobs:
           FEATURE_ARGS: ${{ matrix.features }}
         run: |
           set -euxo pipefail
-          args=(--release --no-default-features)
+          args=(--release --no-default-features --all-targets)
           if [ -n "${FEATURE_ARGS}" ]; then
             args+=("--features" "${FEATURE_ARGS}")
           fi
@@ -81,7 +102,7 @@ jobs:
           FEATURE_ARGS: ${{ matrix.features }}
         run: |
           set -euxo pipefail
-          args=(--release --no-default-features)
+          args=(--release --no-default-features --all-targets)
           if [ -n "${FEATURE_ARGS}" ]; then
             args+=("--features" "${FEATURE_ARGS}")
           fi
@@ -138,6 +159,26 @@ jobs:
 
       - name: Setup Rust Environment
         uses: ./.github/actions/setup-rust
+
+      - name: Update ethrex git dependencies
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cargo update -p ethrex-config \
+                       -p ethrex-storage \
+                       -p ethrex-common \
+                       -p ethrex-vm \
+                       -p ethrex-levm \
+                       -p ethrex-rpc \
+                       -p ethrex-p2p \
+                       -p ethrex-trie \
+                       -p ethrex-rlp \
+                       -p ethrex-blockchain \
+                       -p ethrex-l2 \
+                       -p ethrex-storage-rollup \
+                       -p ethrex-l2-rpc \
+                       -p ethrex-prover \
+                       -p guest_program
 
       - name: RISC-V Risc0 toolchain install
         if: matrix.backend == 'risc0'
