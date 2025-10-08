@@ -49,7 +49,7 @@ jobs:
       - name: Run block
         run: cargo run -- block 1265656 --cache-dir ./caches --network hoodi --cached
 
-      - name: Help: Replay CI failure troubleshooting
+      - name: "Help: Replay CI failure troubleshooting"
         if: ${{ failure() }}
         env:
           ETHREX_BRANCH: ${{ inputs.ethrex_branch }}
