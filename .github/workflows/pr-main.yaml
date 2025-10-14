@@ -26,20 +26,24 @@ jobs:
           fetch-depth: 0
 
       - name: Override ethrex dependency branches if necessary
-        if: startsWith(github.ref_name, 'ethrex/')
         shell: bash
         env:
-          ETHREX_BRANCH: ${{ github.ref_name }}
+          REPLAY_BRANCH: ${{ github.ref_name }}
         run: |
-          set -euo pipefail
-          branch="${ETHREX_BRANCH#ethrex/}"
+          # This step is necessary in case there's a branch in ethrex related to this replay branch. We update the Cargo.toml accordingly.
+          # If this replay branch is named ethrex/<branch> or <branch> we'll look for <branch> name inside ethrex to use it if necessary.
+          # This is based under the assumption that there won't be accidentally 2 branches with the same name in both repos, we should be careful with that.
 
-          if git ls-remote --exit-code --heads https://github.com/lambdaclass/ethrex.git "$branch" >/dev/null; then
-            echo "Using ethrex branch '$branch' for dependencies."
+          set -euo pipefail
+          branch_no_prefix="${REPLAY_BRANCH#ethrex/}"
+          echo "Considering ethrex dependency branch candidate: '${branch_no_prefix}'."
+
+          if git ls-remote --exit-code --heads https://github.com/lambdaclass/ethrex.git "$branch_no_prefix" >/dev/null; then
+            echo "Using ethrex branch '$branch_no_prefix' for dependencies."
             # replace only on lines mentioning ethrex
-            BRANCH="$branch" perl -i -pe 'BEGIN{ $b=$ENV{BRANCH} } s/branch = "main"/branch = "$b"/ if /ethrex/;' Cargo.toml
+            BRANCH="$branch_no_prefix" perl -i -pe 'BEGIN{ $b=$ENV{BRANCH} } s/branch = "main"/branch = "$b"/ if /ethrex/;' Cargo.toml
           else
-            echo "Branch '$branch' not found in ethrex repo; keeping dependencies on main." >&2
+            echo "No matching ethrex branch found; keeping dependencies on main." >&2
           fi
 
       - name: Setup Rust Environment
@@ -126,20 +130,24 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Override ethrex dependency branches if necessary
-        if: startsWith(github.ref_name, 'ethrex/')
         shell: bash
         env:
-          ETHREX_BRANCH: ${{ github.ref_name }}
+          REPLAY_BRANCH: ${{ github.ref_name }}
         run: |
-          set -euo pipefail
-          branch="${ETHREX_BRANCH#ethrex/}"
+          # This step is necessary in case there's a branch in ethrex related to this replay branch. We update the Cargo.toml accordingly.
+          # If this replay branch is named ethrex/<branch> or <branch> we'll look for <branch> name inside ethrex to use it if necessary.
+          # This is based under the assumption that there won't be accidentally 2 branches with the same name in both repos, we should be careful with that.
 
-          if git ls-remote --exit-code --heads https://github.com/lambdaclass/ethrex.git "$branch" >/dev/null; then
-            echo "Using ethrex branch '$branch' for dependencies."
+          set -euo pipefail
+          branch_no_prefix="${REPLAY_BRANCH#ethrex/}"
+          echo "Considering ethrex dependency branch candidate: '${branch_no_prefix}'."
+
+          if git ls-remote --exit-code --heads https://github.com/lambdaclass/ethrex.git "$branch_no_prefix" >/dev/null; then
+            echo "Using ethrex branch '$branch_no_prefix' for dependencies."
             # replace only on lines mentioning ethrex
-            BRANCH="$branch" perl -i -pe 'BEGIN{ $b=$ENV{BRANCH} } s/branch = "main"/branch = "$b"/ if /ethrex/;' Cargo.toml
+            BRANCH="$branch_no_prefix" perl -i -pe 'BEGIN{ $b=$ENV{BRANCH} } s/branch = "main"/branch = "$b"/ if /ethrex/;' Cargo.toml
           else
-            echo "Branch '$branch' not found in ethrex repo; keeping dependencies on main." >&2
+            echo "No matching ethrex branch found; keeping dependencies on main." >&2
           fi
 
       - name: Setup Rust Environment
