@@ -66,7 +66,7 @@ impl Report {
 
         if let Network::PublicNetwork(PublicNetwork::Mainnet) = self.network {
             // EthProofs only prove block numbers multiples of 100.
-            if self.block.header.number % 100 == 0 && matches!(self.action, Action::Prove) {
+            if self.block.header.number.is_multiple_of(100) && matches!(self.action, Action::Prove) {
                 slack_webhook_actions.push(eth_proofs_button);
             }
         }
@@ -472,7 +472,7 @@ fn etherscan_url(network: &Network, block_number: u64) -> Option<String> {
 }
 
 fn ethproofs_url(network: &Network, block_number: u64) -> Option<String> {
-    if block_number % 100 != 0 {
+    if !block_number.is_multiple_of(100) {
         return None;
     }
 
