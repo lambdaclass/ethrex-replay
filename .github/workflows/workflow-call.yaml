@@ -74,10 +74,9 @@ jobs:
           PICKED_REF: ${{ steps.pick_ref.outputs.ref }}
         shell: bash
         run: |
-          branch_no_prefix="${ETHREX_BRANCH#ethrex/}"
-          branch_no_prefix="${branch_no_prefix#replay/}"
-          echo "Replay workflow failed for ethrex branch: ${branch_no_prefix}" >&2
+          branch="${ETHREX_BRANCH}"
+          echo "Replay workflow failed for ethrex branch: ${branch}" >&2
           echo "Replay ref used (branch or fallback): ${PICKED_REF}" >&2
           echo "If this failure is due to a branch mismatch, see the Ethrex ↔ Replay CI guide:" >&2
           echo "https://github.com/lambdaclass/ethrex-replay/blob/main/docs/contributing-ethrex.md" >&2
-          echo "Tip: create a matching replay branch named 'ethrex/${branch_no_prefix}' or '${branch_no_prefix}' (depending on which repo you started from) if your ethrex changes require replay updates." >&2
+          echo "Tip: create a matching branch in ethrex-replay named 'ethrex/${branch}' if your ethrex changes require replay updates." >&2
