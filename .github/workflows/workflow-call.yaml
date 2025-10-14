@@ -52,7 +52,6 @@ jobs:
       - name: Update Cargo.toml dependency branch
         shell: bash
         run: |
-          set -euo pipefail
           branch='${{ inputs.ethrex_branch }}'
           # If a prefixed branch is provided (e.g., ethrex/feature/foo), strip the prefix
           branch="${branch#ethrex/}"
@@ -65,7 +64,6 @@ jobs:
       - name: Update ethrex git dependencies
         shell: bash
         run: |
-          set -euxo pipefail
           # Update only ethrex git dependencies to latest commit on their branches
           make update-ethrex-deps
 

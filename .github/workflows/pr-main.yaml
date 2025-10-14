@@ -34,7 +34,6 @@ jobs:
           # If this replay branch is named ethrex/<branch> or <branch> we'll look for <branch> name inside ethrex to use it if necessary.
           # This is based under the assumption that there won't be accidentally 2 branches with the same name in both repos, we should be careful with that.
 
-          set -euo pipefail
           branch_no_prefix="${REPLAY_BRANCH#ethrex/}"
           echo "Considering ethrex dependency branch candidate: '${branch_no_prefix}'."
 
@@ -52,7 +51,6 @@ jobs:
       - name: Update ethrex git dependencies
         shell: bash
         run: |
-          set -euxo pipefail
           make update-ethrex-deps
 
       - name: Install rustfmt
@@ -78,7 +76,6 @@ jobs:
         env:
           FEATURE_ARGS: ${{ matrix.features }}
         run: |
-          set -euxo pipefail
           args=(--release --no-default-features --all-targets)
           if [ -n "${FEATURE_ARGS}" ]; then
             args+=("--features" "${FEATURE_ARGS}")
@@ -90,7 +87,6 @@ jobs:
         env:
           FEATURE_ARGS: ${{ matrix.features }}
         run: |
-          set -euxo pipefail
           args=(--release --no-default-features --all-targets)
           if [ -n "${FEATURE_ARGS}" ]; then
             args+=("--features" "${FEATURE_ARGS}")
@@ -138,7 +134,6 @@ jobs:
           # If this replay branch is named ethrex/<branch> or <branch> we'll look for <branch> name inside ethrex to use it if necessary.
           # This is based under the assumption that there won't be accidentally 2 branches with the same name in both repos, we should be careful with that.
 
-          set -euo pipefail
           branch_no_prefix="${REPLAY_BRANCH#ethrex/}"
           echo "Considering ethrex dependency branch candidate: '${branch_no_prefix}'."
 
@@ -156,7 +151,6 @@ jobs:
       - name: Update ethrex git dependencies
         shell: bash
         run: |
-          set -euxo pipefail
           make update-ethrex-deps
 
       - name: RISC-V Risc0 toolchain install
