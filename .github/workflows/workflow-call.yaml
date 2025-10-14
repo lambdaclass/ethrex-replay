@@ -79,4 +79,9 @@ jobs:
           echo "Replay ref used (branch or fallback): ${PICKED_REF}" >&2
           echo "If this failure is due to a branch mismatch, see the Ethrex ↔ Replay CI guide:" >&2
           echo "https://github.com/lambdaclass/ethrex-replay/blob/main/docs/contributing-ethrex.md" >&2
-          echo "Tip: create a matching branch in ethrex-replay named 'ethrex/${branch}' if your ethrex changes require replay updates." >&2
+          if [[ "$branch" == replay/* ]]; then
+            candidate="${branch#replay/}"
+            echo "Tip: create a matching branch in ethrex-replay named '${candidate}' if your ethrex changes require replay updates." >&2
+          else
+            echo "Tip: create a matching branch in ethrex-replay named 'ethrex/${branch}' if your ethrex changes require replay updates." >&2
+          fi
