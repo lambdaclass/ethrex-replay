@@ -35,6 +35,7 @@ jobs:
           #   replay:ethrex/<branch> -> ethrex:<branch>
           #   replay:<branch>        -> ethrex:replay/<branch>
 
+          echo "Replay branch: ${REPLAY_BRANCH}"
           if [[ "$REPLAY_BRANCH" == ethrex/* ]]; then
             ethrex_candidate="${REPLAY_BRANCH#ethrex/}"
           else
