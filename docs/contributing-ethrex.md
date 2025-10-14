@@ -6,6 +6,7 @@ This guide explains how to diagnose the failure and how to connect branches acro
 
 ### TL;DR Checklist
 - Confirm the failing step is the remote `ethrex-replay` workflow.
+- Remember the only branch pairings CI understands: `ethrex:<feature>` <-> `ethrex-replay:ethrex/<feature>` and `ethrex:replay/<feature>` <-> `ethrex-replay:<feature>`. Anything else falls back to `ethrex-replay/main`.
 - Check if `ethrex-replay/main` changed recently and introduced incompatible changes.
   - If yes and `ethrex/main` already has the matching fixes, update your `ethrex` branch from `main`.
   - If the fixes aren’t in `ethrex/main` yet, ensure they’re at least in the merge queue; otherwise ping the author of the `ethrex-replay` PR.
@@ -39,12 +40,10 @@ This guide explains how to diagnose the failure and how to connect branches acro
 
 If your branch introduces changes that require updates in the other repository, connect them so CI runs against the correct pair. There are **only two valid mappings**:
 
-| Starting repo | Branch you push | Linked branch in the other repo |
-| ------------- | ---------------- | -------------------------------- |
-| `ethrex`      | `<feature>`      | `ethrex-replay`: `ethrex/<feature>` |
-| `ethrex`      | `replay/<feature>` | `ethrex-replay`: `<feature>` |
-| `ethrex-replay` | `<feature>`    | `ethrex`: `replay/<feature>` |
-| `ethrex-replay` | `ethrex/<feature>` | `ethrex`: `<feature>` |
+| Mapping rule | `ethrex` branch | `ethrex-replay` branch |
+| ------------- | --------------- | ----------------------- |
+| Ethrex branch leads | `<feature>` | `ethrex/<feature>` |
+| Replay branch leads | `replay/<feature>` | `<feature>` |
 
 If the linked branch from the table does not exist, the workflow falls back to `ethrex-replay/main`.
 
