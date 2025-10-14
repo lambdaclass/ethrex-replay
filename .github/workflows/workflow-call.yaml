@@ -51,9 +51,7 @@ jobs:
         shell: bash
         run: |
           branch='${{ inputs.ethrex_branch }}'
-          # Strip mapping prefixes so git dependencies track the underlying feature branch.
-          branch="${branch#ethrex/}"
-          branch="${branch#replay/}"
+          echo "Setting ethrex dependency branch to '${branch}'."
           # replace only on lines mentioning ethrex
           BRANCH="$branch" perl -i -pe 'BEGIN{ $b=$ENV{BRANCH} } s/branch = "main"/branch = "$b"/ if /ethrex/;' Cargo.toml
 
