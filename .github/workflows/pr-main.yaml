@@ -49,22 +49,7 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          # Update only ethrex git dependencies to latest commit on their branches
-          cargo update -p ethrex-config \
-                       -p ethrex-storage \
-                       -p ethrex-common \
-                       -p ethrex-vm \
-                       -p ethrex-levm \
-                       -p ethrex-rpc \
-                       -p ethrex-p2p \
-                       -p ethrex-trie \
-                       -p ethrex-rlp \
-                       -p ethrex-blockchain \
-                       -p ethrex-l2 \
-                       -p ethrex-storage-rollup \
-                       -p ethrex-l2-rpc \
-                       -p ethrex-prover \
-                       -p guest_program
+          make update-ethrex-deps
 
       - name: Install rustfmt
         run: rustup component add rustfmt
@@ -164,21 +149,7 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          cargo update -p ethrex-config \
-                       -p ethrex-storage \
-                       -p ethrex-common \
-                       -p ethrex-vm \
-                       -p ethrex-levm \
-                       -p ethrex-rpc \
-                       -p ethrex-p2p \
-                       -p ethrex-trie \
-                       -p ethrex-rlp \
-                       -p ethrex-blockchain \
-                       -p ethrex-l2 \
-                       -p ethrex-storage-rollup \
-                       -p ethrex-l2-rpc \
-                       -p ethrex-prover \
-                       -p guest_program
+          make update-ethrex-deps
 
       - name: RISC-V Risc0 toolchain install
         if: matrix.backend == 'risc0'
