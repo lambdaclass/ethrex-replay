@@ -22,6 +22,8 @@ use crate::{
 use crate::cache::L2Fields;
 #[cfg(feature = "l2")]
 use crate::cache::get_batch_cache_file_name;
+#[cfg(feature = "l2")]
+use ethrex_common::types::fee_config::FeeConfig;
 
 pub async fn get_blockdata(
     opts: EthrexReplayOptions,
@@ -148,7 +150,7 @@ async fn get_blockdata_rpc(
             warn!("debug_executionWitness endpoint not implemented, using fallback eth_getProof");
 
             #[cfg(feature = "l2")]
-            let vm_type = VMType::L2;
+            let vm_type = VMType::L2(FeeConfig::default());
             #[cfg(not(feature = "l2"))]
             let vm_type = VMType::L1;
 

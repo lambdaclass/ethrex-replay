@@ -1163,6 +1163,7 @@ pub async fn replay_custom_l2_blocks(
     opts: EthrexReplayOptions,
 ) -> eyre::Result<Report> {
     use ethrex_blockchain::{BlockchainOptions, BlockchainType};
+    use ethrex_common::types::fee_config::FeeConfig;
 
     let network = Network::LocalDevnetL2;
 
@@ -1185,7 +1186,7 @@ pub async fn replay_custom_l2_blocks(
     };
 
     let blockchain_options = BlockchainOptions {
-        r#type: BlockchainType::L2,
+        r#type: BlockchainType::L2(FeeConfig::default()),
         ..Default::default()
     };
     let blockchain = Arc::new(Blockchain::new(store.clone(), blockchain_options));

@@ -17,6 +17,9 @@ use std::{
     time::{Duration, SystemTime},
 };
 
+#[cfg(feature = "l2")]
+use ethrex_common::types::fee_config::FeeConfig;
+
 pub async fn exec(backend: Backend, cache: Cache) -> eyre::Result<Duration> {
     #[cfg(feature = "l2")]
     let input = get_l2_input(cache)?;
@@ -104,7 +107,9 @@ pub async fn run_tx(cache: Cache, tx_hash: H256) -> eyre::Result<(Receipt, Vec<A
     let mut wrapped_db = GuestProgramStateWrapper::new(guest_program_state);
 
     #[cfg(feature = "l2")]
-    let vm_type = VMType::L2;
+    let fee_config = FeeConfig::default();
+    #[cfg(feature = "l2")]
+    let vm_type = VMType::L2(fee_config);
     #[cfg(not(feature = "l2"))]
     let vm_type = VMType::L1;
 
@@ -118,7 +123,7 @@ pub async fn run_tx(cache: Cache, tx_hash: H256) -> eyre::Result<(Receipt, Vec<A
 
     for (tx, tx_sender) in block.body.get_transactions_with_sender()? {
         #[cfg(feature = "l2")]
-        let mut vm = Evm::new_for_l2(wrapped_db.clone())?;
+        let mut vm = Evm::new_for_l2(wrapped_db.clone(), fee_config)?;
         #[cfg(not(feature = "l2"))]
         let mut vm = Evm::new_for_l1(wrapped_db.clone());
         let (receipt, _) = vm.execute_tx(tx, &block.header, &mut remaining_gas, tx_sender)?;
@@ -167,6 +172,7 @@ fn get_l1_input(cache: Cache) -> eyre::Result<ProgramInput> {
         blocks,
         execution_witness,
         elasticity_multiplier: ELASTICITY_MULTIPLIER,
+        fee_config: None,
     })
 }
 
@@ -209,5 +215,6 @@ fn get_l2_input(cache: Cache) -> eyre::Result<ProgramInput> {
         elasticity_multiplier: ELASTICITY_MULTIPLIER,
         blob_commitment: l2_fields.blob_commitment,
         blob_proof: l2_fields.blob_proof,
+        fee_config: Some(FeeConfig::default()), // TODO: See if we want to use other than the default
     })
 }
