@@ -9,7 +9,7 @@ This guide explains how to diagnose the failure and how to connect branches acro
 - Check if `ethrex-replay/main` changed recently and introduced incompatible changes.
   - If yes and `ethrex/main` already has the matching fixes, update your `ethrex` branch from `main`.
   - If the fixes aren’t in `ethrex/main` yet, ensure they’re at least in the merge queue; otherwise ping the author of the `ethrex-replay` PR.
-- If the failure is due to your `ethrex` changes, create a matching branch in `ethrex-replay` named exactly `ethrex/<your-ethrex-branch>` and open a PR with any needed updates.
+- If the failure is due to your changes, create the matching branch pairing across repos using the mapping rules below and open the accompanying PR.
 - Once both PRs are approved, merge `ethrex-replay` first, then `ethrex`. Try to keep merge times close to minimize out-of-sync windows. If the order flips, it’s usually fine—just keep the window short.
 
 ---
@@ -17,7 +17,7 @@ This guide explains how to diagnose the failure and how to connect branches acro
 ## 1) Understand the Remote Workflow Link
 
 - Ethrex CI calls a remote workflow in `ethrex-replay`.
-- Default behavior: If `ethrex-replay` does not have a branch matching your `ethrex` branch (see naming rule below), CI runs against `ethrex-replay/main`.
+- Default behavior: If `ethrex-replay` does not have a branch matching your `ethrex` branch (per the mapping rules below), CI runs against `ethrex-replay/main`.
 - Consequence: Any recent change to `ethrex-replay/main` can break your `ethrex` branch’s CI even if you didn’t change anything related.
 
 ## 2) If Replay Broke First (Recent change on `ethrex-replay/main`)
@@ -37,15 +37,28 @@ This guide explains how to diagnose the failure and how to connect branches acro
 
 ## 3) If Your Ethrex Change Broke Replay
 
-If your `ethrex` branch introduces changes that require updates in `ethrex-replay`, connect the branches so CI runs with the right pairing.
+If your branch introduces changes that require updates in the other repository, connect them so CI runs against the correct pair. There are **only two valid mappings**:
 
-- Create a branch in `ethrex-replay` named exactly:
-  - `ethrex/<your-ethrex-branch>`
-  - Example: if your `ethrex` branch is `feature/new-opcode`, create `ethrex/feature/new-opcode` in `ethrex-replay`.
-- Put the necessary fixes/updates in that `ethrex-replay` branch and open a PR.
-- The CI logic looks for a branch with that exact name in `ethrex-replay`. If found, it uses it; if not, it falls back to `ethrex-replay/main`.
+| Starting repo | Branch you push | Linked branch in the other repo |
+| ------------- | ---------------- | -------------------------------- |
+| `ethrex`      | `<feature>`      | `ethrex-replay`: `ethrex/<feature>` |
+| `ethrex`      | `replay/<feature>` | `ethrex-replay`: `<feature>` |
+| `ethrex-replay` | `<feature>`    | `ethrex`: `replay/<feature>` |
+| `ethrex-replay` | `ethrex/<feature>` | `ethrex`: `<feature>` |
 
-Tip: After pushing the `ethrex-replay` branch, re-run the `ethrex` CI to ensure it picks up the matching replay branch.
+If the linked branch from the table does not exist, the workflow falls back to `ethrex-replay/main`.
+
+### 3a) Starting from Ethrex
+- If your `ethrex` branch is plain (e.g. `feature/new-opcode`), create `ethrex/feature/new-opcode` in `ethrex-replay`.
+- If your `ethrex` branch is already prefixed as `replay/<feature>`, create `<feature>` in `ethrex-replay`.
+- Open a PR in `ethrex-replay` with the needed updates.
+- Re-run the `ethrex` CI so it picks up the new replay branch.
+
+### 3b) Starting from Replay
+- If you start work in `ethrex-replay` on branch `<feature>`, create `replay/<feature>` in `ethrex`.
+- If you start from `ethrex-replay` on `ethrex/<feature>`, create `<feature>` in `ethrex`.
+- Update `Cargo.toml` (or other dependencies) as needed and open the companion `ethrex` PR.
+- Trigger the relevant CI (either via push or workflow dispatch) to confirm the pair is linked.
 
 ## 4) Merge Order and Timing
 
@@ -55,7 +68,7 @@ Tip: After pushing the `ethrex-replay` branch, re-run the `ethrex` CI to ensure 
 
 ## 5) Troubleshooting & Common Pitfalls
 
-- Branch naming mismatch: The replay branch must be named `ethrex/<ethrex-branch>`. Any deviation means CI falls back to `ethrex-replay/main`.
+- Branch naming mismatch: Only the two mappings listed above are recognized; anything else falls back to `ethrex-replay/main`.
 - Branch not pushed or PR not open: Ensure the replay branch exists on the remote and a PR is open so others can review and the CI can reference it.
 - Stale `ethrex` branch: If replay changed, make sure you’ve merged or rebased the latest `ethrex/main` into your feature branch.
 - Merge queue confusion: If replay broke your CI and the fix isn’t visible in `ethrex/main`, check that it’s at least queued for merge; otherwise ping the replay PR author.
@@ -67,6 +80,6 @@ Tip: After pushing the `ethrex-replay` branch, re-run the `ethrex` CI to ensure 
 
 ## 7) Quick Reference
 
-- Naming rule for connected branches: `ethrex/<your-ethrex-branch>` in `ethrex-replay`.
+- Naming rules for connected branches: use only the two mappings in the table above.
 - Default fallback: If no matching replay branch exists, CI uses `ethrex-replay/main`.
 - Merge order: `ethrex-replay` first, then `ethrex` (order not critical, but minimize drift).
