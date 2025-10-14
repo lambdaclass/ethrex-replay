@@ -30,22 +30,17 @@ execute-sp1-ci: ## Execute with SP1 for CI
 execute-risc0-ci: ## Execute with RISC0 for CI
 	cargo r -r --no-default-features --features "risc0" -- block --zkvm risc0 $(REPLAY_BLOCK_ARGS) --bench
 
-update-ethrex-deps: ## Update ethrex dependencies
-	cargo update -p ethrex-config \
-				 -p ethrex-storage \
-				 -p ethrex-common \
-				 -p ethrex-vm \
-				 -p ethrex-levm \
-				 -p ethrex-rpc \
-				 -p ethrex-p2p \
-				 -p ethrex-trie \
-				 -p ethrex-rlp \
-				 -p ethrex-blockchain \
-				 -p ethrex-l2 \
-				 -p ethrex-storage-rollup \
-				 -p ethrex-l2-rpc \
-				 -p ethrex-prover \
-				 -p guest_program
+update-ethrex-deps: ## Update ethrex dependencies (auto-detected from Cargo.toml)
+	@echo "Scanning Cargo.toml for lambdaclass/ethrex dependencies..."
+	@pkgs=$$(grep 'lambdaclass/ethrex' Cargo.toml | sed -E 's/^([^= ]+).*/\1/'); \
+	if [ -z "$$pkgs" ]; then \
+		echo "No ethrex git dependencies found."; \
+		exit 0; \
+	fi; \
+	flags=""; \
+	for p in $$pkgs; do flags="$$flags -p $$p"; done; \
+	echo "Running: cargo update$$flags"; \
+	cargo update $$flags
 
 build: update-ethrex-deps ## Build project after updating ethrex dependencies
 	cargo build --release $(if $(FEATURES),--features "$(FEATURES)",)
