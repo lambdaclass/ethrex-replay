@@ -534,9 +534,10 @@ impl LevmDatabase for RpcDB {
         {
             if let Some(Account::Existing { storage, .. }) =
                 self.cache.lock().unwrap().get(&address)
-                && let Some(value) = storage.get(&key) {
-                    return Ok(*value);
-                }
+                && let Some(value) = storage.get(&key)
+            {
+                return Ok(*value);
+            }
         }
         let account = self
             .fetch_accounts_blocking(&[(address, vec![key])], false)
