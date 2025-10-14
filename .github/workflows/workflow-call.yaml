@@ -18,18 +18,28 @@ jobs:
         env:
           ETHREX_BRANCH: ${{ inputs.ethrex_branch }}
         run: |
-          # Normalize input: allow callers to pass either "feature/foo" or "ethrex/feature/foo"
-          BRANCH_NO_PREFIX="${ETHREX_BRANCH#ethrex/}"
-          # Policy: try "ethrex/<ethrex_branch>", else fall back to main branch
-          CANDIDATE="ethrex/$BRANCH_NO_PREFIX"
+          # This workflow has been called from ethrex, so now we decide which ethrex branch we are going to use
+          # This depends on the name of the ethrex branch that called the workflow
+          # If ethrex calls from branch <name> then we'll look in replay for ethrex/<name> or <name>, otherwise fall back to main.
 
+          # Policy: try in order -> ethrex/<ethrex_branch>, <ethrex_branch>, then fall back to main
+
+          CANDIDATE="ethrex/$ETHREX_BRANCH"
           if git ls-remote --exit-code --heads https://github.com/lambdaclass/ethrex-replay.git "$CANDIDATE" >/dev/null; then
             echo "ref=$CANDIDATE" >> "$GITHUB_OUTPUT"
             echo "Picked replay branch: $CANDIDATE"
             exit 0
           fi
 
-          # Fallback (stable default)
+          # Fallback 1: try unprefixed branch name directly in replay repo
+          CANDIDATE="$ETHREX_BRANCH"
+          if git ls-remote --exit-code --heads https://github.com/lambdaclass/ethrex-replay.git "$CANDIDATE" >/dev/null; then
+            echo "ref=$CANDIDATE" >> "$GITHUB_OUTPUT"
+            echo "Picked replay branch: $CANDIDATE"
+            exit 0
+          fi
+
+          # Fallback 2: stable default
           echo "ref=main" >> "$GITHUB_OUTPUT"
           echo "No matching branch found; falling back to main"
 
@@ -74,4 +84,4 @@ jobs:
           echo "Replay ref used (branch or fallback): ${PICKED_REF}" >&2
           echo "If this failure is due to a branch mismatch, see the Ethrex ↔ Replay CI guide:" >&2
           echo "https://github.com/lambdaclass/ethrex-replay/blob/main/docs/contributing-ethrex.md" >&2
-          echo "Tip: create a matching replay branch named 'ethrex/${branch_no_prefix}' if your ethrex changes require replay updates." >&2
+          echo "Tip: create a matching replay branch named 'ethrex/${branch_no_prefix}' or '${branch_no_prefix}' if your ethrex changes require replay updates." >&2
