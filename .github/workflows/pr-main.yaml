@@ -34,6 +34,7 @@ jobs:
           # If this replay branch is named ethrex/<branch> or <branch> we'll look for <branch> name inside ethrex to use it if necessary.
           # This is based under the assumption that there won't be accidentally 2 branches with the same name in both repos, we should be careful with that.
 
+          echo "Replay branch: ${REPLAY_BRANCH}"
           branch_no_prefix="${REPLAY_BRANCH#ethrex/}"
           echo "Considering ethrex dependency branch candidate: '${branch_no_prefix}'."
 
