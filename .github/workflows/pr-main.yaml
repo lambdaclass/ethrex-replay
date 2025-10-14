@@ -31,16 +31,22 @@ jobs:
           REPLAY_BRANCH: ${{ github.ref_name }}
         run: |
           # This step is necessary in case there's a branch in ethrex related to this replay branch. We update the Cargo.toml accordingly.
-          # If this replay branch is named ethrex/<branch> or <branch> we'll look for <branch> name inside ethrex to use it if necessary.
-          # This is based under the assumption that there won't be accidentally 2 branches with the same name in both repos, we should be careful with that.
+          # Branch mapping policy:
+          #   replay:ethrex/<branch> -> ethrex:<branch>
+          #   replay:<branch>        -> ethrex:replay/<branch>
 
-          branch_no_prefix="${REPLAY_BRANCH#ethrex/}"
-          echo "Considering ethrex dependency branch candidate: '${branch_no_prefix}'."
+          if [[ "$REPLAY_BRANCH" == ethrex/* ]]; then
+            ethrex_candidate="${REPLAY_BRANCH#ethrex/}"
+          else
+            ethrex_candidate="replay/${REPLAY_BRANCH}"
+          fi
 
-          if git ls-remote --exit-code --heads https://github.com/lambdaclass/ethrex.git "$branch_no_prefix" >/dev/null; then
-            echo "Using ethrex branch '$branch_no_prefix' for dependencies."
+          echo "Considering ethrex dependency branch candidate: '${ethrex_candidate}'."
+
+          if git ls-remote --exit-code --heads https://github.com/lambdaclass/ethrex.git "$ethrex_candidate" >/dev/null; then
+            echo "Using ethrex branch '$ethrex_candidate' for dependencies."
             # replace only on lines mentioning ethrex
-            BRANCH="$branch_no_prefix" perl -i -pe 'BEGIN{ $b=$ENV{BRANCH} } s/branch = "main"/branch = "$b"/ if /ethrex/;' Cargo.toml
+            BRANCH="$ethrex_candidate" perl -i -pe 'BEGIN{ $b=$ENV{BRANCH} } s/branch = "main"/branch = "$b"/ if /ethrex/;' Cargo.toml
           else
             echo "No matching ethrex branch found; keeping dependencies on main." >&2
           fi
@@ -131,16 +137,22 @@ jobs:
           REPLAY_BRANCH: ${{ github.ref_name }}
         run: |
           # This step is necessary in case there's a branch in ethrex related to this replay branch. We update the Cargo.toml accordingly.
-          # If this replay branch is named ethrex/<branch> or <branch> we'll look for <branch> name inside ethrex to use it if necessary.
-          # This is based under the assumption that there won't be accidentally 2 branches with the same name in both repos, we should be careful with that.
+          # Branch mapping policy:
+          #   replay:ethrex/<branch> -> ethrex:<branch>
+          #   replay:<branch>        -> ethrex:replay/<branch>
 
-          branch_no_prefix="${REPLAY_BRANCH#ethrex/}"
-          echo "Considering ethrex dependency branch candidate: '${branch_no_prefix}'."
+          if [[ "$REPLAY_BRANCH" == ethrex/* ]]; then
+            ethrex_candidate="${REPLAY_BRANCH#ethrex/}"
+          else
+            ethrex_candidate="replay/${REPLAY_BRANCH}"
+          fi
 
-          if git ls-remote --exit-code --heads https://github.com/lambdaclass/ethrex.git "$branch_no_prefix" >/dev/null; then
-            echo "Using ethrex branch '$branch_no_prefix' for dependencies."
+          echo "Considering ethrex dependency branch candidate: '${ethrex_candidate}'."
+
+          if git ls-remote --exit-code --heads https://github.com/lambdaclass/ethrex.git "$ethrex_candidate" >/dev/null; then
+            echo "Using ethrex branch '$ethrex_candidate' for dependencies."
             # replace only on lines mentioning ethrex
-            BRANCH="$branch_no_prefix" perl -i -pe 'BEGIN{ $b=$ENV{BRANCH} } s/branch = "main"/branch = "$b"/ if /ethrex/;' Cargo.toml
+            BRANCH="$ethrex_candidate" perl -i -pe 'BEGIN{ $b=$ENV{BRANCH} } s/branch = "main"/branch = "$b"/ if /ethrex/;' Cargo.toml
           else
             echo "No matching ethrex branch found; keeping dependencies on main." >&2
           fi
