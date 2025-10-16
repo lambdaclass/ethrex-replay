@@ -1,7 +1,10 @@
 #[cfg(not(feature = "l2"))]
 use crate::helpers::get_block_numbers_in_cache_dir;
 use bytes::Bytes;
-use std::{cmp::max, fmt::Display, path::PathBuf, sync::Arc, time::Duration};
+use std::{cmp::max, fmt::Display, path::PathBuf, sync::Arc};
+
+#[cfg(not(feature = "l2"))]
+use std::time::Duration;
 
 use clap::{ArgGroup, Parser, Subcommand, ValueEnum};
 use ethrex_blockchain::{
@@ -24,9 +27,7 @@ use reqwest::Url;
 #[cfg(feature = "l2")]
 use std::path::Path;
 #[cfg(not(feature = "l2"))]
-use tracing::debug;
-
-use tracing::info;
+use tracing::{debug, info};
 
 #[cfg(feature = "l2")]
 use crate::fetcher::get_batchdata;
