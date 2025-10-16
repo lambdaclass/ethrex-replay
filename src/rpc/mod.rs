@@ -227,7 +227,7 @@ fn get_result<T: DeserializeOwned>(response: serde_json::Value) -> eyre::Result<
 }
 fn decode_hex(hex: String) -> eyre::Result<Vec<u8>> {
     let mut trimmed = hex.trim_start_matches("0x").to_string();
-    if trimmed.len() % 2 != 0 {
+    if !trimmed.len().is_multiple_of(2) {
         trimmed = "0".to_string() + &trimmed;
     }
     Ok(hex::decode(trimmed)?)
