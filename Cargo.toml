@@ -15,7 +15,9 @@ ethrex-vm = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-v
 ethrex-levm = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-levm", branch = "replay/fix_replay_oct_16" }
 ethrex-rpc = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-rpc", branch = "replay/fix_replay_oct_16" }
 ethrex-p2p = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-p2p", branch = "replay/fix_replay_oct_16" }
-ethrex-trie = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-trie", branch = "replay/fix_replay_oct_16" }
+ethrex-trie = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-trie", branch = "replay/fix_replay_oct_16", features = [
+    "replay",
+] }
 ethrex-rlp = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-rlp", branch = "replay/fix_replay_oct_16" }
 ethrex-blockchain = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-blockchain", branch = "replay/fix_replay_oct_16" }
 ethrex-l2 = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2", branch = "replay/fix_replay_oct_16", optional = true }
