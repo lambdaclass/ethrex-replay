@@ -676,7 +676,7 @@ pub async fn setup_rpc(opts: &EthrexReplayOptions) -> eyre::Result<(EthClient, N
 
 async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Result<Duration> {
     unimplemented!(
-        "Path-based changes in ethrex broke replay without zkvm in a non-trivial way. It won't be avaiable for now"
+        "Path-based changes in ethrex broke replay without zkvm in a non-trivial way. It won't be available for now"
     );
 
     // let b = backend(&opts.common.zkvm)?;
