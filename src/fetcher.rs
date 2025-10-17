@@ -45,15 +45,14 @@ pub async fn get_blockdata(
         Ok((cache, network))
     } else {
         let (eth_client, rpc_network) = setup_rpc(&opts).await?;
-        if let Some(network) = &opts.network {
-            if network != &rpc_network {
+        if let Some(network) = &opts.network
+            && network != &rpc_network {
                 return Err(eyre::eyre!(
                     "Specified network ({}) does not match RPC network ({})",
                     network,
                     rpc_network
                 ));
             }
-        }
         let block_identifier = match block {
             Some(n) => BlockIdentifier::Number(n),
             None => BlockIdentifier::Tag(BlockTag::Latest),
