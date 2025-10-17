@@ -1,10 +1,11 @@
-name: Replay CI
+name: Replay
 permissions:
   contents: read
 
 on:
-  push:
+  pull_request:
     branches: ["**"]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -26,6 +27,11 @@ jobs:
 
       - name: Setup Rust Environment
         uses: ./.github/actions/setup-rust
+
+      - name: Update ethrex git dependencies
+        shell: bash
+        run: |
+          make update-ethrex-deps
 
       - name: Install rustfmt
         run: rustup component add rustfmt
