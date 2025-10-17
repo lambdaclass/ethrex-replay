@@ -6,10 +6,10 @@ use crate::rpc::{get_account, get_block, retry};
 
 use bytes::Bytes;
 use ethrex_common::constants::EMPTY_KECCACK_HASH;
-use ethrex_common::types::{ChainConfig, code_hash};
+use ethrex_common::types::{AccountState, ChainConfig, code_hash};
 use ethrex_common::{
     Address, H256, U256,
-    types::{AccountInfo, Block, TxKind},
+    types::{Block, TxKind},
 };
 use ethrex_levm::db::Database as LevmDatabase;
 use ethrex_levm::db::gen_db::GeneralizedDatabase;
@@ -492,7 +492,7 @@ impl LevmDatabase for RpcDB {
         })
     }
 
-    fn get_account_info(&self, address: Address) -> Result<AccountInfo, DatabaseError> {
+    fn get_account_state(&self, address: Address) -> Result<AccountState, DatabaseError> {
         let cache = self.cache.lock().unwrap();
         let account = if let Some(account) = cache.get(&address).cloned() {
             account
@@ -519,13 +519,9 @@ impl LevmDatabase for RpcDB {
                     .entry(code_hash(&code))
                     .or_insert_with(|| code.clone());
             }
-            Ok(AccountInfo {
-                code_hash: account_state.code_hash,
-                balance: account_state.balance,
-                nonce: account_state.nonce,
-            })
+            Ok(account_state)
         } else {
-            Ok(AccountInfo::default())
+            Ok(AccountState::default())
         }
     }
 
@@ -534,10 +530,9 @@ impl LevmDatabase for RpcDB {
         {
             if let Some(Account::Existing { storage, .. }) =
                 self.cache.lock().unwrap().get(&address)
+                && let Some(value) = storage.get(&key)
             {
-                if let Some(value) = storage.get(&key) {
-                    return Ok(*value);
-                }
+                return Ok(*value);
             }
         }
         let account = self

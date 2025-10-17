@@ -1,3 +1,7 @@
+// These are necessary until we fix execution with add_block (no zkvm)
+#![allow(unused_imports)]
+#![allow(dead_code)]
+
 use ethrex_rlp::decode::RLPDecode;
 use ethrex_trie::{Node, NodeHash, NodeRef};
 use std::collections::{BTreeMap, HashSet};
