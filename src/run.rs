@@ -188,8 +188,6 @@ fn extract_panic_message(panic_info: &Box<dyn std::any::Any + Send>) -> String {
 
 #[cfg(feature = "l2")]
 fn get_l2_input(cache: Cache) -> eyre::Result<ProgramInput> {
-    use ethrex_common::types::fee_config::FeeConfig;
-
     let Cache {
         blocks,
         witness: db,
