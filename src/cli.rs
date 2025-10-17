@@ -1,3 +1,7 @@
+// These are necessary until we fix execution with add_block (no zkvm)
+#![allow(unused_imports)]
+#![allow(unused_variables)]
+
 #[cfg(not(feature = "l2"))]
 use crate::helpers::get_block_numbers_in_cache_dir;
 use bytes::Bytes;
@@ -49,7 +53,6 @@ use tracing::info;
 
 #[cfg(feature = "l2")]
 use crate::fetcher::get_batchdata;
-use crate::helpers::get_referenced_hashes;
 #[cfg(not(feature = "l2"))]
 use crate::plot_composition::plot;
 use crate::{cache::Cache, fetcher::get_blockdata, report::Report};
@@ -672,146 +675,150 @@ pub async fn setup_rpc(opts: &EthrexReplayOptions) -> eyre::Result<(EthClient, N
 }
 
 async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Result<Duration> {
-    let b = backend(&opts.common.zkvm)?;
-    if !matches!(b, Backend::Exec) {
-        eyre::bail!("Tried to execute without zkVM but backend was set to {b:?}");
-    }
-    if opts.common.action == Action::Prove {
-        eyre::bail!("Proving not enabled without backend");
-    }
-    if cache.blocks.len() > 1 {
-        eyre::bail!("Cache for L1 witness should contain only one block.");
-    }
+    unimplemented!(
+        "Path-based changes in ethrex broke replay without zkvm in a non-trivial way. It won't be avaiable for now"
+    );
 
-    let start = Instant::now();
-    info!("Preparing Storage for execution without zkVM");
+    // let b = backend(&opts.common.zkvm)?;
+    // if !matches!(b, Backend::Exec) {
+    //     eyre::bail!("Tried to execute without zkVM but backend was set to {b:?}");
+    // }
+    // if opts.common.action == Action::Prove {
+    //     eyre::bail!("Proving not enabled without backend");
+    // }
+    // if cache.blocks.len() > 1 {
+    //     eyre::bail!("Cache for L1 witness should contain only one block.");
+    // }
 
-    let chain_config = cache.get_chain_config()?;
-    let block = cache.blocks[0].clone();
+    // let start = Instant::now();
+    // info!("Preparing Storage for execution without zkVM");
 
-    let witness = execution_witness_from_rpc_chain_config(
-        cache.witness.clone(),
-        chain_config,
-        cache.get_first_block_number()?,
-    )?;
-    let network = &cache.network;
+    // let chain_config = cache.get_chain_config()?;
+    // let block = cache.blocks[0].clone();
 
-    let guest_program = GuestProgramState::try_from(witness.clone())?;
+    // let witness = execution_witness_from_rpc_chain_config(
+    //     cache.witness.clone(),
+    //     chain_config,
+    //     cache.get_first_block_number()?,
+    // )?;
+    // let network = &cache.network;
 
-    // This will contain all code hashes with the corresponding bytecode
-    // For the code hashes that we don't have we'll fill it with <CodeHash, Bytes::new()>
-    let mut all_codes_hashed = guest_program.codes_hashed.clone();
+    // let guest_program = GuestProgramState::try_from(witness.clone())?;
 
-    let in_memory_store = InMemoryStore::new();
+    // // This will contain all code hashes with the corresponding bytecode
+    // // For the code hashes that we don't have we'll fill it with <CodeHash, Bytes::new()>
+    // let mut all_codes_hashed = guest_program.codes_hashed.clone();
 
-    // - Set up state trie nodes
-    let all_nodes = &guest_program.nodes_hashed;
-    let state_root_hash = guest_program.parent_block_header.state_root;
+    // let in_memory_store = InMemoryStore::new();
 
-    let state_trie_nodes = InMemoryTrieDB::from_nodes(state_root_hash, all_nodes)?.inner;
-    {
-        // We now have the state trie built and we want 2 things:
-        //   1. Add arbitrary Leaf nodes to the trie so that every reference in branch nodes point to an actual node.
-        //   2. Get all code hashes that exist in the accounts that we have so that if we don't have the code we set it to empty bytes.
-        // We do these things because sometimes the witness may be incomplete and in those cases we don't want failures for missing data.
-        // This only applies when we use the InMemoryDatabase and not when we use the ExecutionWitness as database, that's because in the latter failures are dismissed and we fall back to default values.
-        let mut state_nodes = state_trie_nodes.lock().unwrap();
-        let referenced_node_hashes = get_referenced_hashes(&state_nodes)?;
+    // // - Set up state trie nodes
+    // let all_nodes = &guest_program.nodes_hashed;
+    // let state_root_hash = guest_program.parent_block_header.state_root;
 
-        let dummy_leaf = Node::from(LeafNode::default()).encode_to_vec();
-        // Insert arbitrary leaf nodes to state trie.
-        for hash in referenced_node_hashes {
-            state_nodes.entry(hash).or_insert(dummy_leaf.clone());
-        }
+    // let state_trie_nodes = InMemoryTrieDB::from_nodes(state_root_hash, all_nodes)?.inner;
+    // {
+    //     // We now have the state trie built and we want 2 things:
+    //     //   1. Add arbitrary Leaf nodes to the trie so that every reference in branch nodes point to an actual node.
+    //     //   2. Get all code hashes that exist in the accounts that we have so that if we don't have the code we set it to empty bytes.
+    //     // We do these things because sometimes the witness may be incomplete and in those cases we don't want failures for missing data.
+    //     // This only applies when we use the InMemoryDatabase and not when we use the ExecutionWitness as database, that's because in the latter failures are dismissed and we fall back to default values.
+    //     let mut state_nodes = state_trie_nodes.lock().unwrap();
+    //     let referenced_node_hashes = get_referenced_hashes(&state_nodes)?;
 
-        drop(state_nodes);
+    //     let dummy_leaf = Node::from(LeafNode::default()).encode_to_vec();
+    //     // Insert arbitrary leaf nodes to state trie.
+    //     for hash in referenced_node_hashes {
+    //         state_nodes.entry(hash).or_insert(dummy_leaf.clone());
+    //     }
 
-        let mut inner_store = in_memory_store.inner()?;
+    //     drop(state_nodes);
 
-        inner_store.state_trie_nodes = state_trie_nodes;
+    //     let mut inner_store = in_memory_store.inner()?;
 
-        // - Set up storage trie nodes
-        let addresses: Vec<Address> = witness
-            .keys
-            .iter()
-            .filter(|k| k.len() == Address::len_bytes())
-            .map(|k| Address::from_slice(k))
-            .collect();
+    //     inner_store.state_trie_nodes = state_trie_nodes;
 
-        for address in &addresses {
-            let hashed_address = hash_address(address);
+    //     // - Set up storage trie nodes
+    //     let addresses: Vec<Address> = witness
+    //         .keys
+    //         .iter()
+    //         .filter(|k| k.len() == Address::len_bytes())
+    //         .map(|k| Address::from_slice(k))
+    //         .collect();
 
-            // Account state may not be in the state trie
-            let Some(account_state_rlp) = guest_program
-                .state_trie
-                .as_ref()
-                .unwrap()
-                .get(&hashed_address)?
-            else {
-                continue;
-            };
+    //     for address in &addresses {
+    //         let hashed_address = hash_address(address);
 
-            let account_state = AccountState::decode(&account_state_rlp)?;
+    //         // Account state may not be in the state trie
+    //         let Some(account_state_rlp) = guest_program
+    //             .state_trie
+    //             .as_ref()
+    //             .unwrap()
+    //             .get(&hashed_address)?
+    //         else {
+    //             continue;
+    //         };
 
-            // If code hash of account isn't present insert empty code so that if not found the execution doesn't break.
-            let code_hash = account_state.code_hash;
-            all_codes_hashed.entry(code_hash).or_insert(vec![]);
+    //         let account_state = AccountState::decode(&account_state_rlp)?;
 
-            let storage_root = account_state.storage_root;
-            let storage_trie = match InMemoryTrieDB::from_nodes(storage_root, all_nodes) {
-                Ok(trie) => trie.inner,
-                Err(_) => continue,
-            };
+    //         // If code hash of account isn't present insert empty code so that if not found the execution doesn't break.
+    //         let code_hash = account_state.code_hash;
+    //         all_codes_hashed.entry(code_hash).or_insert(vec![]);
 
-            // Fill storage trie with dummy branch nodes that have the hash of the missing nodes
-            // This is useful for eth_getProofs when we want to restructure the trie after removing a node whose sibling isn't known
-            // We assume the sibling is a branch node because we already covered the cases in which it's a Leaf or Extension node by injecting nodes in the witness.
-            // For more info read: https://github.com/kkrt-labs/zk-pig/blob/v0.8.0/docs/modified-mpt.md
-            {
-                let mut storage_nodes = storage_trie.lock().unwrap();
-                let dummy_branch = Node::from(BranchNode::default()).encode_to_vec();
+    //         let storage_root = account_state.storage_root;
+    //         let storage_trie = match InMemoryTrieDB::from_nodes(storage_root, all_nodes) {
+    //             Ok(trie) => trie.inner,
+    //             Err(_) => continue,
+    //         };
 
-                let referenced_storage_node_hashes = get_referenced_hashes(&storage_nodes)?;
+    //         // Fill storage trie with dummy branch nodes that have the hash of the missing nodes
+    //         // This is useful for eth_getProofs when we want to restructure the trie after removing a node whose sibling isn't known
+    //         // We assume the sibling is a branch node because we already covered the cases in which it's a Leaf or Extension node by injecting nodes in the witness.
+    //         // For more info read: https://github.com/kkrt-labs/zk-pig/blob/v0.8.0/docs/modified-mpt.md
+    //         {
+    //             let mut storage_nodes = storage_trie.lock().unwrap();
+    //             let dummy_branch = Node::from(BranchNode::default()).encode_to_vec();
 
-                for hash in referenced_storage_node_hashes {
-                    storage_nodes.entry(hash).or_insert(dummy_branch.clone());
-                }
-            }
+    //             let referenced_storage_node_hashes = get_referenced_hashes(&storage_nodes)?;
 
-            inner_store
-                .storage_trie_nodes
-                .insert(H256::from_slice(&hashed_address), storage_trie);
-        }
-    }
+    //             for hash in referenced_storage_node_hashes {
+    //                 storage_nodes.entry(hash).or_insert(dummy_branch.clone());
+    //             }
+    //         }
 
-    // Set up store with preloaded database and the right chain config.
-    let store = Store {
-        engine: Arc::new(in_memory_store),
-        chain_config: Arc::new(RwLock::new(chain_config)),
-        latest_block_header: Arc::new(RwLock::new(BlockHeader::default())),
-    };
+    //         inner_store
+    //             .storage_trie_nodes
+    //             .insert(H256::from_slice(&hashed_address), storage_trie);
+    //     }
+    // }
 
-    // Add codes to DB
-    for (code_hash, code) in all_codes_hashed {
-        store.add_account_code(code_hash, code.into()).await?;
-    }
+    // // Set up store with preloaded database and the right chain config.
+    // let store = Store {
+    //     engine: Arc::new(in_memory_store),
+    //     chain_config: Arc::new(RwLock::new(chain_config)),
+    //     latest_block_header: Arc::new(RwLock::new(BlockHeader::default())),
+    // };
 
-    // Add block headers to DB
-    for (_n, header) in guest_program.block_headers.clone() {
-        store.add_block_header(header.hash(), header).await?;
-    }
+    // // Add codes to DB
+    // for (code_hash, code) in all_codes_hashed {
+    //     store.add_account_code(code_hash, code.into()).await?;
+    // }
 
-    let blockchain = Blockchain::default_with_store(store);
+    // // Add block headers to DB
+    // for (_n, header) in guest_program.block_headers.clone() {
+    //     store.add_block_header(header.hash(), header).await?;
+    // }
 
-    info!("Storage preparation finished in {:.2?}", start.elapsed());
+    // let blockchain = Blockchain::default_with_store(store);
 
-    info!("Executing block {} on {}", block.header.number, network);
-    let start_time = Instant::now();
-    blockchain.add_block(block).await?;
-    let duration = start_time.elapsed();
-    info!("add_block execution time: {:.2?}", duration);
+    // info!("Storage preparation finished in {:.2?}", start.elapsed());
 
-    Ok(duration)
+    // info!("Executing block {} on {}", block.header.number, network);
+    // let start_time = Instant::now();
+    // blockchain.add_block(block).await?;
+    // let duration = start_time.elapsed();
+    // info!("add_block execution time: {:.2?}", duration);
+
+    // Ok(duration)
 }
 
 async fn replay_transaction(tx_opts: TransactionOpts) -> eyre::Result<()> {
@@ -1163,6 +1170,7 @@ pub async fn replay_custom_l2_blocks(
     opts: EthrexReplayOptions,
 ) -> eyre::Result<Report> {
     use ethrex_blockchain::{BlockchainOptions, BlockchainType};
+    use ethrex_common::types::fee_config::FeeConfig;
 
     let network = Network::LocalDevnetL2;
 
@@ -1185,7 +1193,7 @@ pub async fn replay_custom_l2_blocks(
     };
 
     let blockchain_options = BlockchainOptions {
-        r#type: BlockchainType::L2,
+        r#type: BlockchainType::L2(FeeConfig::default()),
         ..Default::default()
     };
     let blockchain = Arc::new(Blockchain::new(store.clone(), blockchain_options));
