@@ -3,6 +3,10 @@ name = "ethrex-replay"
 edition = "2024"
 authors = ["LambdaClass"]
 
+[profile.release-with-debug]
+inherits = "release"
+debug = 2
+
 [dependencies]
 ethrex-config = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-config", branch = "main" }
 ethrex-storage = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-storage", branch = "main" }

@@ -25,3 +25,6 @@ replay_cache/
 # Caches we want to store
 !caches/*.json
 !caches/**/*.json
+
+# asdf
+.tool-versions
