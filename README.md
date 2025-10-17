@@ -38,7 +38,7 @@ A tool for executing and proving Ethereum blocks, transactions, and L2 batches â
 We support any other client that is compliant with `eth_getProof` or `debug_executionWitness` endpoints.
 You can set the max requests per second to the RPC url with the environment variable `REPLAY_RPC_RPS`. This is particularly useful when using `eth_getProof`. Default is 10.
 
-When running against a **full node** using `eth_getProof` if for some reason information retrieval were to take longer than 25 minutes it would probably fail because the node may have pruned its state (128 blocks * 12 seconds = 25,6 min), normally it doesn't take that much but be wary of that in case latency is very high.
+Execution of some particular blocks with the `eth_getProof` method won't work with zkVMs. But without using these it should work for any block. Read more about this in [FAQ](./docs/faq.md). Also, when running against a **full node** using `eth_getProof` if for some reason information retrieval were to take longer than 25 minutes it would probably fail because the node may have pruned its state (128 blocks * 12 seconds = 25,6 min), normally it doesn't take that much but be wary of that.
 
 ## Supported zkVM Replays (execution & proving)
 
@@ -272,6 +272,12 @@ cargo build -p ethrex-replay --profile release-with-debug --features <FEATURES>
 
 ```
 TRACE_FILE=output.json TRACE_SAMPLE_RATE=1000 target/release-with-debug/ethrex-replay <COMMAND> [ARGS]
+```
+
+#### Execution without zkVMs
+
+```bash
+samply record target/release-with-debug/ethrex-replay <COMMAND> --no-zkvm [OTHER_ARGS]
 ```
 
 ### Run Bytehound
