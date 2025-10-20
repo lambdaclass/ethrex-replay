@@ -1,4 +1,7 @@
-use crate::cache::Cache;
+use crate::{
+    cache::Cache,
+    cli::{Engine, ZKVM, backend},
+};
 use ethrex_common::{
     H256,
     types::{
@@ -6,7 +9,6 @@ use ethrex_common::{
     },
 };
 use ethrex_levm::{db::gen_db::GeneralizedDatabase, vm::VMType};
-use ethrex_prover::backend::Backend;
 use ethrex_rpc::debug::execution_witness::execution_witness_from_rpc_chain_config;
 use ethrex_vm::{DynVmDatabase, Evm, GuestProgramStateWrapper, backends::levm::LEVM};
 use eyre::Context;
@@ -17,62 +19,77 @@ use std::{
     time::{Duration, SystemTime},
 };
 
-pub async fn exec(backend: Backend, cache: Cache) -> eyre::Result<Duration> {
-    #[cfg(feature = "l2")]
-    let input = get_l2_input(cache)?;
-    #[cfg(not(feature = "l2"))]
-    let input = get_l1_input(cache)?;
+pub async fn exec(engine: Engine, zkvm: ZKVM, cache: Cache) -> eyre::Result<Duration> {
+    match engine {
+        Engine::Ethrex => {
+            let backend = backend(&Some(zkvm))?;
 
-    let start = SystemTime::now();
+            #[cfg(feature = "l2")]
+            let input = get_l2_input(cache)?;
+            #[cfg(not(feature = "l2"))]
+            let input = get_l1_input(cache)?;
 
-    // Use catch_unwind to capture panics
-    let result = catch_unwind(AssertUnwindSafe(|| ethrex_prover::execute(backend, input)));
+            let start = SystemTime::now();
 
-    let elapsed = start.elapsed()?;
+            // Use catch_unwind to capture panics
+            let result = catch_unwind(AssertUnwindSafe(|| ethrex_prover::execute(backend, input)));
 
-    match result {
-        Ok(exec_result) => {
-            exec_result.map_err(|e| eyre::Error::msg(format!("Execution failed: {}", e)))?;
-            Ok(elapsed)
+            let elapsed = start.elapsed()?;
+
+            match result {
+                Ok(exec_result) => {
+                    exec_result
+                        .map_err(|e| eyre::Error::msg(format!("Execution failed: {}", e)))?;
+                    Ok(elapsed)
+                }
+                Err(panic_info) => {
+                    // Try to extract meaningful error message from panic info
+                    let panic_msg = extract_panic_message(&panic_info);
+
+                    Err(eyre::Error::msg(format!(
+                        "Execution panicked: {}",
+                        panic_msg
+                    )))
+                }
+            }
         }
-        Err(panic_info) => {
-            // Try to extract meaningful error message from panic info
-            let panic_msg = extract_panic_message(&panic_info);
-
-            Err(eyre::Error::msg(format!(
-                "Execution panicked: {}",
-                panic_msg
-            )))
-        }
+        Engine::Ere => todo!(),
     }
 }
 
-pub async fn prove(backend: Backend, cache: Cache) -> eyre::Result<Duration> {
-    #[cfg(feature = "l2")]
-    let input = get_l2_input(cache)?;
-    #[cfg(not(feature = "l2"))]
-    let input = get_l1_input(cache)?;
+pub async fn prove(engine: Engine, zkvm: ZKVM, cache: Cache) -> eyre::Result<Duration> {
+    match engine {
+        Engine::Ethrex => {
+            let backend = backend(&Some(zkvm))?;
 
-    let start = SystemTime::now();
+            #[cfg(feature = "l2")]
+            let input = get_l2_input(cache)?;
+            #[cfg(not(feature = "l2"))]
+            let input = get_l1_input(cache)?;
 
-    // Use catch_unwind to capture panics
-    let result = catch_unwind(AssertUnwindSafe(|| {
-        ethrex_prover::prove(backend, input, false)
-    }));
+            let start = SystemTime::now();
 
-    let elapsed = start.elapsed()?;
+            // Use catch_unwind to capture panics
+            let result = catch_unwind(AssertUnwindSafe(|| {
+                ethrex_prover::prove(backend, input, false)
+            }));
 
-    match result {
-        Ok(prove_result) => {
-            prove_result.map_err(|e| eyre::Error::msg(format!("Proving failed: {}", e)))?;
-            Ok(elapsed)
+            let elapsed = start.elapsed()?;
+
+            match result {
+                Ok(prove_result) => {
+                    prove_result.map_err(|e| eyre::Error::msg(format!("Proving failed: {}", e)))?;
+                    Ok(elapsed)
+                }
+                Err(panic_info) => {
+                    // Try to extract meaningful error message from panic info
+                    let panic_msg = extract_panic_message(&panic_info);
+
+                    Err(eyre::Error::msg(format!("Proving panicked: {}", panic_msg)))
+                }
+            }
         }
-        Err(panic_info) => {
-            // Try to extract meaningful error message from panic info
-            let panic_msg = extract_panic_message(&panic_info);
-
-            Err(eyre::Error::msg(format!("Proving panicked: {}", panic_msg)))
-        }
+        Engine::Ere => todo!(),
     }
 }
 

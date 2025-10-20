@@ -142,6 +142,13 @@ pub struct CommonOptions {
     pub resource: Resource,
     #[arg(long, value_enum, default_value_t = Action::default(), help_heading = "Replay Options")]
     pub action: Action,
+    #[arg(
+        long,
+        value_enum,
+        default_value_t = Engine::default(),
+        help_heading = "Replay Options"
+    )]
+    pub engine: Engine,
 }
 
 #[derive(Parser, Clone)]
@@ -283,6 +290,13 @@ pub enum CacheLevel {
     Failed,
     #[default]
     On,
+}
+
+#[derive(ValueEnum, Clone, Debug, PartialEq, Eq, Default)]
+pub enum Engine {
+    #[default]
+    Ethrex,
+    Ere,
 }
 
 #[derive(Parser, Clone)]
@@ -601,15 +615,18 @@ impl EthrexReplayCommand {
 
                 let (eth_client, network) = setup_rpc(&opts).await?;
 
+                let zkvm = opts.common.zkvm.ok_or(eyre::Error::msg(
+                    "ZKVM backend must be specified for L2 batch replay",
+                ))?;
+
                 let cache = get_batchdata(eth_client, network, batch, opts.cache_dir).await?;
 
-                let backend = backend(&opts.common.zkvm)?;
-
-                let execution_result = exec(backend, cache.clone()).await;
+                let execution_result =
+                    exec(opts.common.engine.clone(), zkvm.clone(), cache.clone()).await;
 
                 let proving_result = match opts.common.action {
                     Action::Execute => None,
-                    Action::Prove => Some(prove(backend, cache).await),
+                    Action::Prove => Some(prove(opts.common.engine, zkvm, cache).await),
                 };
 
                 println!("Batch {batch} execution result: {execution_result:?}");
@@ -860,22 +877,24 @@ async fn replay_block(block_opts: BlockOptions) -> eyre::Result<()> {
             eyre::Error::msg("no block found in the cache, this should never happen")
         })?;
 
-    let backend = backend(&opts.common.zkvm)?;
-
     let (execution_result, proving_result) = if opts.no_zkvm {
         (replay_no_zkvm(cache.clone(), &opts).await, None)
-    } else {
+    } else if let Some(zkvm) = &opts.common.zkvm {
         // Always execute
-        let execution_result = exec(backend, cache.clone()).await;
+        let execution_result = exec(opts.common.engine.clone(), zkvm.clone(), cache.clone()).await;
 
         let proving_result = if opts.common.action == Action::Prove {
             // Only prove if requested
-            Some(prove(backend, cache.clone()).await)
+            Some(prove(opts.common.engine, zkvm.clone(), cache.clone()).await)
         } else {
             None
         };
 
         (execution_result, proving_result)
+    } else {
+        return Err(eyre::Error::msg(
+            "Either --no-zkvm or --zkvm must be specified",
+        ));
     };
 
     let report = Report::new_for(
@@ -1046,16 +1065,27 @@ pub async fn replay_custom_l1_blocks(
         blocks,
         RpcExecutionWitness::from(execution_witness),
         chain_config,
-        opts.cache_dir,
+        opts.cache_dir.clone(),
     );
 
-    let execution_result = exec(backend(&opts.common.zkvm)?, cache.clone()).await;
+    let (execution_result, proving_result) = if opts.no_zkvm {
+        (replay_no_zkvm(cache.clone(), &opts).await, None)
+    } else if let Some(zkvm) = &opts.common.zkvm {
+        // Always execute
+        let execution_result = exec(opts.common.engine.clone(), zkvm.clone(), cache.clone()).await;
 
-    let proving_result = if opts.common.action == Action::Prove {
-        // Only prove if requested
-        Some(prove(backend(&opts.common.zkvm)?, cache.clone()).await)
+        let proving_result = if opts.common.action == Action::Prove {
+            // Only prove if requested
+            Some(prove(opts.common.engine, zkvm.clone(), cache.clone()).await)
+        } else {
+            None
+        };
+
+        (execution_result, proving_result)
     } else {
-        None
+        return Err(eyre::Error::msg(
+            "Either --no-zkvm or --zkvm must be specified",
+        ));
     };
 
     let report = Report::new_for(
@@ -1211,13 +1241,15 @@ pub async fn replay_custom_l2_blocks(
         opts.cache_dir.clone(),
     );
 
-    let backend = backend(&opts.common.zkvm)?;
+    let zkvm = opts.common.zkvm.clone().ok_or(eyre::Error::msg(
+        "ZKVM backend must be specified for L2 custom block replay",
+    ))?;
 
-    let execution_result = exec(backend, cache.clone()).await;
+    let execution_result = exec(opts.common.engine.clone(), zkvm.clone(), cache.clone()).await;
 
     let proving_result = match opts.common.action {
         Action::Execute => None,
-        Action::Prove => Some(prove(backend, cache.clone()).await),
+        Action::Prove => Some(prove(opts.common.engine, zkvm, cache.clone()).await),
     };
 
     let report = Report::new_for(
