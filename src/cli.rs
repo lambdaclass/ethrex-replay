@@ -669,6 +669,7 @@ impl EthrexReplayCommand {
                     cache_dir: PathBuf::from("./replay_cache"),
                     verbose: false,
                     network: None,
+                    notification_level: NotificationLevel::default(),
                 };
 
                 let report = replay_custom_l2_blocks(max(1, n_blocks), opts).await?;
