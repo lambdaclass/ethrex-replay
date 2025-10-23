@@ -172,7 +172,7 @@ fn get_l1_input(cache: Cache) -> eyre::Result<ProgramInput> {
         blocks,
         execution_witness,
         elasticity_multiplier: ELASTICITY_MULTIPLIER,
-        fee_config: None,
+        fee_configs: None,
     })
 }
 

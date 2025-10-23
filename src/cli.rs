@@ -833,9 +833,7 @@ async fn replay_transaction(tx_opts: TransactionOpts) -> eyre::Result<()> {
             .get_transaction_by_hash(tx_hash)
             .await?
             .ok_or(eyre::Error::msg("error fetching transaction"))?;
-        get_blockdata(tx_opts.opts, Some(tx.block_number.as_u64()))
-            .await?
-            .0
+        get_blockdata(tx_opts.opts, Some(10)).await?.0
     };
 
     let (receipt, transitions) = run_tx(cache, tx_hash).await?;
@@ -981,7 +979,7 @@ fn print_transition(update: AccountUpdate) {
         println!("    New nonce: {}", info.nonce);
         println!("    New codehash: {:#x}", info.code_hash);
         if let Some(code) = update.code {
-            println!("    New code: {}", hex::encode(code));
+            println!("    New code: {}", hex::encode(code.bytecode));
         }
     }
     if !update.added_storage.is_empty() {

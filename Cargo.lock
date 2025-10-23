@@ -3211,8 +3211,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-blockchain"
-version = "4.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#369e817d6baf883fce68a423de55a7e44b159366"
+version = "5.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=main#433b74f5c004a807508266c782ab336bf9646881"
 dependencies = [
  "bytes",
  "ethrex-common",
@@ -3230,8 +3230,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-common"
-version = "4.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#369e817d6baf883fce68a423de55a7e44b159366"
+version = "5.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=main#433b74f5c004a807508266c782ab336bf9646881"
 dependencies = [
  "bytes",
  "crc32fast",
@@ -3259,8 +3259,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-config"
-version = "4.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#369e817d6baf883fce68a423de55a7e44b159366"
+version = "5.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=main#433b74f5c004a807508266c782ab336bf9646881"
 dependencies = [
  "ethrex-common",
  "ethrex-p2p",
@@ -3271,8 +3271,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-crypto"
-version = "4.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#369e817d6baf883fce68a423de55a7e44b159366"
+version = "5.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=main#433b74f5c004a807508266c782ab336bf9646881"
 dependencies = [
  "c-kzg",
  "kzg-rs",
@@ -3281,8 +3281,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-dev"
-version = "4.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#369e817d6baf883fce68a423de55a7e44b159366"
+version = "5.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=main#433b74f5c004a807508266c782ab336bf9646881"
 dependencies = [
  "bytes",
  "envy",
@@ -3301,8 +3301,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-l2"
-version = "4.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#369e817d6baf883fce68a423de55a7e44b159366"
+version = "5.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=main#433b74f5c004a807508266c782ab336bf9646881"
 dependencies = [
  "aligned-sdk",
  "axum 0.8.6",
@@ -3359,8 +3359,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-l2-common"
-version = "4.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#369e817d6baf883fce68a423de55a7e44b159366"
+version = "5.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=main#433b74f5c004a807508266c782ab336bf9646881"
 dependencies = [
  "bytes",
  "ethereum-types 0.15.1",
@@ -3370,16 +3370,18 @@ dependencies = [
  "ethrex-trie",
  "ethrex-vm",
  "lambdaworks-crypto 0.11.0",
+ "rkyv",
  "secp256k1",
  "serde",
+ "serde_with",
  "sha3",
  "thiserror 2.0.17",
 ]
 
 [[package]]
 name = "ethrex-l2-rpc"
-version = "4.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#369e817d6baf883fce68a423de55a7e44b159366"
+version = "5.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=main#433b74f5c004a807508266c782ab336bf9646881"
 dependencies = [
  "axum 0.8.6",
  "bytes",
@@ -3408,8 +3410,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-levm"
-version = "4.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#369e817d6baf883fce68a423de55a7e44b159366"
+version = "5.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=main#433b74f5c004a807508266c782ab336bf9646881"
 dependencies = [
  "ark-bn254",
  "ark-ec",
@@ -3440,8 +3442,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-metrics"
-version = "4.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#369e817d6baf883fce68a423de55a7e44b159366"
+version = "5.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=main#433b74f5c004a807508266c782ab336bf9646881"
 dependencies = [
  "ethrex-common",
  "serde",
@@ -3452,8 +3454,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-p2p"
-version = "4.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#369e817d6baf883fce68a423de55a7e44b159366"
+version = "5.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=main#433b74f5c004a807508266c782ab336bf9646881"
 dependencies = [
  "aes",
  "async-trait",
@@ -3494,8 +3496,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-prover"
-version = "4.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#369e817d6baf883fce68a423de55a7e44b159366"
+version = "5.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=main#433b74f5c004a807508266c782ab336bf9646881"
 dependencies = [
  "anyhow",
  "bincode",
@@ -3569,8 +3571,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-rlp"
-version = "4.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#369e817d6baf883fce68a423de55a7e44b159366"
+version = "5.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=main#433b74f5c004a807508266c782ab336bf9646881"
 dependencies = [
  "bytes",
  "ethereum-types 0.15.1",
@@ -3583,8 +3585,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-rpc"
-version = "4.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#369e817d6baf883fce68a423de55a7e44b159366"
+version = "5.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=main#433b74f5c004a807508266c782ab336bf9646881"
 dependencies = [
  "axum 0.8.6",
  "axum-extra",
@@ -3618,8 +3620,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-sdk"
-version = "4.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#369e817d6baf883fce68a423de55a7e44b159366"
+version = "5.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=main#433b74f5c004a807508266c782ab336bf9646881"
 dependencies = [
  "bytes",
  "ethereum-types 0.15.1",
@@ -3644,8 +3646,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-sdk-contract-utils"
-version = "4.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#369e817d6baf883fce68a423de55a7e44b159366"
+version = "5.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=main#433b74f5c004a807508266c782ab336bf9646881"
 dependencies = [
  "thiserror 2.0.17",
  "tracing",
@@ -3653,8 +3655,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-storage"
-version = "4.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#369e817d6baf883fce68a423de55a7e44b159366"
+version = "5.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=main#433b74f5c004a807508266c782ab336bf9646881"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3674,8 +3676,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-storage-rollup"
-version = "4.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#369e817d6baf883fce68a423de55a7e44b159366"
+version = "5.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=main#433b74f5c004a807508266c782ab336bf9646881"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3687,6 +3689,7 @@ dependencies = [
  "ethrex-storage",
  "ethrex-trie",
  "futures",
+ "rkyv",
  "thiserror 2.0.17",
  "tracing",
 ]
@@ -3694,15 +3697,15 @@ dependencies = [
 [[package]]
 name = "ethrex-threadpool"
 version = "0.1.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#369e817d6baf883fce68a423de55a7e44b159366"
+source = "git+https://github.com/lambdaclass/ethrex?branch=main#433b74f5c004a807508266c782ab336bf9646881"
 dependencies = [
  "crossbeam 0.8.4",
 ]
 
 [[package]]
 name = "ethrex-trie"
-version = "4.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#369e817d6baf883fce68a423de55a7e44b159366"
+version = "5.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=main#433b74f5c004a807508266c782ab336bf9646881"
 dependencies = [
  "anyhow",
  "bytes",
@@ -3723,8 +3726,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-vm"
-version = "4.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#369e817d6baf883fce68a423de55a7e44b159366"
+version = "5.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=main#433b74f5c004a807508266c782ab336bf9646881"
 dependencies = [
  "bincode",
  "bytes",
@@ -4389,8 +4392,8 @@ dependencies = [
 
 [[package]]
 name = "guest_program"
-version = "4.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#369e817d6baf883fce68a423de55a7e44b159366"
+version = "5.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=main#433b74f5c004a807508266c782ab336bf9646881"
 dependencies = [
  "bytes",
  "ethrex-blockchain",

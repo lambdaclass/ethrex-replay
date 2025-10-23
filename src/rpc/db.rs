@@ -6,7 +6,7 @@ use crate::rpc::{get_account, get_block, retry};
 
 use bytes::Bytes;
 use ethrex_common::constants::EMPTY_KECCACK_HASH;
-use ethrex_common::types::{AccountState, ChainConfig, code_hash};
+use ethrex_common::types::{AccountState, ChainConfig, Code, code_hash};
 use ethrex_common::{
     Address, H256, U256,
     types::{Block, TxKind},
@@ -15,6 +15,7 @@ use ethrex_levm::db::Database as LevmDatabase;
 use ethrex_levm::db::gen_db::GeneralizedDatabase;
 use ethrex_levm::errors::DatabaseError;
 use ethrex_levm::vm::VMType;
+use ethrex_rlp::decode::RLPDecode;
 use ethrex_rlp::encode::RLPEncode;
 use ethrex_rpc::debug::execution_witness::RpcExecutionWitness;
 use ethrex_storage::{hash_address, hash_key};
@@ -380,14 +381,14 @@ impl RpcDB {
         // get potential child nodes of deleted nodes after execution
         let potential_account_child_nodes = final_account_proofs
             .filter_map(|(address, proof)| get_potential_child_nodes(proof, &hash_address(address)))
-            .flat_map(|nodes| nodes.into_iter().map(|node| node.encode_raw()));
+            .flat_map(|nodes| nodes.into_iter().map(|node| node.encode_to_vec()));
 
         let potential_storage_child_nodes: Vec<Vec<u8>> = final_storage_proofs
             .flat_map(|(_, proofs)| {
                 proofs
                     .iter()
                     .filter_map(|(key, proof)| get_potential_child_nodes(proof, &hash_key(key)))
-                    .flat_map(|nodes| nodes.into_iter().map(|node| node.encode_raw()))
+                    .flat_map(|nodes| nodes.into_iter().map(|node| node.encode_to_vec()))
                     .collect::<Vec<_>>()
             })
             .collect();
@@ -482,14 +483,15 @@ impl RpcDB {
 }
 
 impl LevmDatabase for RpcDB {
-    fn get_account_code(&self, code_hash: H256) -> Result<Bytes, DatabaseError> {
+    fn get_account_code(&self, code_hash: H256) -> Result<Code, DatabaseError> {
         if code_hash == *EMPTY_KECCACK_HASH {
-            return Ok(Bytes::new());
+            return Ok(Code::default());
         }
         let codes = self.codes.lock().unwrap();
-        codes.get(&code_hash).cloned().ok_or_else(|| {
+        let bytecode = codes.get(&code_hash).cloned().ok_or_else(|| {
             DatabaseError::Custom("Code not found on already fetched accounts".to_string())
-        })
+        })?;
+        Ok(Code::from_bytecode(bytecode))
     }
 
     fn get_account_state(&self, address: Address) -> Result<AccountState, DatabaseError> {
@@ -598,7 +600,7 @@ pub fn get_potential_child_nodes(proof: &[NodeRLP], key: &PathRLP) -> Option<Vec
 
     // return some only if this is a proof of exclusion
     if trie.get(key).ok()?.is_none() {
-        let final_node = Node::decode_raw(proof.last()?).ok()?;
+        let final_node = Node::decode(proof.last()?).ok()?;
         match final_node {
             Node::Extension(mut node) => {
                 let mut variants = Vec::with_capacity(node.prefix.len());
