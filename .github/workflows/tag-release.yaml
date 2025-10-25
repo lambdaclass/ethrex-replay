@@ -4,6 +4,16 @@ on:
   push:
     tags:
       - "v*.*.*-*"
+  workflow_dispatch:
+    inputs:
+      test_mode:
+        description: "Test mode (yes/no)"
+        required: false
+        default: "no"
+        type: choice
+        options:
+          - no
+          - yes
 
 permissions:
   contents: write
@@ -14,7 +24,7 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build-ethrex:
+  build-ethrex-replay:
     strategy:
       matrix:
         platform:
@@ -44,22 +54,31 @@ jobs:
             arch: aarch64
           - platform: macos-latest
             stack: l2
-            features: l2,sp1,risc0
+            features: l2,
           - platform: ubuntu-22.04
             stack: l2
-            features: l2,sp1,risc0
+            features: l2,
           - platform: ubuntu-24.04-arm
             stack: l2
-            features: l2,sp1,risc0
+            features: l2,
           - platform: ubuntu-22.04
             stack: l2_gpu
-            features: l2,sp1,risc0,gpu
+            features: l2,gpu
           - platform: ubuntu-24.04-arm
             stack: l2_gpu
-            features: l2,sp1,risc0,gpu
+            features: l2,gpu
           - stack: l2_gpu
             gpu_flags: NVCC_PREPEND_FLAGS='-arch=sm_70'
             l2_suffix: "-l2"
+            gpu_suffix: "-gpu"
+          - platform: ubuntu-22.04
+            stack: l1_gpu
+            features: gpu
+          - platform: ubuntu-24.04-arm
+            stack: l1_gpu
+            features: gpu
+          - stack: l1_gpu
+            gpu_flags: NVCC_PREPEND_FLAGS='-arch=sm_70'
             gpu_suffix: "-gpu"
           - stack: l2
             l2_suffix: "-l2"
@@ -117,7 +136,7 @@ jobs:
 
       - name: Build ethrex-replay
         run: |
-          ${{ matrix.cpu_flags }} ${{ matrix.gpu_flags }} cargo build --release --features "${{ matrix.features }}"
+          ${{ matrix.cpu_flags }} ${{ matrix.gpu_flags }} cargo build --release --features "${{ matrix.features }},sp1,risc0"
           chmod +x target/release/ethrex-replay
           mv target/release/ethrex-replay ethrex-replay${{ matrix.l2_suffix }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.gpu_suffix }}
 
@@ -130,7 +149,7 @@ jobs:
   # Creates a release on GitHub with the binaries
   finalize-release:
     needs:
-      - build-ethrex
+      - build-ethrex-replay
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
