@@ -445,8 +445,11 @@ impl EthrexReplayCommand {
                     // Case --from is not set
                     // * If we reach this point, --endless must be set (constraint by clap)
                     None => {
-                        fetch_latest_block_number(maybe_rpc.unwrap(), only_eth_proofs_blocks)
-                            .await?
+                        fetch_latest_block_number(
+                            maybe_rpc.unwrap().clone(),
+                            only_eth_proofs_blocks,
+                        )
+                        .await?
                     }
                 };
 
@@ -457,8 +460,11 @@ impl EthrexReplayCommand {
                     // Case --to is not set
                     // * If we reach this point, --from or --endless must be set (constraint by clap)
                     None => {
-                        fetch_latest_block_number(maybe_rpc.unwrap(), only_eth_proofs_blocks)
-                            .await?
+                        fetch_latest_block_number(
+                            maybe_rpc.unwrap().clone(),
+                            only_eth_proofs_blocks,
+                        )
+                        .await?
                     }
                 };
 
@@ -479,7 +485,7 @@ impl EthrexReplayCommand {
                         // we can keep checking for new blocks
                         if endless && block_to_replay > last_block_to_replay {
                             last_block_to_replay = fetch_latest_block_number(
-                                maybe_rpc.unwrap(),
+                                maybe_rpc.unwrap().clone(),
                                 only_eth_proofs_blocks,
                             )
                             .await?;
@@ -505,9 +511,11 @@ impl EthrexReplayCommand {
                     // Case --endless is set, we want to update the `to` so
                     // we can keep checking for new blocks
                     while endless && block_to_replay > last_block_to_replay {
-                        last_block_to_replay =
-                            fetch_latest_block_number(maybe_rpc.unwrap(), only_eth_proofs_blocks)
-                                .await?;
+                        last_block_to_replay = fetch_latest_block_number(
+                            maybe_rpc.unwrap().clone(),
+                            only_eth_proofs_blocks,
+                        )
+                        .await?;
 
                         tokio::time::sleep(Duration::from_secs(1)).await;
                     }
@@ -558,7 +566,7 @@ impl EthrexReplayCommand {
                     ));
                 }
 
-                let eth_client = EthClient::new(rpc_url.as_str())?;
+                let eth_client = EthClient::new(rpc_url)?;
 
                 info!(
                     "Fetching blocks from RPC: {start} to {end} ({} blocks)",
@@ -665,7 +673,7 @@ impl EthrexReplayCommand {
 }
 
 pub async fn setup_rpc(opts: &EthrexReplayOptions) -> eyre::Result<(EthClient, Network)> {
-    let eth_client = EthClient::new(opts.rpc_url.as_ref().unwrap().as_str())?;
+    let eth_client = EthClient::new(opts.rpc_url.as_ref().unwrap().clone())?;
     let chain_id = eth_client.get_chain_id().await?.as_u64();
     let network = network_from_chain_id(chain_id);
     Ok((eth_client, network))
@@ -1021,7 +1029,7 @@ pub async fn replay_custom_l1_blocks(
     let genesis = network.get_genesis()?;
 
     let mut store = {
-        let store_inner = Store::new("./", EngineType::InMemory)?;
+        let mut store_inner = Store::new("./", EngineType::InMemory)?;
         store_inner.add_initial_state(genesis.clone()).await?;
         store_inner
     };
@@ -1140,7 +1148,7 @@ pub async fn produce_l1_block(
             err => ethrex_rpc::RpcErr::Internal(err.to_string()),
         })?;
 
-    blockchain.add_block(block.clone()).await?;
+    blockchain.add_block(block.clone())?;
 
     let new_block_hash = block.hash();
 
@@ -1345,10 +1353,10 @@ pub async fn produce_custom_l2_block(
 
 #[cfg(not(feature = "l2"))]
 async fn fetch_latest_block_number(
-    rpc_url: &Url,
+    rpc_url: Url,
     only_eth_proofs_blocks: bool,
 ) -> eyre::Result<u64> {
-    let eth_client = EthClient::new(rpc_url.as_str())?;
+    let eth_client = EthClient::new(rpc_url)?;
 
     let mut latest_block_number = eth_client.get_block_number().await?.as_u64();
 
