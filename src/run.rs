@@ -9,6 +9,7 @@ use ethrex_common::{
 };
 use ethrex_levm::{db::gen_db::GeneralizedDatabase, vm::VMType};
 use ethrex_prover::backend::Backend;
+use ethrex_l2_common::prover::ProofFormat;
 use ethrex_rpc::debug::execution_witness::execution_witness_from_rpc_chain_config;
 use ethrex_vm::{DynVmDatabase, Evm, GuestProgramStateWrapper, backends::levm::LEVM};
 use eyre::Context;
@@ -59,7 +60,7 @@ pub async fn prove(backend: Backend, cache: Cache) -> eyre::Result<Duration> {
 
     // Use catch_unwind to capture panics
     let result = catch_unwind(AssertUnwindSafe(|| {
-        ethrex_prover::prove(backend, input, false)
+        ethrex_prover::prove(backend, input, ProofFormat::Compressed)
     }));
 
     let elapsed = start.elapsed()?;
@@ -171,7 +172,7 @@ fn get_l1_input(cache: Cache) -> eyre::Result<ProgramInput> {
         blocks,
         execution_witness,
         elasticity_multiplier: ELASTICITY_MULTIPLIER,
-        fee_config: None,
+        fee_configs: None,
     })
 }
 

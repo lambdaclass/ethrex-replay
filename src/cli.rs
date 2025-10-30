@@ -561,7 +561,7 @@ impl EthrexReplayCommand {
                     ));
                 }
 
-                let eth_client = EthClient::new(rpc_url.as_str())?;
+                let eth_client = EthClient::new(rpc_url.clone())?;
 
                 info!(
                     "Fetching blocks from RPC: {start} to {end} ({} blocks)",
@@ -668,7 +668,7 @@ impl EthrexReplayCommand {
 }
 
 pub async fn setup_rpc(opts: &EthrexReplayOptions) -> eyre::Result<(EthClient, Network)> {
-    let eth_client = EthClient::new(opts.rpc_url.as_ref().unwrap().as_str())?;
+    let eth_client = EthClient::new(opts.rpc_url.clone().unwrap())?;
     let chain_id = eth_client.get_chain_id().await?.as_u64();
     let network = network_from_chain_id(chain_id);
     Ok((eth_client, network))
@@ -833,15 +833,18 @@ async fn replay_transaction(tx_opts: TransactionOpts) -> eyre::Result<()> {
     let cache = if let Some(n) = tx_opts.block_number {
         get_blockdata(tx_opts.opts, Some(n)).await?.0
     } else {
-        let (eth_client, _network) = setup_rpc(&tx_opts.opts).await?;
-        // Get the block number of the transaction
-        let tx = eth_client
-            .get_transaction_by_hash(tx_hash)
-            .await?
-            .ok_or(eyre::Error::msg("error fetching transaction"))?;
-        get_blockdata(tx_opts.opts, Some(tx.block_number.as_u64()))
-            .await?
-            .0
+        // block_number is not a public member of RpcTransaction so we can't access it after retrieving the transcation.
+        todo!();
+
+        // let (eth_client, _network) = setup_rpc(&tx_opts.opts).await?;
+        // // Get the block number of the transaction
+        // let tx = eth_client
+        //     .get_transaction_by_hash(tx_hash)
+        //     .await?
+        //     .ok_or(eyre::Error::msg("error fetching transaction"))?;
+        // get_blockdata(tx_opts.opts, Some(tx.block_number.as_u64()))
+        //     .await?
+        //     .0
     };
 
     let (receipt, transitions) = run_tx(cache, tx_hash).await?;
@@ -985,7 +988,7 @@ fn print_transition(update: AccountUpdate) {
         println!("    New nonce: {}", info.nonce);
         println!("    New codehash: {:#x}", info.code_hash);
         if let Some(code) = update.code {
-            println!("    New code: {}", hex::encode(code));
+            println!("    New code: {}", hex::encode(code.bytecode));
         }
     }
     if !update.added_storage.is_empty() {
@@ -1027,7 +1030,7 @@ pub async fn replay_custom_l1_blocks(
     let genesis = network.get_genesis()?;
 
     let mut store = {
-        let store_inner = Store::new("./", EngineType::InMemory)?;
+        let mut store_inner = Store::new("./", EngineType::InMemory)?;
         store_inner.add_initial_state(genesis.clone()).await?;
         store_inner
     };
@@ -1146,7 +1149,7 @@ pub async fn produce_l1_block(
             err => ethrex_rpc::RpcErr::Internal(err.to_string()),
         })?;
 
-    blockchain.add_block(block.clone()).await?;
+    blockchain.add_block(block.clone())?;
 
     let new_block_hash = block.hash();
 
@@ -1354,7 +1357,7 @@ async fn fetch_latest_block_number(
     rpc_url: &Url,
     only_eth_proofs_blocks: bool,
 ) -> eyre::Result<u64> {
-    let eth_client = EthClient::new(rpc_url.as_str())?;
+    let eth_client = EthClient::new(rpc_url.clone())?;
 
     let mut latest_block_number = eth_client.get_block_number().await?.as_u64();
 
