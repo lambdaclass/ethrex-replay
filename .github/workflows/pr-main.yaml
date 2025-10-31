@@ -1,10 +1,11 @@
-name: Replay CI
+name: Replay
 permissions:
   contents: read
 
 on:
   push:
     branches: ["**"]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -24,8 +25,40 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Override ethrex dependency branches if necessary
+        shell: bash
+        env:
+          REPLAY_BRANCH: ${{ github.ref_name }}
+        run: |
+          # This step is necessary in case there's a branch in ethrex related to this replay branch. We update the Cargo.toml accordingly.
+          # Branch mapping policy:
+          #   replay:ethrex/<branch> -> ethrex:<branch>
+          #   replay:<branch>        -> ethrex:replay/<branch>
+
+          echo "Replay branch: ${REPLAY_BRANCH}"
+          if [[ "$REPLAY_BRANCH" == ethrex/* ]]; then
+            ethrex_candidate="${REPLAY_BRANCH#ethrex/}"
+          else
+            ethrex_candidate="replay/${REPLAY_BRANCH}"
+          fi
+
+          echo "Considering ethrex dependency branch candidate: '${ethrex_candidate}'."
+
+          if git ls-remote --exit-code --heads https://github.com/lambdaclass/ethrex.git "$ethrex_candidate" >/dev/null; then
+            echo "Using ethrex branch '$ethrex_candidate' for dependencies."
+            # replace only on lines mentioning ethrex
+            BRANCH="$ethrex_candidate" perl -i -pe 'BEGIN{ $b=$ENV{BRANCH} } s/branch = "main"/branch = "$b"/ if /ethrex/;' Cargo.toml
+          else
+            echo "No matching ethrex branch found; keeping dependencies on main." >&2
+          fi
+
       - name: Setup Rust Environment
         uses: ./.github/actions/setup-rust
+
+      - name: Update ethrex git dependencies
+        shell: bash
+        run: |
+          make update-ethrex-deps
 
       - name: Install rustfmt
         run: rustup component add rustfmt
@@ -50,8 +83,7 @@ jobs:
         env:
           FEATURE_ARGS: ${{ matrix.features }}
         run: |
-          set -euxo pipefail
-          args=(--release --no-default-features)
+          args=(--release --no-default-features --all-targets)
           if [ -n "${FEATURE_ARGS}" ]; then
             args+=("--features" "${FEATURE_ARGS}")
           fi
@@ -62,8 +94,7 @@ jobs:
         env:
           FEATURE_ARGS: ${{ matrix.features }}
         run: |
-          set -euxo pipefail
-          args=(--release --no-default-features)
+          args=(--release --no-default-features --all-targets)
           if [ -n "${FEATURE_ARGS}" ]; then
             args+=("--features" "${FEATURE_ARGS}")
           fi
@@ -101,8 +132,39 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
+      - name: Override ethrex dependency branches if necessary
+        shell: bash
+        env:
+          REPLAY_BRANCH: ${{ github.ref_name }}
+        run: |
+          # This step is necessary in case there's a branch in ethrex related to this replay branch. We update the Cargo.toml accordingly.
+          # Branch mapping policy:
+          #   replay:ethrex/<branch> -> ethrex:<branch>
+          #   replay:<branch>        -> ethrex:replay/<branch>
+
+          if [[ "$REPLAY_BRANCH" == ethrex/* ]]; then
+            ethrex_candidate="${REPLAY_BRANCH#ethrex/}"
+          else
+            ethrex_candidate="replay/${REPLAY_BRANCH}"
+          fi
+
+          echo "Considering ethrex dependency branch candidate: '${ethrex_candidate}'."
+
+          if git ls-remote --exit-code --heads https://github.com/lambdaclass/ethrex.git "$ethrex_candidate" >/dev/null; then
+            echo "Using ethrex branch '$ethrex_candidate' for dependencies."
+            # replace only on lines mentioning ethrex
+            BRANCH="$ethrex_candidate" perl -i -pe 'BEGIN{ $b=$ENV{BRANCH} } s/branch = "main"/branch = "$b"/ if /ethrex/;' Cargo.toml
+          else
+            echo "No matching ethrex branch found; keeping dependencies on main." >&2
+          fi
+
       - name: Setup Rust Environment
         uses: ./.github/actions/setup-rust
+
+      - name: Update ethrex git dependencies
+        shell: bash
+        run: |
+          make update-ethrex-deps
 
       - name: RISC-V Risc0 toolchain install
         if: matrix.backend == 'risc0'

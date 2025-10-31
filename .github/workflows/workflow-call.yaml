@@ -1,0 +1,87 @@
+name: Replay Workflow Call
+
+on:
+  workflow_call:
+    inputs:
+      ethrex_branch:
+        description: "Branch name of ethrex repo that invoked this workflow"
+        type: string
+        required: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Decide replay ref from ethrex branch
+        id: pick_ref
+        shell: bash
+        env:
+          ETHREX_BRANCH: ${{ inputs.ethrex_branch }}
+        run: |
+          # This workflow has been called from ethrex, so now we decide which replay branch we are going to use
+          # Policy:
+          #   ethrex:<branch>       -> replay:ethrex/<branch>
+          #   ethrex:replay/<branch> -> replay:<branch>
+
+          if [[ "$ETHREX_BRANCH" == replay/* ]]; then
+            CANDIDATE="${ETHREX_BRANCH#replay/}"
+            echo "Ethrex branch '${ETHREX_BRANCH}' expects replay branch '${CANDIDATE}'."
+          else
+            CANDIDATE="ethrex/$ETHREX_BRANCH"
+            echo "Ethrex branch '${ETHREX_BRANCH}' expects replay branch '${CANDIDATE}'."
+          fi
+
+          if git ls-remote --exit-code --heads https://github.com/lambdaclass/ethrex-replay.git "$CANDIDATE" >/dev/null; then
+            echo "ref=$CANDIDATE" >> "$GITHUB_OUTPUT"
+            echo "Picked replay branch: $CANDIDATE"
+            exit 0
+          fi
+
+          # Stable default when the linked branch does not exist
+          echo "ref=main" >> "$GITHUB_OUTPUT"
+          echo "No matching branch found; falling back to main"
+
+      - name: Checkout called repo
+        uses: actions/checkout@v4
+        with:
+          repository: lambdaclass/ethrex-replay
+          ref: ${{ steps.pick_ref.outputs.ref }}
+
+      - name: Update Cargo.toml dependency branch
+        shell: bash
+        run: |
+          branch='${{ inputs.ethrex_branch }}'
+          echo "Setting ethrex dependency branch to '${branch}'."
+          # replace only on lines mentioning ethrex
+          BRANCH="$branch" perl -i -pe 'BEGIN{ $b=$ENV{BRANCH} } s/branch = "main"/branch = "$b"/ if /ethrex/;' Cargo.toml
+
+      - name: Setup Rust Environment
+        uses: ./.github/actions/setup-rust
+
+      - name: Update ethrex git dependencies
+        shell: bash
+        run: |
+          # Update only ethrex git dependencies to latest commit on their branches
+          make update-ethrex-deps
+
+      - name: Run block
+        run: cargo run -- block 1265656 --cache-dir ./caches --network hoodi --cached
+
+      - name: "Help: Replay CI failure troubleshooting"
+        if: ${{ failure() }}
+        env:
+          ETHREX_BRANCH: ${{ inputs.ethrex_branch }}
+          PICKED_REF: ${{ steps.pick_ref.outputs.ref }}
+        shell: bash
+        run: |
+          branch="${ETHREX_BRANCH}"
+          echo "Replay workflow failed for ethrex branch: ${branch}" >&2
+          echo "Replay ref used (branch or fallback): ${PICKED_REF}" >&2
+          echo "If this failure is due to a branch mismatch, see the Ethrex ↔ Replay CI guide:" >&2
+          echo "https://github.com/lambdaclass/ethrex-replay/blob/main/docs/contributing-ethrex.md" >&2
+          if [[ "$branch" == replay/* ]]; then
+            candidate="${branch#replay/}"
+            echo "Tip: create a matching branch in ethrex-replay named '${candidate}' if your ethrex changes require replay updates." >&2
+          else
+            echo "Tip: create a matching branch in ethrex-replay named 'ethrex/${branch}' if your ethrex changes require replay updates." >&2
+          fi
