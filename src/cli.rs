@@ -213,6 +213,14 @@ pub struct EthrexReplayOptions {
         default_value_t = false
     )]
     pub bench: bool,
+    #[arg(
+        long,
+        default_value = "on",
+        help_heading = "Replay Options",
+        help = "Criteria to send notifications to Slack",
+        requires = "slack_webhook_url"
+    )]
+    pub notification_level: NotificationLevel,
 }
 
 #[derive(Clone, Debug, ValueEnum)]
@@ -279,9 +287,17 @@ impl Display for Action {
 
 #[derive(ValueEnum, Clone, Debug, PartialEq, Eq, Default)]
 pub enum CacheLevel {
-    Off,
     Failed,
+    Off,
     #[default]
+    On,
+}
+
+#[derive(ValueEnum, Clone, Debug, PartialEq, Eq, Default)]
+pub enum NotificationLevel {
+    #[default]
+    Failed,
+    Off,
     On,
 }
 
@@ -546,6 +562,7 @@ impl EthrexReplayCommand {
                     bench: false,
                     cache_dir: PathBuf::from("./replay_cache"),
                     network: None,
+                    notification_level: NotificationLevel::default(),
                 };
 
                 let report = replay_custom_l1_blocks(max(1, n_blocks), opts).await?;
@@ -660,6 +677,7 @@ impl EthrexReplayCommand {
                     cache_dir: PathBuf::from("./replay_cache"),
                     verbose: false,
                     network: None,
+                    notification_level: NotificationLevel::default(),
                 };
 
                 let report = replay_custom_l2_blocks(max(1, n_blocks), opts).await?;
@@ -903,7 +921,19 @@ async fn replay_block(block_opts: BlockOptions) -> eyre::Result<()> {
         report.log();
     }
 
-    try_send_report_to_slack(&report, opts.slack_webhook_url).await?;
+    match opts.notification_level {
+        NotificationLevel::Failed => {
+            if report.execution_result.is_err()
+                || report.proving_result.as_ref().is_some_and(|r| r.is_err())
+            {
+                try_send_report_to_slack(&report, opts.slack_webhook_url).await?;
+            }
+        }
+        NotificationLevel::Off => {}
+        NotificationLevel::On => {
+            try_send_report_to_slack(&report, opts.slack_webhook_url).await?;
+        }
+    };
 
     // Decide whether or not to keep the cache when fetching data from RPC.
     if !opts.cached {
