@@ -1027,15 +1027,14 @@ pub async fn replay_custom_l2_blocks(
     n_blocks: u64,
     opts: EthrexReplayOptions,
 ) -> eyre::Result<Report> {
-    use ethrex_blockchain::{BlockchainOptions, BlockchainType};
-    use ethrex_common::types::fee_config::FeeConfig;
+    use ethrex_blockchain::{BlockchainOptions, BlockchainType, L2Config};
 
     let network = Network::LocalDevnetL2;
 
     let genesis = network.get_genesis()?;
 
     let mut store = {
-        let store_inner = Store::new("./", EngineType::InMemory)?;
+        let mut store_inner = Store::new("./", EngineType::InMemory)?;
         store_inner.add_initial_state(genesis.clone()).await?;
         store_inner
     };
@@ -1051,7 +1050,7 @@ pub async fn replay_custom_l2_blocks(
     };
 
     let blockchain_options = BlockchainOptions {
-        r#type: BlockchainType::L2(FeeConfig::default()),
+        r#type: BlockchainType::L2(L2Config::default()),
         ..Default::default()
     };
     let blockchain = Arc::new(Blockchain::new(store.clone(), blockchain_options));
@@ -1167,7 +1166,7 @@ pub async fn produce_custom_l2_block(
 
     let new_block = payload_build_result.payload;
 
-    let chain_config = store.get_chain_config()?;
+    let chain_config = store.get_chain_config();
 
     validate_block(
         &new_block,
@@ -1186,15 +1185,12 @@ pub async fn produce_custom_l2_block(
     };
 
     let account_updates_list = store
-        .apply_account_updates_batch(new_block.header.parent_hash, &account_updates)
-        .await?
+        .apply_account_updates_batch(new_block.header.parent_hash, &account_updates)?
         .ok_or(eyre::Error::msg(
             "Failed to apply account updates: parent block not found",
         ))?;
 
-    blockchain
-        .store_block(new_block.clone(), account_updates_list, execution_result)
-        .await?;
+    blockchain.store_block(new_block.clone(), account_updates_list, execution_result)?;
 
     rollup_store
         .store_account_updates_by_block_number(new_block.header.number, account_updates)

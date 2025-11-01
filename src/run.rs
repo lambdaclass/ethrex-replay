@@ -221,6 +221,6 @@ fn get_l2_input(cache: Cache) -> eyre::Result<ProgramInput> {
         elasticity_multiplier: ELASTICITY_MULTIPLIER,
         blob_commitment: l2_fields.blob_commitment,
         blob_proof: l2_fields.blob_proof,
-        fee_config: Some(FeeConfig::default()),
+        fee_configs: Some(vec![FeeConfig::default()]),
     })
 }
