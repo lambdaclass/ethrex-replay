@@ -1,10 +1,13 @@
 use crate::cache::Cache;
+#[cfg(feature = "l2")]
+use ethrex_common::types::fee_config::FeeConfig;
 use ethrex_common::{
     H256,
     types::{
         AccountUpdate, ELASTICITY_MULTIPLIER, Receipt, block_execution_witness::GuestProgramState,
     },
 };
+use ethrex_l2_common::prover::ProofFormat;
 use ethrex_levm::{db::gen_db::GeneralizedDatabase, vm::VMType};
 use ethrex_prover::backend::Backend;
 use ethrex_rpc::debug::execution_witness::execution_witness_from_rpc_chain_config;
@@ -53,11 +56,14 @@ pub async fn prove(backend: Backend, cache: Cache) -> eyre::Result<Duration> {
     #[cfg(not(feature = "l2"))]
     let input = get_l1_input(cache)?;
 
+    // TODO: This should be parameterized
+    let proof_format = ProofFormat::Groth16;
+
     let start = SystemTime::now();
 
     // Use catch_unwind to capture panics
     let result = catch_unwind(AssertUnwindSafe(|| {
-        ethrex_prover::prove(backend, input, false)
+        ethrex_prover::prove(backend, input, proof_format)
     }));
 
     let elapsed = start.elapsed()?;
@@ -104,7 +110,10 @@ pub async fn run_tx(cache: Cache, tx_hash: H256) -> eyre::Result<(Receipt, Vec<A
     let mut wrapped_db = GuestProgramStateWrapper::new(guest_program_state);
 
     #[cfg(feature = "l2")]
-    let vm_type = VMType::L2;
+    let fee_config = FeeConfig::default();
+
+    #[cfg(feature = "l2")]
+    let vm_type = VMType::L2(fee_config);
     #[cfg(not(feature = "l2"))]
     let vm_type = VMType::L1;
 
@@ -118,7 +127,7 @@ pub async fn run_tx(cache: Cache, tx_hash: H256) -> eyre::Result<(Receipt, Vec<A
 
     for (tx, tx_sender) in block.body.get_transactions_with_sender()? {
         #[cfg(feature = "l2")]
-        let mut vm = Evm::new_for_l2(wrapped_db.clone())?;
+        let mut vm = Evm::new_for_l2(wrapped_db.clone(), fee_config)?;
         #[cfg(not(feature = "l2"))]
         let mut vm = Evm::new_for_l1(wrapped_db.clone());
         let (receipt, _) = vm.execute_tx(tx, &block.header, &mut remaining_gas, tx_sender)?;
@@ -167,6 +176,7 @@ fn get_l1_input(cache: Cache) -> eyre::Result<ProgramInput> {
         blocks,
         execution_witness,
         elasticity_multiplier: ELASTICITY_MULTIPLIER,
+        fee_configs: None,
     })
 }
 
@@ -183,6 +193,8 @@ fn extract_panic_message(panic_info: &Box<dyn std::any::Any + Send>) -> String {
 
 #[cfg(feature = "l2")]
 fn get_l2_input(cache: Cache) -> eyre::Result<ProgramInput> {
+    use ethrex_common::types::fee_config::FeeConfig;
+
     let Cache {
         blocks,
         witness: db,
@@ -209,5 +221,6 @@ fn get_l2_input(cache: Cache) -> eyre::Result<ProgramInput> {
         elasticity_multiplier: ELASTICITY_MULTIPLIER,
         blob_commitment: l2_fields.blob_commitment,
         blob_proof: l2_fields.blob_proof,
+        fee_configs: Some(vec![FeeConfig::default()]),
     })
 }
