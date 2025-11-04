@@ -4,22 +4,22 @@ edition = "2024"
 authors = ["LambdaClass"]
 
 [dependencies]
-ethrex-config = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-config", branch = "main" }
-ethrex-storage = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-storage", branch = "main" }
-ethrex-common = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-common", branch = "main" }
-ethrex-vm = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-vm", branch = "main" }
-ethrex-levm = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-levm", branch = "main" }
-ethrex-rpc = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-rpc", branch = "main" }
-ethrex-p2p = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-p2p", branch = "main" }
-ethrex-trie = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-trie", branch = "main" }
-ethrex-rlp = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-rlp", branch = "main" }
-ethrex-blockchain = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-blockchain", branch = "main" }
-ethrex-l2 = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2", branch = "main", optional = true }
-ethrex-l2-common = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2-common", branch = "main" }
-ethrex-storage-rollup = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-storage-rollup", branch = "main", optional = true }
-ethrex-l2-rpc = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2-rpc", branch = "main" }
-ethrex-prover = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-prover", branch = "main", default-features = false }
-guest_program = { git = "https://github.com/lambdaclass/ethrex", package = "guest_program", branch = "main", default-features = false }
+ethrex-config = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-config", branch = "add_zisk_zkvm_backend" }
+ethrex-storage = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-storage", branch = "add_zisk_zkvm_backend" }
+ethrex-common = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-common", branch = "add_zisk_zkvm_backend" }
+ethrex-vm = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-vm", branch = "add_zisk_zkvm_backend" }
+ethrex-levm = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-levm", branch = "add_zisk_zkvm_backend" }
+ethrex-rpc = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-rpc", branch = "add_zisk_zkvm_backend" }
+ethrex-p2p = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-p2p", branch = "add_zisk_zkvm_backend" }
+ethrex-trie = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-trie", branch = "add_zisk_zkvm_backend" }
+ethrex-rlp = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-rlp", branch = "add_zisk_zkvm_backend" }
+ethrex-blockchain = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-blockchain", branch = "add_zisk_zkvm_backend" }
+ethrex-l2 = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2", branch = "add_zisk_zkvm_backend", optional = true }
+ethrex-l2-common = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2-common", branch = "add_zisk_zkvm_backend" }
+ethrex-storage-rollup = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-storage-rollup", branch = "add_zisk_zkvm_backend", optional = true }
+ethrex-l2-rpc = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2-rpc", branch = "add_zisk_zkvm_backend" }
+ethrex-prover = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-prover", branch = "add_zisk_zkvm_backend", default-features = false }
+guest_program = { git = "https://github.com/lambdaclass/ethrex", package = "guest_program", branch = "add_zisk_zkvm_backend", default-features = false }
 
 serde = { version = "1.0.203", features = ["derive"] }
 hex = "0.4.3"
@@ -43,6 +43,7 @@ tikv-jemallocator = { version = "0.6.0", optional = true }
 [features]
 risc0 = ["guest_program/risc0", "ethrex-prover/risc0"]
 sp1 = ["guest_program/sp1", "ethrex-prover/sp1"]
+zisk = ["guest_program/zisk-guest", "ethrex-prover/zisk"]
 gpu = ["ethrex-prover/gpu"]
 l2 = [
     "guest_program/l2",

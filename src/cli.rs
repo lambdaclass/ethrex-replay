@@ -801,16 +801,22 @@ pub fn backend(zkvm: &Option<ZKVM>) -> eyre::Result<Backend> {
             #[cfg(feature = "sp1")]
             return Ok(Backend::SP1);
             #[cfg(not(feature = "sp1"))]
-            return Err(eyre::Error::msg("SP1 feature not enabled"));
+            return Err(eyre::Error::msg("sp1 feature not enabled"));
         }
         Some(ZKVM::Risc0) => {
             #[cfg(feature = "risc0")]
             return Ok(Backend::RISC0);
             #[cfg(not(feature = "risc0"))]
-            return Err(eyre::Error::msg("RISC0 feature not enabled"));
+            return Err(eyre::Error::msg("risc0 feature not enabled"));
+        }
+        Some(ZKVM::Zisk) => {
+            #[cfg(feature = "zisk")]
+            return Ok(Backend::ZisK);
+            #[cfg(not(feature = "zisk"))]
+            return Err(eyre::Error::msg("zisk feature not enabled"));
         }
         Some(_other) => Err(eyre::Error::msg(
-            "Only SP1 and RISC0 backends are supported currently",
+            "Only SP1, RISC0, and ZisK backends are supported currently",
         )),
         None => Ok(Backend::Exec),
     }
