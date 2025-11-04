@@ -22,6 +22,9 @@ target
 # Default replay cache directory (JIC)
 replay_cache/
 
+# asdf
+.tool-versions
+
 # Caches we want to store
 !caches/*.json
 !caches/**/*.json

@@ -4,22 +4,22 @@ edition = "2024"
 authors = ["LambdaClass"]
 
 [dependencies]
-ethrex-config = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-config", branch = "fix_replay_path_based" }
-ethrex-storage = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-storage", branch = "fix_replay_path_based" }
-ethrex-common = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-common", branch = "fix_replay_path_based" }
-ethrex-vm = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-vm", branch = "fix_replay_path_based" }
-ethrex-levm = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-levm", branch = "fix_replay_path_based" }
-ethrex-rpc = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-rpc", branch = "fix_replay_path_based" }
-ethrex-p2p = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-p2p", branch = "fix_replay_path_based" }
-ethrex-trie = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-trie", branch = "fix_replay_path_based" }
-ethrex-rlp = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-rlp", branch = "fix_replay_path_based" }
-ethrex-blockchain = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-blockchain", branch = "fix_replay_path_based" }
-ethrex-l2 = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2", branch = "fix_replay_path_based", optional = true }
-ethrex-l2-common = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2-common", branch = "fix_replay_path_based" }
-ethrex-storage-rollup = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-storage-rollup", branch = "fix_replay_path_based", optional = true }
-ethrex-l2-rpc = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2-rpc", branch = "fix_replay_path_based" }
-ethrex-prover = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-prover", branch = "fix_replay_path_based", default-features = false }
-guest_program = { git = "https://github.com/lambdaclass/ethrex", package = "guest_program", branch = "fix_replay_path_based", default-features = false }
+ethrex-config = { path = "../ethrex/crates/common/config" }
+ethrex-storage = { path = "../ethrex/crates/storage" }
+ethrex-common = { path = "../ethrex/crates/common" }
+ethrex-vm = { path = "../ethrex/crates/vm" }
+ethrex-levm = { path = "../ethrex/crates/vm/levm" }
+ethrex-rpc = { path = "../ethrex/crates/networking/rpc" }
+ethrex-p2p = { path = "../ethrex/crates/networking/p2p" }
+ethrex-trie = { path = "../ethrex/crates/common/trie" }
+ethrex-rlp = { path = "../ethrex/crates/common/rlp" }
+ethrex-blockchain = { path = "../ethrex/crates/blockchain" }
+ethrex-l2 = { path = "../ethrex/crates/l2", optional = true }
+ethrex-l2-common = { path = "../ethrex/crates/l2/common" }
+ethrex-storage-rollup = { path = "../ethrex/crates/l2/storage", optional = true }
+ethrex-l2-rpc = { path = "../ethrex/crates/l2/networking/rpc" }
+ethrex-prover = { package = "ethrex-prover", path = "../ethrex/crates/l2/prover", default-features = false }
+guest_program = { path = "../ethrex/crates/l2/prover/src/guest_program", default-features = false }
 
 serde = { version = "1.0.203", features = ["derive"] }
 hex = "0.4.3"
