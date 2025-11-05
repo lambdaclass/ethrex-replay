@@ -1,8 +1,7 @@
 #[cfg(not(feature = "l2"))]
 use ethrex_config::networks::Network;
-use ethrex_rlp::decode::RLPDecode;
-use ethrex_trie::{Node, NodeHash, NodeRef};
-use std::collections::{BTreeMap, HashSet};
+use ethrex_rlp::encode::RLPEncode;
+use ethrex_trie::{InMemoryTrieDB, Nibbles, Node, node::BranchNode};
 #[cfg(not(feature = "l2"))]
 use std::path::Path;
 
@@ -31,34 +30,28 @@ pub fn get_block_numbers_in_cache_dir(dir: &Path, network: &Network) -> eyre::Re
     Ok(block_numbers)
 }
 
-/// Given a mapping of nodes with their corresponding hash get all hashes referenced by branch and extension nodes.
-pub fn get_referenced_hashes(
-    nodes: &BTreeMap<Vec<u8>, Vec<u8>>,
-) -> eyre::Result<HashSet<NodeHash>> {
-    let mut referenced_hashes: HashSet<NodeHash> = HashSet::new();
+/// Gets all trie nodes as an array of (Path, RLP Value)
+/// It also inserts dummy nodes so that we don't have nodes missing during execution.
+/// We want this when we request something that doesn't alter the state.
+pub fn get_trie_nodes_with_dummies(in_memory_trie: InMemoryTrieDB) -> Vec<(Nibbles, Vec<u8>)> {
+    let mut guard = in_memory_trie.inner.lock().unwrap();
+    let dummy_branch = Node::from(BranchNode::default()).encode_to_vec();
+    // Dummy Branch nodes injection to the trie in order for execution not to fail when we want to access a missing node
+    for (nibbles, _node_rlp) in guard.clone() {
+        // Skip nodes that already represent full paths, which are 65 bytes.
+        if nibbles.len() > 64 {
+            continue;
+        }
 
-    for (_node_hash, node_rlp) in nodes.iter() {
-        let node = Node::decode(node_rlp)?;
-        match node {
-            Node::Branch(node) => {
-                for choice in &node.choices {
-                    if let NodeRef::Hash(hash) = *choice {
-                        referenced_hashes.insert(hash);
-                    } else {
-                        return Err(eyre::eyre!("Branch node contains non-hash reference"));
-                    }
-                }
-            }
-            Node::Extension(node) => {
-                if let NodeRef::Hash(hash) = node.child {
-                    referenced_hashes.insert(hash);
-                } else {
-                    return Err(eyre::eyre!("Extension node contains non-hash reference"));
-                }
-            }
-            Node::Leaf(_node) => {}
+        for nibble in 0x00u8..=0x0fu8 {
+            let mut key = nibbles.clone();
+            key.push(nibble);
+            guard.entry(key).or_insert(dummy_branch.clone());
         }
     }
 
-    Ok(referenced_hashes)
+    guard
+        .iter()
+        .map(|(key, value)| (Nibbles::from_hex(key.to_vec()), value.clone()))
+        .collect()
 }
