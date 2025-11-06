@@ -731,7 +731,7 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
     let state_trie_nodes = get_trie_nodes_with_dummies(state_trie);
 
     // I think we don't care "where" we open the state trie
-    let trie = store.open_state_trie(*EMPTY_TRIE_HASH)?;
+    let trie = store.open_direct_state_trie(*EMPTY_TRIE_HASH)?;
 
     trie.db().put_batch(state_trie_nodes)?;
 
