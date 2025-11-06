@@ -1,6 +1,7 @@
 #[cfg(not(feature = "l2"))]
 use crate::helpers::get_block_numbers_in_cache_dir;
 use bytes::Bytes;
+use ethrex_l2_common::prover::ProofFormat;
 use std::{cmp::max, fmt::Display, path::PathBuf, sync::Arc, time::Duration};
 
 use clap::{ArgGroup, Parser, Subcommand, ValueEnum};
@@ -120,6 +121,8 @@ pub struct CommonOptions {
     pub resource: Resource,
     #[arg(long, value_enum, default_value_t = Action::default(), help_heading = "Replay Options")]
     pub action: Action,
+    #[arg(long, value_enum, default_value_t = ProofType::default(), help_heading = "Replay Options", conflicts_with_all = ["no_zkvm"])]
+    pub proof: ProofType,
 }
 
 #[derive(Parser, Clone)]
@@ -260,6 +263,32 @@ impl Display for Action {
             Action::Prove => "Prove",
         };
         write!(f, "{s}")
+    }
+}
+
+#[derive(Clone, Debug, ValueEnum, PartialEq, Eq, Default)]
+pub enum ProofType {
+    #[default]
+    Compressed,
+    Groth16,
+}
+
+impl Display for ProofType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            ProofType::Compressed => "Compressed",
+            ProofType::Groth16 => "Groth16",
+        };
+        write!(f, "{s}")
+    }
+}
+
+impl From<ProofType> for ProofFormat {
+    fn from(value: ProofType) -> Self {
+        match value {
+            ProofType::Compressed => ProofFormat::Compressed,
+            ProofType::Groth16 => ProofFormat::Groth16,
+        }
     }
 }
 
@@ -612,7 +641,7 @@ impl EthrexReplayCommand {
 
                 let proving_result = match opts.common.action {
                     Action::Execute => None,
-                    Action::Prove => Some(prove(backend, cache).await),
+                    Action::Prove => Some(prove(backend, opts.common.proof, cache).await),
                 };
 
                 println!("Batch {batch} execution result: {execution_result:?}");
@@ -723,7 +752,7 @@ async fn replay_block(block_opts: BlockOptions) -> eyre::Result<()> {
 
         let proving_result = if opts.common.action == Action::Prove {
             // Only prove if requested
-            Some(prove(backend, cache.clone()).await)
+            Some(prove(backend, opts.common.proof, cache.clone()).await)
         } else {
             None
         };
@@ -918,7 +947,14 @@ pub async fn replay_custom_l1_blocks(
 
     let proving_result = if opts.common.action == Action::Prove {
         // Only prove if requested
-        Some(prove(backend(&opts.common.zkvm)?, cache.clone()).await)
+        Some(
+            prove(
+                backend(&opts.common.zkvm)?,
+                opts.common.proof,
+                cache.clone(),
+            )
+            .await,
+        )
     } else {
         None
     };
@@ -950,14 +986,14 @@ pub async fn produce_l1_blocks(
     let mut current_timestamp = initial_timestamp;
 
     for _ in 0..n_blocks {
-        let block = produce_l1_block(
+        let (block, block_hash) = produce_l1_block(
             blockchain.clone(),
             store,
             current_parent_hash,
             current_timestamp,
         )
         .await?;
-        current_parent_hash = block.hash();
+        current_parent_hash = block_hash;
         current_timestamp += 12; // Assuming an average block time of 12 seconds
         blocks.push(block);
     }
@@ -970,7 +1006,7 @@ pub async fn produce_l1_block(
     store: &mut Store,
     head_block_hash: H256,
     timestamp: u64,
-) -> eyre::Result<Block> {
+) -> eyre::Result<(Block, H256)> {
     let build_payload_args = BuildPayloadArgs {
         parent: head_block_hash,
         timestamp,
@@ -1006,11 +1042,13 @@ pub async fn produce_l1_block(
 
     blockchain.add_block(block.clone())?;
 
-    let new_block_hash = block.hash();
+    // We clone here to avoid initializing the block hash, it is needed
+    // uninitialized by the guest program.
+    let new_block_hash = block.clone().hash();
 
     apply_fork_choice(store, new_block_hash, new_block_hash, new_block_hash).await?;
 
-    Ok(block)
+    Ok((block, new_block_hash))
 }
 
 #[cfg(feature = "l2")]
@@ -1028,6 +1066,7 @@ pub async fn replay_custom_l2_blocks(
     opts: EthrexReplayOptions,
 ) -> eyre::Result<Report> {
     use ethrex_blockchain::{BlockchainOptions, BlockchainType, L2Config};
+    use ethrex_common::types::fee_config::FeeConfig;
 
     let network = Network::LocalDevnetL2;
 
@@ -1067,7 +1106,9 @@ pub async fn replay_custom_l2_blocks(
     )
     .await?;
 
-    let execution_witness = blockchain.generate_witness_for_blocks(&blocks).await?;
+    let execution_witness = blockchain
+        .generate_witness_for_blocks_with_fee_configs(&blocks, Some(&[FeeConfig::default()]))
+        .await?;
 
     let cache = Cache::new(
         blocks,
@@ -1082,7 +1123,7 @@ pub async fn replay_custom_l2_blocks(
 
     let proving_result = match opts.common.action {
         Action::Execute => None,
-        Action::Prove => Some(prove(backend, cache.clone()).await),
+        Action::Prove => Some(prove(backend, opts.common.proof, cache.clone()).await),
     };
 
     let report = Report::new_for(
