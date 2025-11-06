@@ -34,10 +34,11 @@ pub fn get_block_numbers_in_cache_dir(dir: &Path, network: &Network) -> eyre::Re
 /// It also inserts dummy nodes so that we don't have nodes missing during execution.
 /// We want this when we request something that doesn't alter the state.
 pub fn get_trie_nodes_with_dummies(in_memory_trie: InMemoryTrieDB) -> Vec<(Nibbles, Vec<u8>)> {
-    let mut guard = in_memory_trie.inner.lock().unwrap();
+    let node_map = in_memory_trie.inner();
+    let mut node_map_guard = node_map.lock().unwrap();
     let dummy_branch = Node::from(BranchNode::default()).encode_to_vec();
     // Dummy Branch nodes injection to the trie in order for execution not to fail when we want to access a missing node
-    for (nibbles, _node_rlp) in guard.clone() {
+    for (nibbles, _node_rlp) in node_map_guard.clone() {
         // Skip nodes that already represent full paths, which are 65 bytes.
         if nibbles.len() > 64 {
             continue;
@@ -46,11 +47,11 @@ pub fn get_trie_nodes_with_dummies(in_memory_trie: InMemoryTrieDB) -> Vec<(Nibbl
         for nibble in 0x00u8..=0x0fu8 {
             let mut key = nibbles.clone();
             key.push(nibble);
-            guard.entry(key).or_insert(dummy_branch.clone());
+            node_map_guard.entry(key).or_insert(dummy_branch.clone());
         }
     }
 
-    guard
+    node_map_guard
         .iter()
         .map(|(key, value)| (Nibbles::from_hex(key.to_vec()), value.clone()))
         .collect()
