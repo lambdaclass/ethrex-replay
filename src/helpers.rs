@@ -38,8 +38,9 @@ pub fn get_trie_nodes_with_dummies(in_memory_trie: InMemoryTrieDB) -> Vec<(Nibbl
     let mut node_map_guard = node_map.lock().unwrap();
     let dummy_branch = Node::from(BranchNode::default()).encode_to_vec();
     // Dummy Branch nodes injection to the trie in order for execution not to fail when we want to access a missing node
-    for (nibbles, _node_rlp) in node_map_guard.clone() {
-        // Skip nodes that already represent full paths, which are 65 bytes.
+    let nodes_paths: Vec<_> = node_map_guard.keys().cloned().collect();
+    for nibbles in nodes_paths {
+        // Skip nodes that already represent full paths.
         if nibbles.len() > 64 {
             continue;
         }
