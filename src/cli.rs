@@ -1,6 +1,8 @@
 #[cfg(not(feature = "l2"))]
 use crate::helpers::get_block_numbers_in_cache_dir;
 use bytes::Bytes;
+use ethrex_l2_rpc::signer::{LocalSigner, Signer};
+use eyre::OptionExt;
 use std::{cmp::max, fmt::Display, path::PathBuf, sync::Arc, time::Duration};
 
 use clap::{ArgGroup, Parser, Subcommand, ValueEnum};
@@ -30,7 +32,7 @@ use tracing::{debug, info};
 use crate::fetcher::get_batchdata;
 #[cfg(not(feature = "l2"))]
 use crate::plot_composition::plot;
-use crate::{cache::Cache, fetcher::get_blockdata, report::Report};
+use crate::{cache::Cache, fetcher::get_blockdata, report::Report, tx_builder::TxBuilder};
 use crate::{
     run::{exec, prove, run_tx},
     slack::try_send_report_to_slack,
@@ -353,7 +355,21 @@ pub struct BatchOptions {
 #[derive(Parser)]
 pub struct CustomBlockOptions {
     #[command(flatten)]
-    common: CommonOptions,
+    pub common: CommonOptions,
+    #[arg(
+        long,
+        help = "Number of transactions to include in the block.",
+        help_heading = "Command Options",
+        requires = "tx"
+    )]
+    pub n_txs: Option<u64>,
+    #[arg(
+        long,
+        help = "Kind of transactions to include in the block.",
+        help_heading = "Command Options",
+        requires = "n_txs"
+    )]
+    pub tx: Option<TxKind>,
 }
 
 #[derive(Parser)]
@@ -365,7 +381,14 @@ pub struct CustomBatchOptions {
     )]
     n_blocks: u64,
     #[command(flatten)]
-    common: CommonOptions,
+    block_opts: CustomBlockOptions,
+}
+
+#[derive(ValueEnum, Clone, Debug, PartialEq, Eq, Default)]
+pub enum TxKind {
+    #[default]
+    ETHTransfer,
+    ERC20Transfer,
 }
 
 impl EthrexReplayCommand {
@@ -516,11 +539,11 @@ impl EthrexReplayCommand {
                 }
             }
             #[cfg(not(feature = "l2"))]
-            Self::Custom(CustomSubcommand::Block(CustomBlockOptions { common })) => {
+            Self::Custom(CustomSubcommand::Block(block_opts)) => {
                 Box::pin(async move {
                     Self::Custom(CustomSubcommand::Batch(CustomBatchOptions {
                         n_blocks: 1,
-                        common,
+                        block_opts,
                     }))
                     .run()
                     .await
@@ -528,13 +551,16 @@ impl EthrexReplayCommand {
                 .await?;
             }
             #[cfg(not(feature = "l2"))]
-            Self::Custom(CustomSubcommand::Batch(CustomBatchOptions { n_blocks, common })) => {
+            Self::Custom(CustomSubcommand::Batch(CustomBatchOptions {
+                n_blocks,
+                block_opts,
+            })) => {
                 let opts = EthrexReplayOptions {
                     rpc_url: Some(Url::parse("http://localhost:8545")?),
                     cached: false,
                     no_zkvm: false,
                     cache_level: CacheLevel::default(),
-                    common,
+                    common: block_opts.common.clone(),
                     slack_webhook_url: None,
                     bench: false,
                     cache_dir: PathBuf::from("./replay_cache"),
@@ -542,7 +568,7 @@ impl EthrexReplayCommand {
                     notification_level: NotificationLevel::default(),
                 };
 
-                replay_custom_l1_blocks(max(1, n_blocks), opts).await?;
+                replay_custom_l1_blocks(max(1, n_blocks), block_opts, opts).await?;
             }
             #[cfg(not(feature = "l2"))]
             Self::Transaction(opts) => replay_transaction(opts).await?,
@@ -870,7 +896,11 @@ fn print_receipt(receipt: Receipt) {
     }
 }
 
-pub async fn replay_custom_l1_blocks(n_blocks: u64, opts: EthrexReplayOptions) -> eyre::Result<()> {
+pub async fn replay_custom_l1_blocks(
+    n_blocks: u64,
+    block_opts: CustomBlockOptions,
+    opts: EthrexReplayOptions,
+) -> eyre::Result<()> {
     let network = Network::LocalDevnet;
 
     let genesis = network.get_genesis()?;
@@ -886,12 +916,23 @@ pub async fn replay_custom_l1_blocks(n_blocks: u64, opts: EthrexReplayOptions) -
         ethrex_blockchain::BlockchainOptions::default(),
     ));
 
+    // 0x941e103320615d394a55708be13e45994c7d93b932b064dbcb2b511fe3254e2e is the
+    // private key for address 0x4417092b70a3e5f10dc504d0947dd256b965fc62, a
+    // pre-funded account in the local devnet genesis.
+    let signer = Signer::Local(LocalSigner::new(
+        "941e103320615d394a55708be13e45994c7d93b932b064dbcb2b511fe3254e2e"
+            .parse()
+            .expect("invalid private key"),
+    ));
+
     let blocks = produce_l1_blocks(
+        block_opts,
         blockchain.clone(),
         &mut store,
         genesis.get_block().hash(),
         genesis.timestamp + 12,
         n_blocks,
+        &signer,
     )
     .await?;
 
@@ -936,11 +977,13 @@ pub async fn replay_custom_l1_blocks(n_blocks: u64, opts: EthrexReplayOptions) -
 }
 
 pub async fn produce_l1_blocks(
+    block_opts: CustomBlockOptions,
     blockchain: Arc<Blockchain>,
     store: &mut Store,
     head_block_hash: H256,
     initial_timestamp: u64,
     n_blocks: u64,
+    signer: &Signer,
 ) -> eyre::Result<Vec<Block>> {
     let mut blocks = Vec::new();
     let mut current_parent_hash = head_block_hash;
@@ -948,10 +991,12 @@ pub async fn produce_l1_blocks(
 
     for _ in 0..n_blocks {
         let block = produce_l1_block(
+            &block_opts,
             blockchain.clone(),
             store,
             current_parent_hash,
             current_timestamp,
+            signer,
         )
         .await?;
         current_parent_hash = block.hash();
@@ -963,10 +1008,12 @@ pub async fn produce_l1_blocks(
 }
 
 pub async fn produce_l1_block(
+    block_opts: &CustomBlockOptions,
     blockchain: Arc<Blockchain>,
     store: &mut Store,
     head_block_hash: H256,
     timestamp: u64,
+    signer: &Signer,
 ) -> eyre::Result<Block> {
     let build_payload_args = BuildPayloadArgs {
         parent: head_block_hash,
@@ -983,6 +1030,21 @@ pub async fn produce_l1_block(
     let payload_id = build_payload_args.id()?;
 
     let payload = create_payload(&build_payload_args, store, Bytes::new())?;
+
+    for n in 0..block_opts.n_txs.unwrap_or_default() {
+        let tx_builder = match block_opts
+            .tx
+            .as_ref()
+            .ok_or_eyre("--tx needs to be passed")?
+        {
+            TxKind::ETHTransfer => TxBuilder::ETHTransfer,
+            TxKind::ERC20Transfer => unimplemented!(),
+        };
+
+        let tx = tx_builder.build_tx(n, signer).await;
+
+        blockchain.add_transaction_to_pool(tx).await?;
+    }
 
     blockchain
         .clone()
