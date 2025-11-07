@@ -24,7 +24,7 @@ impl TxBuilder {
                 Self::build_signed_transaction(nonce, 0, calldata, *address, signer).await
             }
             TxBuilder::ETHTransfer => {
-                Self::build_signed_transaction(nonce, 0, Vec::default(), Address::random(), signer)
+                Self::build_signed_transaction(nonce, 1, Vec::default(), Address::random(), signer)
                     .await
             }
         }
