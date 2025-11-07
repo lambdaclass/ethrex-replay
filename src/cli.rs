@@ -732,7 +732,6 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
     let state_trie = InMemoryTrieDB::from_nodes(state_root, all_nodes)?;
     let state_trie_nodes = get_trie_nodes_with_dummies(state_trie);
 
-    // I think we don't care "where" we open the state trie
     let trie = store.open_direct_state_trie(*EMPTY_TRIE_HASH)?;
 
     trie.db().put_batch(state_trie_nodes)?;
@@ -780,8 +779,7 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
 
         store
             .write_storage_trie_nodes_batch(storage_trie_nodes)
-            .await
-            .unwrap();
+            .await?;
     }
 
     store.chain_config = chain_config;
