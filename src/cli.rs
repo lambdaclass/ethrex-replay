@@ -369,7 +369,7 @@ pub struct CustomBlockOptions {
         help_heading = "Command Options",
         requires = "n_txs"
     )]
-    pub tx: Option<TxKind>,
+    pub tx: Option<TxVariant>,
 }
 
 #[derive(Parser)]
@@ -385,7 +385,7 @@ pub struct CustomBatchOptions {
 }
 
 #[derive(ValueEnum, Clone, Debug, PartialEq, Eq, Default)]
-pub enum TxKind {
+pub enum TxVariant {
     #[default]
     ETHTransfer,
     ERC20Transfer,
@@ -1035,8 +1035,8 @@ pub async fn produce_l1_block(
             .as_ref()
             .ok_or_eyre("--tx needs to be passed")?
         {
-            TxKind::ETHTransfer => TxBuilder::ETHTransfer,
-            TxKind::ERC20Transfer => unimplemented!(),
+            TxVariant::ETHTransfer => TxBuilder::ETHTransfer,
+            TxVariant::ERC20Transfer => unimplemented!(),
         };
 
         let tx = tx_builder.build_tx(n, signer).await;
