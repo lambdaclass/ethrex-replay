@@ -650,14 +650,11 @@ impl EthrexReplayCommand {
                     slack_webhook_url: None,
                     bench: false,
                     cache_dir: PathBuf::from("./replay_cache"),
-                    verbose: false,
                     network: None,
                     notification_level: NotificationLevel::default(),
                 };
 
-                let report = replay_custom_l2_blocks(max(1, n_blocks), opts).await?;
-
-                println!("{report}");
+                replay_custom_l2_blocks(max(1, n_blocks), opts).await?;
             }
         }
 
@@ -1023,10 +1020,7 @@ use ethrex_storage_rollup::StoreRollup;
 use ethrex_vm::BlockExecutionResult;
 
 #[cfg(feature = "l2")]
-pub async fn replay_custom_l2_blocks(
-    n_blocks: u64,
-    opts: EthrexReplayOptions,
-) -> eyre::Result<Report> {
+pub async fn replay_custom_l2_blocks(n_blocks: u64, opts: EthrexReplayOptions) -> eyre::Result<()> {
     use ethrex_blockchain::{BlockchainOptions, BlockchainType, L2Config};
 
     let network = Network::LocalDevnetL2;
@@ -1097,7 +1091,13 @@ pub async fn replay_custom_l2_blocks(
         proving_result,
     );
 
-    Ok(report)
+    if opts.common.verbose {
+        println!("{report}");
+    } else {
+        report.log();
+    }
+
+    Ok(())
 }
 
 #[cfg(feature = "l2")]
