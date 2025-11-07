@@ -647,14 +647,12 @@ impl EthrexReplayCommand {
             #[cfg(feature = "l2")]
             Self::L2(L2Subcommand::Block(block_opts)) => replay_block(block_opts).await?,
             #[cfg(feature = "l2")]
-            Self::L2(L2Subcommand::Custom(CustomSubcommand::Block(CustomBlockOptions {
-                common,
-            }))) => {
+            Self::L2(L2Subcommand::Custom(CustomSubcommand::Block(block_opts))) => {
                 Box::pin(async move {
                     Self::L2(L2Subcommand::Custom(CustomSubcommand::Batch(
                         CustomBatchOptions {
                             n_blocks: 1,
-                            common,
+                            block_opts,
                         },
                     )))
                     .run()
@@ -665,10 +663,10 @@ impl EthrexReplayCommand {
             #[cfg(feature = "l2")]
             Self::L2(L2Subcommand::Custom(CustomSubcommand::Batch(CustomBatchOptions {
                 n_blocks,
-                common,
+                block_opts,
             }))) => {
                 let opts = EthrexReplayOptions {
-                    common,
+                    common: block_opts.common.clone(),
                     rpc_url: Some(Url::parse("http://localhost:8545")?),
                     cached: false,
                     no_zkvm: false,
