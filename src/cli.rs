@@ -770,7 +770,7 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
         let storage_trie_nodes = get_trie_nodes_with_dummies(storage_trie);
 
         // If there isn't any storage trie node we don't need to write anything
-        if storage_trie_nodes.len() == 0 {
+        if storage_trie_nodes.is_empty() {
             continue;
         }
 
