@@ -120,6 +120,14 @@ pub struct CommonOptions {
     pub resource: Resource,
     #[arg(long, value_enum, default_value_t = Action::default(), help_heading = "Replay Options")]
     pub action: Action,
+    #[arg(
+        long,
+        short,
+        help = "Enable verbose logging",
+        help_heading = "Replay Options",
+        required = false
+    )]
+    pub verbose: bool,
 }
 
 #[derive(Parser, Clone)]
@@ -170,14 +178,6 @@ pub struct EthrexReplayOptions {
         conflicts_with = "zkvm"
     )]
     pub no_zkvm: bool,
-    #[arg(
-        long,
-        short,
-        help = "Enable verbose logging",
-        help_heading = "Replay Options",
-        required = false
-    )]
-    pub verbose: bool,
     // CAUTION
     // This flag is used to create a benchmark file that is used by our CI for
     // updating benchmarks from https://docs.ethrex.xyz/benchmarks/.
@@ -536,16 +536,13 @@ impl EthrexReplayCommand {
                     cache_level: CacheLevel::default(),
                     common,
                     slack_webhook_url: None,
-                    verbose: false,
                     bench: false,
                     cache_dir: PathBuf::from("./replay_cache"),
                     network: None,
                     notification_level: NotificationLevel::default(),
                 };
 
-                let report = replay_custom_l1_blocks(max(1, n_blocks), opts).await?;
-
-                println!("{report}");
+                replay_custom_l1_blocks(max(1, n_blocks), opts).await?;
             }
             #[cfg(not(feature = "l2"))]
             Self::Transaction(opts) => replay_transaction(opts).await?,
@@ -741,7 +738,7 @@ async fn replay_block(block_opts: BlockOptions) -> eyre::Result<()> {
         proving_result,
     );
 
-    if opts.verbose {
+    if opts.common.verbose {
         println!("{report}");
     } else {
         report.log();
@@ -876,10 +873,7 @@ fn print_receipt(receipt: Receipt) {
     }
 }
 
-pub async fn replay_custom_l1_blocks(
-    n_blocks: u64,
-    opts: EthrexReplayOptions,
-) -> eyre::Result<Report> {
+pub async fn replay_custom_l1_blocks(n_blocks: u64, opts: EthrexReplayOptions) -> eyre::Result<()> {
     let network = Network::LocalDevnet;
 
     let genesis = network.get_genesis()?;
@@ -935,7 +929,13 @@ pub async fn replay_custom_l1_blocks(
         proving_result,
     );
 
-    Ok(report)
+    if opts.common.verbose {
+        println!("{report}");
+    } else {
+        report.log();
+    }
+
+    Ok(())
 }
 
 pub async fn produce_l1_blocks(
