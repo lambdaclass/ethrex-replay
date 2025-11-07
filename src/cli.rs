@@ -1,6 +1,7 @@
-use crate::helpers::{get_block_numbers_in_cache_dir, get_trie_nodes_with_dummies};
-use bytes::Bytes;
 #[cfg(not(feature = "l2"))]
+use crate::helpers::get_block_numbers_in_cache_dir;
+use crate::helpers::get_trie_nodes_with_dummies;
+use bytes::Bytes;
 use ethrex_rlp::decode::RLPDecode;
 use ethrex_trie::{EMPTY_TRIE_HASH, InMemoryTrieDB};
 use std::{
@@ -39,7 +40,8 @@ use reqwest::Url;
 #[cfg(feature = "l2")]
 use std::path::Path;
 #[cfg(not(feature = "l2"))]
-use tracing::{debug, info};
+use tracing::debug;
+use tracing::info;
 
 #[cfg(feature = "l2")]
 use crate::fetcher::get_batchdata;
