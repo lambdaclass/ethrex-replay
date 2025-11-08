@@ -681,7 +681,7 @@ impl EthrexReplayCommand {
 
                 let proving_result = match opts.common.action {
                     Action::Execute => None,
-                    Action::Prove => Some(prove(backend, opts.common.proof, cache).await),
+                    Action::Prove => Some(prove(backend, opts.common.proof_type, cache).await),
                 };
 
                 println!("Batch {batch} execution result: {execution_result:?}");
@@ -1309,7 +1309,7 @@ pub async fn replay_custom_l2_blocks(n_blocks: u64, opts: EthrexReplayOptions) -
 
     let proving_result = match opts.common.action {
         Action::Execute => None,
-        Action::Prove => Some(prove(backend, opts.common.proof, cache.clone()).await),
+        Action::Prove => Some(prove(backend, opts.common.proof_type, cache.clone()).await),
     };
 
     let report = Report::new_for(
