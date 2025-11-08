@@ -1,5 +1,7 @@
 #[cfg(not(feature = "l2"))]
 use ethrex_config::networks::Network;
+use ethrex_rlp::encode::RLPEncode;
+use ethrex_trie::{InMemoryTrieDB, Nibbles, Node, node::BranchNode};
 #[cfg(not(feature = "l2"))]
 use std::path::Path;
 
@@ -26,4 +28,32 @@ pub fn get_block_numbers_in_cache_dir(dir: &Path, network: &Network) -> eyre::Re
 
     block_numbers.sort_unstable();
     Ok(block_numbers)
+}
+
+/// Gets all trie nodes as an array of (Path, RLP Value)
+/// It also inserts dummy nodes so that we don't have nodes missing during execution.
+/// We want this when we request something that doesn't alter the state.
+pub fn get_trie_nodes_with_dummies(in_memory_trie: InMemoryTrieDB) -> Vec<(Nibbles, Vec<u8>)> {
+    let node_map = in_memory_trie.inner();
+    let mut node_map_guard = node_map.lock().unwrap();
+    let dummy_branch = Node::from(BranchNode::default()).encode_to_vec();
+    // Dummy Branch nodes injection to the trie in order for execution not to fail when we want to access a missing node
+    let nodes_paths: Vec<_> = node_map_guard.keys().cloned().collect();
+    for nibbles in nodes_paths {
+        // Skip nodes that already represent full paths.
+        if nibbles.len() > 64 {
+            continue;
+        }
+
+        for nibble in 0x00u8..=0x0fu8 {
+            let mut key = nibbles.clone();
+            key.push(nibble);
+            node_map_guard.entry(key).or_insert(dummy_branch.clone());
+        }
+    }
+
+    node_map_guard
+        .iter()
+        .map(|(key, value)| (Nibbles::from_hex(key.to_vec()), value.clone()))
+        .collect()
 }
