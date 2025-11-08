@@ -1,0 +1,164 @@
+name: Replay CI
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: ["**"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    name: Lint
+    strategy:
+      fail-fast: false
+      matrix:
+        features: ["", "l2", "l2,sp1", "l2,risc0", "sp1", "risc0"]
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Free Disk Space
+        uses: ./.github/actions/free-disk
+
+      - name: Setup Rust Environment
+        uses: ./.github/actions/setup-rust
+
+      - name: Install rustfmt
+        run: rustup component add rustfmt
+
+      - name: Install clippy
+        run: rustup component add clippy
+
+      - name: RISC-V Risc0 toolchain install
+        if: contains(matrix.features, 'risc0')
+        run: |
+          curl -L https://risczero.com/install | bash
+          ~/.risc0/bin/rzup install cargo-risczero 3.0.3
+          ~/.risc0/bin/rzup install risc0-groth16
+          ~/.risc0/bin/rzup install rust
+
+      - name: cargo fmt --check --all
+        if: matrix.features == '' # Run only without features because it's redundant to run it on all jobs
+        run: cargo fmt --check --all
+
+      - name: cargo check
+        shell: bash
+        env:
+          FEATURE_ARGS: ${{ matrix.features }}
+        run: |
+          set -euxo pipefail
+          args=(--release --no-default-features)
+          if [ -n "${FEATURE_ARGS}" ]; then
+            args+=("--features" "${FEATURE_ARGS}")
+          fi
+          cargo check "${args[@]}"
+
+      - name: cargo clippy
+        shell: bash
+        env:
+          FEATURE_ARGS: ${{ matrix.features }}
+        run: |
+          set -euxo pipefail
+          args=(--release --no-default-features)
+          if [ -n "${FEATURE_ARGS}" ]; then
+            args+=("--features" "${FEATURE_ARGS}")
+          fi
+          cargo clippy "${args[@]}" -- -D warnings
+
+  all-lints:
+    name: Lint
+    runs-on: ubuntu-latest
+    needs: [lint]
+    if: ${{ always() }}
+    steps:
+      - name: Aggregate lint results
+        run: |
+          if [ "${{ needs.lint.result }}" = "success" ]; then
+            echo "All lint jobs succeeded."
+            exit 0
+          fi
+          echo "Some lint jobs failed" >&2
+          exit 1
+
+  test:
+    runs-on: ubuntu-latest
+    name: Execute an L1 block with ${{ matrix.backend }} backend
+    strategy:
+      fail-fast: false
+      matrix:
+        backend: ["sp1", "risc0", "exec"]
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Free Disk Space
+        uses: ./.github/actions/free-disk
+
+      - name: Setup Rust Environment
+        uses: ./.github/actions/setup-rust
+
+      - name: RISC-V Risc0 toolchain install
+        if: matrix.backend == 'risc0'
+        run: |
+          curl -L https://risczero.com/install | bash
+          ~/.risc0/bin/rzup install cargo-risczero 3.0.3
+          ~/.risc0/bin/rzup install risc0-groth16
+          ~/.risc0/bin/rzup install rust
+
+      - name: RISC-V SP1 toolchain install
+        if: matrix.backend == 'sp1'
+        run: |
+          curl -L https://sp1.succinct.xyz | bash
+          ~/.sp1/bin/sp1up --version 5.0.8
+
+      - name: Build Risc0
+        if: matrix.backend == 'risc0'
+        run: |
+          cargo b -r --no-default-features --features "${{ matrix.backend }}"
+
+      - name: Build SP1
+        if: matrix.backend == 'sp1'
+        run: |
+          cargo b -r --features "${{ matrix.backend }}"
+
+      - name: Build No backend
+        if: matrix.backend == 'exec'
+        run: |
+          cargo b -r
+
+      - name: Run
+        env:
+          BLOCK_NUMBER: 1265656
+          NETWORK: hoodi
+        run: |
+          # Install cache file before running
+          install -D caches/cache_hoodi_${BLOCK_NUMBER}.json replay_cache/cache_hoodi_${BLOCK_NUMBER}.json
+
+          if [ "${{ matrix.backend }}" = "exec" ]; then
+            make execute-ci BLOCK_NUMBER=${BLOCK_NUMBER} NETWORK=${NETWORK}
+          else
+            make execute-${{ matrix.backend }}-ci BLOCK_NUMBER=${BLOCK_NUMBER} NETWORK=${NETWORK}
+          fi
+
+  all-tests:
+    name: Integration Test
+    runs-on: ubuntu-latest
+    needs:
+      - test
+    if: ${{ always() }}
+    steps:
+      - name: Aggregate test results
+        run: |
+          if [ "${{ needs.test.result }}" = "success" ]; then
+            echo "All test jobs succeeded."
+            exit 0
+          fi
+          echo "Some test jobs failed" >&2
+          exit 1
