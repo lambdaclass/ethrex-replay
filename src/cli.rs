@@ -1107,7 +1107,10 @@ pub async fn replay_custom_l2_blocks(
     .await?;
 
     let execution_witness = blockchain
-        .generate_witness_for_blocks_with_fee_configs(&blocks, Some(&[FeeConfig::default()]))
+        .generate_witness_for_blocks_with_fee_configs(
+            &blocks,
+            Some(&[FeeConfig::default(); blocks.len()]),
+        )
         .await?;
 
     let cache = Cache::new(
