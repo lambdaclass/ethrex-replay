@@ -121,8 +121,8 @@ pub struct CommonOptions {
     pub resource: Resource,
     #[arg(long, value_enum, default_value_t = Action::default(), help_heading = "Replay Options")]
     pub action: Action,
-    #[arg(long, value_enum, default_value_t = ProofType::default(), help_heading = "Replay Options", conflicts_with_all = ["no_zkvm"])]
-    pub proof: ProofType,
+    #[arg(long = "proof", value_enum, default_value_t = ProofType::default(), help_heading = "Replay Options", conflicts_with_all = ["no_zkvm"])]
+    pub proof_type: ProofType,
 }
 
 #[derive(Parser, Clone)]
@@ -752,7 +752,7 @@ async fn replay_block(block_opts: BlockOptions) -> eyre::Result<()> {
 
         let proving_result = if opts.common.action == Action::Prove {
             // Only prove if requested
-            Some(prove(backend, opts.common.proof, cache.clone()).await)
+            Some(prove(backend, opts.common.proof_type, cache.clone()).await)
         } else {
             None
         };
@@ -950,7 +950,7 @@ pub async fn replay_custom_l1_blocks(
         Some(
             prove(
                 backend(&opts.common.zkvm)?,
-                opts.common.proof,
+                opts.common.proof_type,
                 cache.clone(),
             )
             .await,
