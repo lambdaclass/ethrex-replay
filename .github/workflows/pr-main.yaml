@@ -101,9 +101,6 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
-      - name: Free Disk Space
-        uses: ./.github/actions/free-disk
-
       - name: Setup Rust Environment
         uses: ./.github/actions/setup-rust
 
