@@ -1292,7 +1292,7 @@ pub async fn replay_custom_l2_blocks(n_blocks: u64, opts: EthrexReplayOptions) -
     let execution_witness = blockchain
         .generate_witness_for_blocks_with_fee_configs(
             &blocks,
-            Some(&[FeeConfig::default(); blocks.len()]),
+            Some(&vec![FeeConfig::default(); blocks.len()]),
         )
         .await?;
 
