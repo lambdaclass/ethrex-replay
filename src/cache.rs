@@ -51,25 +51,6 @@ pub struct Cache {
 }
 
 impl Cache {
-    pub fn get_first_block_number(&self) -> eyre::Result<u64> {
-        self.blocks
-            .iter()
-            .map(|block| block.header.number)
-            .min()
-            .ok_or_eyre("Cache should contain at least one block number.")
-    }
-
-    pub fn get_chain_config(&self) -> eyre::Result<ChainConfig> {
-        if let Some(config) = self.chain_config {
-            Ok(config)
-        } else {
-            self.network
-                .get_genesis()
-                .map(|genesis| genesis.config)
-                .map_err(|e| eyre::eyre!("Failed to get genesis config: {}", e))
-        }
-    }
-
     pub fn new(
         blocks: Vec<Block>,
         witness: RpcExecutionWitness,
@@ -96,6 +77,25 @@ impl Cache {
             chain_config,
             l2_fields,
             dir,
+        }
+    }
+
+    pub fn get_first_block_number(&self) -> eyre::Result<u64> {
+        self.blocks
+            .iter()
+            .map(|block| block.header.number)
+            .min()
+            .ok_or_eyre("Cache should contain at least one block number.")
+    }
+
+    pub fn get_chain_config(&self) -> eyre::Result<ChainConfig> {
+        if let Some(config) = self.chain_config {
+            Ok(config)
+        } else {
+            self.network
+                .get_genesis()
+                .map(|genesis| genesis.config)
+                .map_err(|e| eyre::eyre!("Failed to get genesis config: {}", e))
         }
     }
 

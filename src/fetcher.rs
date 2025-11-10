@@ -43,14 +43,14 @@ pub async fn get_blockdata(
         Ok((cache, network))
     } else {
         let (eth_client, rpc_network) = setup_rpc(&opts).await?;
-        if let Some(network) = &opts.network {
-            if network != &rpc_network {
-                return Err(eyre::eyre!(
-                    "Specified network ({}) does not match RPC network ({})",
-                    network,
-                    rpc_network
-                ));
-            }
+        if let Some(network) = &opts.network
+            && network != &rpc_network
+        {
+            return Err(eyre::eyre!(
+                "Specified network ({}) does not match RPC network ({})",
+                network,
+                rpc_network
+            ));
         }
         let block_identifier = match block {
             Some(n) => BlockIdentifier::Number(n),
@@ -148,7 +148,7 @@ async fn get_blockdata_rpc(
             warn!("debug_executionWitness endpoint not implemented, using fallback eth_getProof");
 
             #[cfg(feature = "l2")]
-            let vm_type = VMType::L2;
+            let vm_type = VMType::L2(FeeConfig::default());
             #[cfg(not(feature = "l2"))]
             let vm_type = VMType::L1;
 
@@ -210,7 +210,7 @@ async fn get_blockdata_rpc(
 }
 
 #[cfg(feature = "l2")]
-use ethrex_common::types::ChainConfig;
+use ethrex_common::types::{ChainConfig, fee_config::FeeConfig};
 
 #[cfg(feature = "l2")]
 async fn fetch_rangedata_from_client(
