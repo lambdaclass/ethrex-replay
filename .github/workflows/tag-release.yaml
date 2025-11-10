@@ -29,7 +29,7 @@ jobs:
       matrix:
         platform:
           - ubuntu-22.04
-          - ubuntu-24.04-arm
+          - ubuntu-22.04-arm
           - macos-latest
         stack:
           - l1
@@ -46,7 +46,7 @@ jobs:
             os: linux
             arch: x86_64
             cpu_flags: RUSTFLAGS='-C target-cpu=x86-64-v2'
-          - platform: ubuntu-24.04-arm
+          - platform: ubuntu-22.04-arm
             os: linux
             arch: aarch64
           - platform: macos-latest
@@ -58,13 +58,13 @@ jobs:
           - platform: ubuntu-22.04
             stack: l2
             features: l2,
-          - platform: ubuntu-24.04-arm
+          - platform: ubuntu-22.04-arm
             stack: l2
             features: l2,
           - platform: ubuntu-22.04
             stack: l2_gpu
             features: l2,gpu
-          - platform: ubuntu-24.04-arm
+          - platform: ubuntu-22.04-arm
             stack: l2_gpu
             features: l2,gpu
           - stack: l2_gpu
@@ -74,7 +74,7 @@ jobs:
           - platform: ubuntu-22.04
             stack: l1_gpu
             features: gpu
-          - platform: ubuntu-24.04-arm
+          - platform: ubuntu-22.04-arm
             stack: l1_gpu
             features: gpu
           - stack: l1_gpu
@@ -106,7 +106,7 @@ jobs:
           ~/.sp1/bin/sp1up --version 5.0.8
 
       - name: Set up QEMU (only Linux ARM)
-        if: ${{ matrix.platform == 'ubuntu-24.04-arm' }}
+        if: ${{ matrix.platform == 'ubuntu-22.04-arm' }}
         uses: docker/setup-qemu-action@v3
         with:
           platforms: amd64
