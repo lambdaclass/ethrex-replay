@@ -1,4 +1,4 @@
-use crate::cache::Cache;
+use crate::{cache::Cache, cli::ProofType};
 #[cfg(feature = "l2")]
 use ethrex_common::types::fee_config::FeeConfig;
 use ethrex_common::{
@@ -7,7 +7,6 @@ use ethrex_common::{
         AccountUpdate, ELASTICITY_MULTIPLIER, Receipt, block_execution_witness::GuestProgramState,
     },
 };
-use ethrex_l2_common::prover::ProofFormat;
 use ethrex_levm::{db::gen_db::GeneralizedDatabase, vm::VMType};
 use ethrex_prover::backend::Backend;
 use ethrex_rpc::debug::execution_witness::execution_witness_from_rpc_chain_config;
@@ -50,20 +49,21 @@ pub async fn exec(backend: Backend, cache: Cache) -> eyre::Result<Duration> {
     }
 }
 
-pub async fn prove(backend: Backend, cache: Cache) -> eyre::Result<Duration> {
+pub async fn prove(
+    backend: Backend,
+    proof_type: ProofType,
+    cache: Cache,
+) -> eyre::Result<Duration> {
     #[cfg(feature = "l2")]
     let input = get_l2_input(cache)?;
     #[cfg(not(feature = "l2"))]
     let input = get_l1_input(cache)?;
 
-    // TODO: This should be parameterized
-    let proof_format = ProofFormat::Groth16;
-
     let start = SystemTime::now();
 
     // Use catch_unwind to capture panics
     let result = catch_unwind(AssertUnwindSafe(|| {
-        ethrex_prover::prove(backend, input, proof_format)
+        ethrex_prover::prove(backend, input, proof_type.into())
     }));
 
     let elapsed = start.elapsed()?;
