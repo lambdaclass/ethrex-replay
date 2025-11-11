@@ -54,29 +54,29 @@ jobs:
             arch: aarch64
           - platform: macos-latest
             stack: l2
-            features: l2,
+            features: l2
           - platform: ubuntu-22.04
             stack: l2
-            features: l2,
+            features: l2,sp1,risc0
           - platform: ubuntu-22.04-arm
             stack: l2
-            features: l2,
+            features: l2,sp1
           - platform: ubuntu-22.04
             stack: l2_gpu
-            features: l2,gpu
+            features: l2,gpu,sp1
           - platform: ubuntu-22.04-arm
             stack: l2_gpu
-            features: l2,gpu
+            features: l2,gpu,sp1
           - stack: l2_gpu
             gpu_flags: NVCC_PREPEND_FLAGS='-arch=sm_70'
             l2_suffix: "-l2"
             gpu_suffix: "-gpu"
           - platform: ubuntu-22.04
             stack: l1_gpu
-            features: gpu
+            features: gpu,sp1,risc0
           - platform: ubuntu-22.04-arm
             stack: l1_gpu
-            features: gpu
+            features: gpu,sp1
           - stack: l1_gpu
             gpu_flags: NVCC_PREPEND_FLAGS='-arch=sm_70'
             gpu_suffix: "-gpu"
@@ -84,17 +84,18 @@ jobs:
             l2_suffix: "-l2"
     runs-on: ${{ matrix.platform }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Free Disk Space
         if: ${{ matrix.os == 'linux' }}
         uses: ./.github/actions/free-disk
-
-      - name: Checkout code
-        uses: actions/checkout@v4
 
       - name: Setup Rust Environment
         uses: ./.github/actions/setup-rust
 
       - name: Install SP1
+        if: ${{ matrix.os == 'linux' }}
         env:
           SHELL: /bin/bash
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -108,7 +109,8 @@ jobs:
         with:
           platforms: amd64
 
-      - name: Install RISC0
+      - name: Install RISC0 (only Linux x86)
+        if: ${{ matrix.platform == 'ubuntu-22.04' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -119,7 +121,7 @@ jobs:
 
       - name: Install CUDA (only Linux x86 GPU)
         uses: Jimver/cuda-toolkit@v0.2.24
-        if: ${{ matrix.platform == 'ubuntu-22.04' && matrix.stack == 'l2_gpu' }}
+        if: ${{ matrix.platform == 'ubuntu-22.04' && (matrix.stack == 'l2_gpu' || matrix.stack == 'l1_gpu') }}
         id: cuda-toolkit
         with:
           cuda: "12.9.0"
@@ -133,7 +135,7 @@ jobs:
 
       - name: Build ethrex-replay
         run: |
-          ${{ matrix.cpu_flags }} ${{ matrix.gpu_flags }} cargo build --release --features "${{ matrix.features }},sp1,risc0"
+          ${{ matrix.cpu_flags }} ${{ matrix.gpu_flags }} cargo build --release --features "${{ matrix.features }}"
           chmod +x target/release/ethrex-replay
           mv target/release/ethrex-replay ethrex-replay${{ matrix.l2_suffix }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.gpu_suffix }}
 
@@ -191,3 +193,4 @@ jobs:
             Installation and running instructions can be found in [our docs](https://docs.ethrex.xyz/ethrex_replay/ethrex_replay.html)
 
             ${{ steps.changelog.outputs.changes }}
+
