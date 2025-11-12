@@ -63,7 +63,7 @@ jobs:
             features: l2,sp1
           - platform: ubuntu-22.04
             stack: l2_gpu
-            features: l2,gpu,sp1
+            features: l2,gpu,sp1,risc0
           - platform: ubuntu-22.04-arm
             stack: l2_gpu
             features: l2,gpu,sp1
