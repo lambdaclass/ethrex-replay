@@ -3227,11 +3227,12 @@ dependencies = [
 
 [[package]]
 name = "ethrex-blockchain"
-version = "6.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#a6c7501598e59e1386e5f32636c250bab4b42363"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?tag=v7.0.0#f7cae770c6a8d78f355cb2f0afdcadfd75b14eba"
 dependencies = [
  "bytes",
  "ethrex-common",
+ "ethrex-crypto",
  "ethrex-metrics",
  "ethrex-rlp",
  "ethrex-storage",
@@ -3240,7 +3241,6 @@ dependencies = [
  "hex",
  "rustc-hash 2.1.1",
  "secp256k1",
- "sha3",
  "thiserror 2.0.17",
  "tokio",
  "tokio-util",
@@ -3249,8 +3249,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-common"
-version = "6.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#a6c7501598e59e1386e5f32636c250bab4b42363"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?tag=v7.0.0#f7cae770c6a8d78f355cb2f0afdcadfd75b14eba"
 dependencies = [
  "bytes",
  "crc32fast",
@@ -3270,7 +3270,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "sha3",
  "thiserror 2.0.17",
  "tinyvec",
  "tracing",
@@ -3279,8 +3278,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-config"
-version = "6.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#a6c7501598e59e1386e5f32636c250bab4b42363"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?tag=v7.0.0#f7cae770c6a8d78f355cb2f0afdcadfd75b14eba"
 dependencies = [
  "ethrex-common",
  "ethrex-p2p",
@@ -3291,18 +3290,19 @@ dependencies = [
 
 [[package]]
 name = "ethrex-crypto"
-version = "6.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#a6c7501598e59e1386e5f32636c250bab4b42363"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?tag=v7.0.0#f7cae770c6a8d78f355cb2f0afdcadfd75b14eba"
 dependencies = [
  "c-kzg",
  "kzg-rs",
  "thiserror 2.0.17",
+ "tiny-keccak",
 ]
 
 [[package]]
 name = "ethrex-dev"
-version = "6.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#a6c7501598e59e1386e5f32636c250bab4b42363"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?tag=v7.0.0#f7cae770c6a8d78f355cb2f0afdcadfd75b14eba"
 dependencies = [
  "bytes",
  "envy",
@@ -3321,8 +3321,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-l2"
-version = "6.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#a6c7501598e59e1386e5f32636c250bab4b42363"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?tag=v7.0.0#f7cae770c6a8d78f355cb2f0afdcadfd75b14eba"
 dependencies = [
  "aligned-sdk",
  "axum 0.8.6",
@@ -3379,30 +3379,30 @@ dependencies = [
 
 [[package]]
 name = "ethrex-l2-common"
-version = "6.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#a6c7501598e59e1386e5f32636c250bab4b42363"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?tag=v7.0.0#f7cae770c6a8d78f355cb2f0afdcadfd75b14eba"
 dependencies = [
  "bytes",
  "ethereum-types 0.15.1",
  "ethrex-common",
+ "ethrex-crypto",
  "ethrex-rlp",
  "ethrex-storage",
  "ethrex-trie",
  "ethrex-vm",
  "hex",
- "lambdaworks-crypto 0.11.0",
+ "lambdaworks-crypto 0.13.0",
  "rkyv",
  "secp256k1",
  "serde",
  "serde_with",
- "sha3",
  "thiserror 2.0.17",
 ]
 
 [[package]]
 name = "ethrex-l2-rpc"
-version = "6.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#a6c7501598e59e1386e5f32636c250bab4b42363"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?tag=v7.0.0#f7cae770c6a8d78f355cb2f0afdcadfd75b14eba"
 dependencies = [
  "axum 0.8.6",
  "bytes",
@@ -3431,8 +3431,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-levm"
-version = "6.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#a6c7501598e59e1386e5f32636c250bab4b42363"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?tag=v7.0.0#f7cae770c6a8d78f355cb2f0afdcadfd75b14eba"
 dependencies = [
  "ark-bn254",
  "ark-ec",
@@ -3446,7 +3446,7 @@ dependencies = [
  "ethrex-crypto",
  "ethrex-rlp",
  "k256",
- "lambdaworks-math 0.11.0",
+ "lambdaworks-math 0.13.0",
  "lazy_static",
  "malachite 0.6.1",
  "p256",
@@ -3456,7 +3456,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "sha3",
  "strum 0.27.2",
  "thiserror 2.0.17",
  "walkdir",
@@ -3464,20 +3463,24 @@ dependencies = [
 
 [[package]]
 name = "ethrex-metrics"
-version = "6.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#a6c7501598e59e1386e5f32636c250bab4b42363"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?tag=v7.0.0#f7cae770c6a8d78f355cb2f0afdcadfd75b14eba"
 dependencies = [
+ "axum 0.8.6",
  "ethrex-common",
+ "prometheus 0.13.4",
  "serde",
  "serde_json",
  "thiserror 2.0.17",
+ "tokio",
+ "tracing",
  "tracing-subscriber 0.3.20",
 ]
 
 [[package]]
 name = "ethrex-p2p"
-version = "6.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#a6c7501598e59e1386e5f32636c250bab4b42363"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?tag=v7.0.0#f7cae770c6a8d78f355cb2f0afdcadfd75b14eba"
 dependencies = [
  "aes",
  "async-trait",
@@ -3488,6 +3491,7 @@ dependencies = [
  "ethereum-types 0.15.1",
  "ethrex-blockchain",
  "ethrex-common",
+ "ethrex-crypto",
  "ethrex-rlp",
  "ethrex-storage",
  "ethrex-storage-rollup",
@@ -3498,14 +3502,13 @@ dependencies = [
  "hmac",
  "indexmap 2.12.0",
  "lazy_static",
- "prometheus",
+ "prometheus 0.14.0",
  "rand 0.8.5",
  "rayon",
  "secp256k1",
  "serde",
  "serde_json",
  "sha2",
- "sha3",
  "snap",
  "spawned-concurrency",
  "spawned-rt",
@@ -3518,8 +3521,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-prover"
-version = "6.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#a6c7501598e59e1386e5f32636c250bab4b42363"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?tag=v7.0.0#f7cae770c6a8d78f355cb2f0afdcadfd75b14eba"
 dependencies = [
  "anyhow",
  "bincode",
@@ -3554,7 +3557,7 @@ dependencies = [
 
 [[package]]
 name = "ethrex-replay"
-version = "0.0.0"
+version = "7.0.0"
 dependencies = [
  "again",
  "bytes",
@@ -3595,8 +3598,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-rlp"
-version = "6.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#a6c7501598e59e1386e5f32636c250bab4b42363"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?tag=v7.0.0#f7cae770c6a8d78f355cb2f0afdcadfd75b14eba"
 dependencies = [
  "bytes",
  "ethereum-types 0.15.1",
@@ -3609,8 +3612,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-rpc"
-version = "6.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#a6c7501598e59e1386e5f32636c250bab4b42363"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?tag=v7.0.0#f7cae770c6a8d78f355cb2f0afdcadfd75b14eba"
 dependencies = [
  "axum 0.8.6",
  "axum-extra",
@@ -3619,6 +3622,8 @@ dependencies = [
  "ethereum-types 0.15.1",
  "ethrex-blockchain",
  "ethrex-common",
+ "ethrex-crypto",
+ "ethrex-metrics",
  "ethrex-p2p",
  "ethrex-rlp",
  "ethrex-storage",
@@ -3633,7 +3638,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "sha3",
  "spawned-concurrency",
  "spawned-rt",
  "thiserror 2.0.17",
@@ -3647,8 +3651,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-sdk"
-version = "6.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#a6c7501598e59e1386e5f32636c250bab4b42363"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?tag=v7.0.0#f7cae770c6a8d78f355cb2f0afdcadfd75b14eba"
 dependencies = [
  "bytes",
  "ethereum-types 0.15.1",
@@ -3673,8 +3677,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-sdk-contract-utils"
-version = "6.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#a6c7501598e59e1386e5f32636c250bab4b42363"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?tag=v7.0.0#f7cae770c6a8d78f355cb2f0afdcadfd75b14eba"
 dependencies = [
  "thiserror 2.0.17",
  "tracing",
@@ -3682,8 +3686,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-storage"
-version = "6.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#a6c7501598e59e1386e5f32636c250bab4b42363"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?tag=v7.0.0#f7cae770c6a8d78f355cb2f0afdcadfd75b14eba"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3691,6 +3695,7 @@ dependencies = [
  "bytes",
  "ethereum-types 0.15.1",
  "ethrex-common",
+ "ethrex-crypto",
  "ethrex-rlp",
  "ethrex-trie",
  "hex",
@@ -3699,15 +3704,14 @@ dependencies = [
  "rustc-hash 2.1.1",
  "serde",
  "serde_json",
- "sha3",
  "thiserror 2.0.17",
  "tracing",
 ]
 
 [[package]]
 name = "ethrex-storage-rollup"
-version = "6.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#a6c7501598e59e1386e5f32636c250bab4b42363"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?tag=v7.0.0#f7cae770c6a8d78f355cb2f0afdcadfd75b14eba"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3727,28 +3731,29 @@ dependencies = [
 [[package]]
 name = "ethrex-threadpool"
 version = "0.1.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#a6c7501598e59e1386e5f32636c250bab4b42363"
+source = "git+https://github.com/lambdaclass/ethrex?tag=v7.0.0#f7cae770c6a8d78f355cb2f0afdcadfd75b14eba"
 dependencies = [
  "crossbeam 0.8.4",
 ]
 
 [[package]]
 name = "ethrex-trie"
-version = "6.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#a6c7501598e59e1386e5f32636c250bab4b42363"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?tag=v7.0.0#f7cae770c6a8d78f355cb2f0afdcadfd75b14eba"
 dependencies = [
  "anyhow",
  "bytes",
  "crossbeam 0.8.4",
  "digest 0.10.7",
  "ethereum-types 0.15.1",
+ "ethrex-crypto",
  "ethrex-rlp",
  "ethrex-threadpool",
  "hex",
  "lazy_static",
+ "rustc-hash 2.1.1",
  "serde",
  "serde_json",
- "sha3",
  "smallvec",
  "thiserror 2.0.17",
  "tracing",
@@ -3756,8 +3761,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-vm"
-version = "6.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#a6c7501598e59e1386e5f32636c250bab4b42363"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?tag=v7.0.0#f7cae770c6a8d78f355cb2f0afdcadfd75b14eba"
 dependencies = [
  "bincode",
  "bytes",
@@ -3765,14 +3770,13 @@ dependencies = [
  "dyn-clone",
  "ethereum-types 0.15.1",
  "ethrex-common",
+ "ethrex-crypto",
  "ethrex-levm",
  "ethrex-rlp",
  "ethrex-trie",
- "hex",
  "lazy_static",
  "rkyv",
  "serde",
- "sha3",
  "thiserror 2.0.17",
  "tracing",
 ]
@@ -4422,8 +4426,8 @@ dependencies = [
 
 [[package]]
 name = "guest_program"
-version = "6.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=main#a6c7501598e59e1386e5f32636c250bab4b42363"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?tag=v7.0.0#f7cae770c6a8d78f355cb2f0afdcadfd75b14eba"
 dependencies = [
  "bytes",
  "ethrex-blockchain",
@@ -5450,18 +5454,6 @@ dependencies = [
 
 [[package]]
 name = "lambdaworks-crypto"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ec4b462bbec171e1af821f3d9fff72e17de93b3d1022f29aa70fec8262c1cee"
-dependencies = [
- "lambdaworks-math 0.11.0",
- "serde",
- "sha2",
- "sha3",
-]
-
-[[package]]
-name = "lambdaworks-crypto"
 version = "0.12.0"
 source = "git+https://github.com/lambdaclass/lambdaworks.git?rev=5f8f2cfcc8a1a22f77e8dff2d581f1166eefb80b#5f8f2cfcc8a1a22f77e8dff2d581f1166eefb80b"
 dependencies = [
@@ -5474,14 +5466,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "lambdaworks-math"
-version = "0.11.0"
+name = "lambdaworks-crypto"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "708d148956bcdc21ae5c432b4e20bbaa26fd68d5376a3a6c461f41095abea0ba"
+checksum = "58b1a1c1102a5a7fbbda117b79fb3a01e033459c738a3c1642269603484fd1c1"
 dependencies = [
- "rayon",
+ "lambdaworks-math 0.13.0",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
  "serde",
- "serde_json",
+ "sha2",
+ "sha3",
 ]
 
 [[package]]
@@ -5491,6 +5486,21 @@ source = "git+https://github.com/lambdaclass/lambdaworks.git?rev=5f8f2cfcc8a1a22
 dependencies = [
  "getrandom 0.2.16",
  "rand 0.8.5",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "lambdaworks-math"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "018a95aa873eb49896a858dee0d925c33f3978d073c64b08dd4f2c9b35a017c6"
+dependencies = [
+ "getrandom 0.2.16",
+ "num-bigint 0.4.6",
+ "num-traits",
+ "rand 0.8.5",
+ "rayon",
  "serde",
  "serde_json",
 ]
@@ -7289,6 +7299,46 @@ dependencies = [
 ]
 
 [[package]]
+name = "procfs"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "731e0d9356b0c25f16f33b5be79b1c57b562f141ebfcdb0ad8ac2c13a24293b4"
+dependencies = [
+ "bitflags 2.10.0",
+ "hex",
+ "lazy_static",
+ "procfs-core",
+ "rustix 0.38.44",
+]
+
+[[package]]
+name = "procfs-core"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2d3554923a69f4ce04c4a754260c338f505ce22642d3830e049a399fc2059a29"
+dependencies = [
+ "bitflags 2.10.0",
+ "hex",
+]
+
+[[package]]
+name = "prometheus"
+version = "0.13.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3d33c28a30771f7f96db69893f78b857f7450d7e0237e9c8fc6427a81bae7ed1"
+dependencies = [
+ "cfg-if 1.0.4",
+ "fnv",
+ "lazy_static",
+ "libc",
+ "memchr",
+ "parking_lot 0.12.5",
+ "procfs",
+ "protobuf 2.28.0",
+ "thiserror 1.0.69",
+]
+
+[[package]]
 name = "prometheus"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7299,7 +7349,7 @@ dependencies = [
  "lazy_static",
  "memchr",
  "parking_lot 0.12.5",
- "protobuf",
+ "protobuf 3.7.2",
  "thiserror 2.0.17",
 ]
 
@@ -7369,6 +7419,12 @@ checksum = "52c2c1bf36ddb1a1c396b3601a3cec27c2462e45f07c386894ec3ccf5332bd16"
 dependencies = [
  "prost",
 ]
+
+[[package]]
+name = "protobuf"
+version = "2.28.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "106dd99e98437432fed6519dedecfade6a06a73bb7b2a1e019fdd2bee5778d94"
 
 [[package]]
 name = "protobuf"
