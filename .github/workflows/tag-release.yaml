@@ -157,8 +157,13 @@ jobs:
       - name: Get previous tag
         run: |
           last_tag=$(git --no-pager tag --sort=creatordate | grep -v -E '^v[0-9]+\.[0-9]+\.[0-9]+-' | grep -v '${{ github.ref_name }}' | tail -1)
-          echo "Last tag: $last_tag"
-          common_parent=$(git merge-base ${{ github.ref_name }} $last_tag)
+          if [[ -z "$last_tag" ]]; then
+            echo "No previous tags found; treating as first release."
+            common_parent="${{ github.ref_name }}"
+          else
+            echo "Last tag: $last_tag"
+            common_parent=$(git merge-base ${{ github.ref_name }} $last_tag)
+          fi
           echo "PREVIOUS_TAG: $common_parent"
           echo "PREVIOUS_TAG=$common_parent" >> $GITHUB_ENV
 
