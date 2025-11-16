@@ -2,26 +2,23 @@ name: Ethrex Replay Release
 
 on:
   push:
+    # On tags, this generates a release and pushes docker images with the tag name
     tags:
       - "v*.*.*-*"
+    # On pushes to main, this silently builds and pushes docker images tagged as 'main'
+    branches:
+      - main
   workflow_dispatch:
-    inputs:
-      test_mode:
-        description: "Test mode (yes/no)"
-        required: false
-        default: "no"
-        type: choice
-        options:
-          - no
-          - yes
 
 permissions:
   contents: write
   packages: write
+  actions: write
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  PROVER_REPRODUCIBLE_BUILD: true
 
 jobs:
   build-ethrex-replay:
@@ -141,6 +138,7 @@ jobs:
 
   # Creates a release on GitHub with the binaries
   finalize-release:
+    if: github.ref_type == 'tag' && github.event_name != 'workflow_dispatch'
     needs:
       - build-ethrex-replay
     runs-on: ubuntu-latest
