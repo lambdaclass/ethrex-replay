@@ -2,26 +2,23 @@ name: Ethrex Replay Release
 
 on:
   push:
+    # On tags, this generates a release and pushes docker images with the tag name
     tags:
       - "v*.*.*-*"
+    # On pushes to main, this silently builds and pushes docker images tagged as 'main'
+    branches:
+      - main
   workflow_dispatch:
-    inputs:
-      test_mode:
-        description: "Test mode (yes/no)"
-        required: false
-        default: "no"
-        type: choice
-        options:
-          - no
-          - yes
 
 permissions:
   contents: write
   packages: write
+  actions: write
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  PROVER_REPRODUCIBLE_BUILD: true
 
 jobs:
   build-ethrex-replay:
@@ -99,9 +96,7 @@ jobs:
         env:
           SHELL: /bin/bash
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          curl -L https://sp1up.succinct.xyz | bash
-          ~/.sp1/bin/sp1up --version 5.0.8
+        uses: ./.github/actions/install-sp1
 
       - name: Set up QEMU (only Linux ARM)
         if: ${{ matrix.platform == 'ubuntu-22.04-arm' }}
@@ -113,11 +108,7 @@ jobs:
         if: ${{ matrix.platform == 'ubuntu-22.04' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          curl -L https://risczero.com/install | bash
-          ~/.risc0/bin/rzup install cargo-risczero 3.0.3
-          ~/.risc0/bin/rzup install risc0-groth16
-          ~/.risc0/bin/rzup install rust
+        uses: ./.github/actions/install-risc0
 
       - name: Install CUDA (only Linux x86 GPU)
         uses: Jimver/cuda-toolkit@v0.2.24
@@ -147,6 +138,7 @@ jobs:
 
   # Creates a release on GitHub with the binaries
   finalize-release:
+    if: github.ref_type == 'tag' && github.event_name != 'workflow_dispatch'
     needs:
       - build-ethrex-replay
     runs-on: ubuntu-latest
@@ -193,4 +185,3 @@ jobs:
             Installation and running instructions can be found in [our docs](https://docs.ethrex.xyz/ethrex_replay/ethrex_replay.html)
 
             ${{ steps.changelog.outputs.changes }}
-
