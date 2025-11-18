@@ -2,6 +2,7 @@
 name = "ethrex-replay"
 edition = "2024"
 authors = ["LambdaClass"]
+version = "7.0.0"
 
 [dependencies]
 ethrex-config = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-config", branch = "add_zisk_zkvm_backend" }
@@ -17,6 +18,7 @@ ethrex-blockchain = { git = "https://github.com/lambdaclass/ethrex", package = "
 ethrex-l2 = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2", branch = "add_zisk_zkvm_backend", optional = true }
 ethrex-l2-common = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2-common", branch = "add_zisk_zkvm_backend" }
 ethrex-storage-rollup = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-storage-rollup", branch = "add_zisk_zkvm_backend", optional = true }
+ethrex-sdk = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-sdk", branch = "add_zisk_zkvm_backend" }
 ethrex-l2-rpc = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2-rpc", branch = "add_zisk_zkvm_backend" }
 ethrex-prover = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-prover", branch = "add_zisk_zkvm_backend", default-features = false }
 guest_program = { git = "https://github.com/lambdaclass/ethrex", package = "guest_program", branch = "add_zisk_zkvm_backend", default-features = false }

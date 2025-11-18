@@ -24,6 +24,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Free Disk Space
+        uses: ./.github/actions/free-disk
+
       - name: Setup Rust Environment
         uses: ./.github/actions/setup-rust
 
@@ -33,13 +36,13 @@ jobs:
       - name: Install clippy
         run: rustup component add clippy
 
-      - name: RISC-V Risc0 toolchain install
+      - name: Install Risc0
         if: contains(matrix.features, 'risc0')
-        run: |
-          curl -L https://risczero.com/install | bash
-          ~/.risc0/bin/rzup install cargo-risczero 3.0.3
-          ~/.risc0/bin/rzup install risc0-groth16
-          ~/.risc0/bin/rzup install rust
+        uses: ./.github/actions/install-risc0
+
+      - name: Install SP1
+        if: contains(matrix.features, 'sp1')
+        uses: ./.github/actions/install-sp1
 
       - name: cargo fmt --check --all
         if: matrix.features == '' # Run only without features because it's redundant to run it on all jobs
@@ -92,31 +95,22 @@ jobs:
       matrix:
         backend: ["sp1", "risc0", "exec"]
     steps:
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@v1.3.1
-        with:
-          tool-cache: false
-          large-packages: false
-
       - name: Checkout sources
         uses: actions/checkout@v4
+
+      - name: Free Disk Space
+        uses: ./.github/actions/free-disk
 
       - name: Setup Rust Environment
         uses: ./.github/actions/setup-rust
 
-      - name: RISC-V Risc0 toolchain install
+      - name: Install Risc0
         if: matrix.backend == 'risc0'
-        run: |
-          curl -L https://risczero.com/install | bash
-          ~/.risc0/bin/rzup install cargo-risczero 3.0.3
-          ~/.risc0/bin/rzup install risc0-groth16
-          ~/.risc0/bin/rzup install rust
+        uses: ./.github/actions/install-risc0
 
-      - name: RISC-V SP1 toolchain install
+      - name: Install SP1
         if: matrix.backend == 'sp1'
-        run: |
-          curl -L https://sp1.succinct.xyz | bash
-          ~/.sp1/bin/sp1up --version 5.0.8
+        uses: ./.github/actions/install-sp1
 
       - name: Build Risc0
         if: matrix.backend == 'risc0'

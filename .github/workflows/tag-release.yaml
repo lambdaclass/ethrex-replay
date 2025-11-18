@@ -1,0 +1,187 @@
+name: Ethrex Replay Release
+
+on:
+  push:
+    # On tags, this generates a release and pushes docker images with the tag name
+    tags:
+      - "v*.*.*-*"
+    # On pushes to main, this silently builds and pushes docker images tagged as 'main'
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+  actions: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  PROVER_REPRODUCIBLE_BUILD: true
+
+jobs:
+  build-ethrex-replay:
+    strategy:
+      matrix:
+        platform:
+          - ubuntu-22.04
+          - ubuntu-22.04-arm
+          - macos-latest
+        stack:
+          - l1
+          - l1_gpu
+          - l2
+          - l2_gpu
+        exclude:
+          - platform: macos-latest
+            stack: l1_gpu
+          - platform: macos-latest
+            stack: l2_gpu
+        include:
+          - platform: ubuntu-22.04
+            os: linux
+            arch: x86_64
+            cpu_flags: RUSTFLAGS='-C target-cpu=x86-64-v2'
+          - platform: ubuntu-22.04-arm
+            os: linux
+            arch: aarch64
+          - platform: macos-latest
+            os: macos
+            arch: aarch64
+          - platform: macos-latest
+            stack: l2
+            features: l2
+          - platform: ubuntu-22.04
+            stack: l2
+            features: l2,sp1,risc0
+          - platform: ubuntu-22.04-arm
+            stack: l2
+            features: l2,sp1
+          - platform: ubuntu-22.04
+            stack: l2_gpu
+            features: l2,gpu,sp1,risc0
+          - platform: ubuntu-22.04-arm
+            stack: l2_gpu
+            features: l2,gpu,sp1
+          - stack: l2_gpu
+            gpu_flags: NVCC_PREPEND_FLAGS='-arch=sm_70'
+            l2_suffix: "-l2"
+            gpu_suffix: "-gpu"
+          - platform: ubuntu-22.04
+            stack: l1_gpu
+            features: gpu,sp1,risc0
+          - platform: ubuntu-22.04-arm
+            stack: l1_gpu
+            features: gpu,sp1
+          - stack: l1_gpu
+            gpu_flags: NVCC_PREPEND_FLAGS='-arch=sm_70'
+            gpu_suffix: "-gpu"
+          - stack: l2
+            l2_suffix: "-l2"
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Free Disk Space
+        if: ${{ matrix.os == 'linux' }}
+        uses: ./.github/actions/free-disk
+
+      - name: Setup Rust Environment
+        uses: ./.github/actions/setup-rust
+
+      - name: Install SP1
+        if: ${{ matrix.os == 'linux' }}
+        env:
+          SHELL: /bin/bash
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: ./.github/actions/install-sp1
+
+      - name: Set up QEMU (only Linux ARM)
+        if: ${{ matrix.platform == 'ubuntu-22.04-arm' }}
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: amd64
+
+      - name: Install RISC0 (only Linux x86)
+        if: ${{ matrix.platform == 'ubuntu-22.04' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: ./.github/actions/install-risc0
+
+      - name: Install CUDA (only Linux x86 GPU)
+        uses: Jimver/cuda-toolkit@v0.2.24
+        if: ${{ matrix.platform == 'ubuntu-22.04' && (matrix.stack == 'l2_gpu' || matrix.stack == 'l1_gpu') }}
+        id: cuda-toolkit
+        with:
+          cuda: "12.9.0"
+          method: "network"
+          sub-packages: '["nvcc"]'
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build ethrex-replay
+        run: |
+          ${{ matrix.cpu_flags }} ${{ matrix.gpu_flags }} cargo build --release --features "${{ matrix.features }}"
+          chmod +x target/release/ethrex-replay
+          mv target/release/ethrex-replay ethrex-replay${{ matrix.l2_suffix }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.gpu_suffix }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ethrex-replay${{ matrix.l2_suffix }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.gpu_suffix }}
+          path: ethrex-replay${{ matrix.l2_suffix }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.gpu_suffix }}
+
+  # Creates a release on GitHub with the binaries
+  finalize-release:
+    if: github.ref_type == 'tag' && github.event_name != 'workflow_dispatch'
+    needs:
+      - build-ethrex-replay
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./bin
+          pattern: "ethrex-replay*"
+
+      - name: Get previous tag
+        run: |
+          last_tag=$(git --no-pager tag --sort=creatordate | grep -v -E '^v[0-9]+\.[0-9]+\.[0-9]+-' | grep -v '${{ github.ref_name }}' | tail -1)
+          echo "Last tag: $last_tag"
+          common_parent=$(git merge-base ${{ github.ref_name }} $last_tag)
+          echo "PREVIOUS_TAG: $common_parent"
+          echo "PREVIOUS_TAG=$common_parent" >> $GITHUB_ENV
+
+      - name: Update CHANGELOG
+        id: changelog
+        uses: requarks/changelog-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fromTag: ${{ github.ref_name }}
+          toTag: ${{ env.PREVIOUS_TAG }}
+          writeToFile: false
+
+      - name: Finalize Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: ./bin/**/*
+          draft: false
+          prerelease: true
+          tag_name: ${{ github.ref_name }}
+          name: "ethrex-replay: ${{ github.ref_name }}"
+          body: >
+            Installation and running instructions can be found in [our docs](https://docs.ethrex.xyz/ethrex_replay/ethrex_replay.html)
+
+            ${{ steps.changelog.outputs.changes }}
