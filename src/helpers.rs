@@ -1,13 +1,18 @@
+use ethrex_common::{H256, types::BlockHeader};
+use ethrex_rlp::{decode::RLPDecode, encode::RLPEncode};
+use ethrex_rpc::debug::execution_witness::RpcExecutionWitness;
+use ethrex_trie::{InMemoryTrieDB, Nibbles, Node, node::BranchNode};
 #[cfg(not(feature = "l2"))]
 use ethrex_config::networks::Network;
-use ethrex_rlp::encode::RLPEncode;
-use ethrex_trie::{InMemoryTrieDB, Nibbles, Node, node::BranchNode};
 #[cfg(not(feature = "l2"))]
 use std::path::Path;
 
 #[cfg(not(feature = "l2"))]
 /// Get block numbers inside the cache directory for a given network.
-pub fn get_block_numbers_in_cache_dir(dir: &Path, network: &Network) -> eyre::Result<Vec<u64>> {
+pub fn get_block_numbers_in_cache_dir(
+    dir: &Path,
+    network: &Network,
+) -> eyre::Result<Vec<u64>> {
     let mut block_numbers = Vec::new();
     let entries = std::fs::read_dir(dir)?;
     let prefix = format!("cache_{}_", network);
@@ -28,6 +33,41 @@ pub fn get_block_numbers_in_cache_dir(dir: &Path, network: &Network) -> eyre::Re
 
     block_numbers.sort_unstable();
     Ok(block_numbers)
+}
+
+/// Compute the initial state root needed to rebuild the state trie from an
+/// `RpcExecutionWitness`.
+pub fn get_initial_state_root(
+    network: &ethrex_config::networks::Network,
+    witness: &RpcExecutionWitness,
+    first_block_number: u64,
+) -> eyre::Result<H256> {
+    // For the genesis block, derive the state root directly from the genesis
+    // allocation.
+    if first_block_number == 0 {
+        let genesis = network
+            .get_genesis()
+            .map_err(|e| eyre::eyre!("Failed to get genesis: {e}"))?;
+        return Ok(genesis.compute_state_root());
+    }
+
+    let parent_number = first_block_number - 1;
+
+    // Headers in the witness are RLP-encoded. Find the parent header and use
+    // its state_root as the initial state root.
+    for header_bytes in &witness.headers {
+        let header =
+            BlockHeader::decode(header_bytes).map_err(|e| {
+                eyre::eyre!("Failed to decode block header from witness: {e}")
+            })?;
+        if header.number == parent_number {
+            return Ok(header.state_root);
+        }
+    }
+
+    Err(eyre::eyre!(
+        "Parent block header {parent_number} not found in witness headers"
+    ))
 }
 
 /// Gets all trie nodes as an array of (Path, RLP Value)

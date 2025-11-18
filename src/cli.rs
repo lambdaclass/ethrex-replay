@@ -1,6 +1,7 @@
 #[cfg(not(feature = "l2"))]
 use crate::helpers::get_block_numbers_in_cache_dir;
-use crate::helpers::get_trie_nodes_with_dummies;
+use crate::helpers::{get_initial_state_root, get_trie_nodes_with_dummies};
+use std::collections::BTreeMap;
 use bytes::Bytes;
 use ethrex_l2_common::prover::ProofFormat;
 use ethrex_l2_rpc::signer::{LocalSigner, Signer};
@@ -27,6 +28,7 @@ use ethrex_common::{
         AccountState, AccountUpdate, Block, Code, DEFAULT_BUILDER_GAS_CEIL, ELASTICITY_MULTIPLIER,
         Receipt, block_execution_witness::GuestProgramState,
     },
+    utils::keccak,
 };
 use ethrex_prover::backend::Backend;
 #[cfg(not(feature = "l2"))]
@@ -757,26 +759,41 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
     let chain_config = cache.get_chain_config()?;
     let block = cache.blocks[0].clone();
 
+    let first_block_number = cache.get_first_block_number()?;
+    let initial_state_root =
+        get_initial_state_root(&cache.network, &cache.witness, first_block_number)?;
+
     let witness = execution_witness_from_rpc_chain_config(
         cache.witness.clone(),
         chain_config,
-        cache.get_first_block_number()?,
+        first_block_number,
+        initial_state_root,
     )?;
     let network = &cache.network;
 
     let guest_program = GuestProgramState::try_from(witness.clone())?;
 
+    // Build a map of node hash -> encoded node from the RPC witness.
+    let mut all_nodes = BTreeMap::new();
+    for node_bytes in &cache.witness.state {
+        // Some implementations may include a `Null` node which is not a valid trie node.
+        if node_bytes.as_ref() == [0x80] {
+            continue;
+        }
+        let hash = keccak(node_bytes);
+        all_nodes.insert(hash, node_bytes.to_vec());
+    }
+
     // This will contain all code hashes with the corresponding bytecode
     // For the code hashes that we don't have we'll fill it with <CodeHash, Bytes::new()>
     let mut all_codes_hashed = guest_program.codes_hashed.clone();
 
-    let all_nodes = &guest_program.nodes_hashed;
     let mut store = Store::new("nothing", EngineType::InMemory)?;
 
     // - Set up state trie nodes
     let state_root = guest_program.parent_block_header.state_root;
 
-    let state_trie = InMemoryTrieDB::from_nodes(state_root, all_nodes)?;
+    let state_trie = InMemoryTrieDB::from_nodes(state_root, &all_nodes)?;
     let state_trie_nodes = get_trie_nodes_with_dummies(state_trie);
 
     let trie = store.open_direct_state_trie(*EMPTY_TRIE_HASH)?;
@@ -797,8 +814,6 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
         // Account state may not be in the state trie
         let Some(account_state_rlp) = guest_program
             .state_trie
-            .as_ref()
-            .unwrap()
             .get(&hashed_address)?
         else {
             continue;
@@ -811,7 +826,7 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
         all_codes_hashed.entry(code_hash).or_insert(Code::default());
 
         let storage_root = account_state.storage_root;
-        let Ok(storage_trie) = InMemoryTrieDB::from_nodes(storage_root, all_nodes) else {
+        let Ok(storage_trie) = InMemoryTrieDB::from_nodes(storage_root, &all_nodes) else {
             continue;
         };
 
@@ -1095,12 +1110,10 @@ pub async fn replay_custom_l1_blocks(
     let execution_witness = blockchain.generate_witness_for_blocks(&blocks).await?;
     let chain_config = execution_witness.chain_config;
 
-    let cache = Cache::new(
-        blocks,
-        RpcExecutionWitness::from(execution_witness),
-        chain_config,
-        opts.cache_dir,
-    );
+    let rpc_execution_witness = RpcExecutionWitness::try_from(execution_witness)
+        .map_err(|e| eyre::eyre!("Failed to create RPC execution witness: {e}"))?;
+
+    let cache = Cache::new(blocks, rpc_execution_witness, chain_config, opts.cache_dir);
 
     let execution_result = exec(backend(&opts.common.zkvm)?, cache.clone()).await;
 

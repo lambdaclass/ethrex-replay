@@ -1,4 +1,4 @@
-use crate::{cache::Cache, cli::ProofType};
+use crate::{cache::Cache, cli::ProofType, helpers::get_initial_state_root};
 #[cfg(feature = "l2")]
 use ethrex_common::types::fee_config::FeeConfig;
 use ethrex_common::{
@@ -97,10 +97,17 @@ pub async fn run_tx(cache: Cache, tx_hash: H256) -> eyre::Result<(Receipt, Vec<A
         .map_err(|_| eyre::Error::msg("Failed to get genesis block"))?
         .config;
 
+    let initial_state_root = get_initial_state_root(
+        &network,
+        &execution_witness,
+        block.header.number,
+    )?;
+
     let execution_witness = execution_witness_from_rpc_chain_config(
         execution_witness,
         chain_config,
         block.header.number,
+        initial_state_root,
     )
     .wrap_err("Failed to convert execution witness")?;
 
@@ -158,19 +165,26 @@ fn get_l1_input(cache: Cache) -> eyre::Result<ProgramInput> {
     if chain_config.is_some() {
         return Err(eyre::eyre!("Unexpected chain config in cache"));
     }
-    let chain_config = network
-        .get_genesis()
-        .map_err(|_| eyre::Error::msg("Failed to get genesis block"))?
-        .config;
     let first_block_number = blocks
         .first()
         .ok_or_else(|| eyre::eyre!("No blocks in cache"))?
         .header
         .number;
+    let chain_config = network
+        .get_genesis()
+        .map_err(|_| eyre::Error::msg("Failed to get genesis block"))?
+        .config;
 
-    let execution_witness =
-        execution_witness_from_rpc_chain_config(db, chain_config, first_block_number)
-            .wrap_err("Failed to convert execution witness")?;
+    let initial_state_root =
+        get_initial_state_root(&network, &db, first_block_number)?;
+
+    let execution_witness = execution_witness_from_rpc_chain_config(
+        db,
+        chain_config,
+        first_block_number,
+        initial_state_root,
+    )
+    .wrap_err("Failed to convert execution witness")?;
 
     Ok(ProgramInput {
         blocks,
@@ -198,6 +212,7 @@ fn get_l2_input(cache: Cache) -> eyre::Result<ProgramInput> {
     let Cache {
         blocks,
         witness: db,
+        network,
         chain_config,
         l2_fields,
         ..
@@ -211,9 +226,17 @@ fn get_l2_input(cache: Cache) -> eyre::Result<ProgramInput> {
         .ok_or_else(|| eyre::eyre!("No blocks in cache"))?
         .header
         .number;
-    let execution_witness =
-        execution_witness_from_rpc_chain_config(db, chain_config, first_block_number)
-            .wrap_err("Failed to convert execution witness")?;
+
+    let initial_state_root =
+        get_initial_state_root(&network, &db, first_block_number)?;
+
+    let execution_witness = execution_witness_from_rpc_chain_config(
+        db,
+        chain_config,
+        first_block_number,
+        initial_state_root,
+    )
+    .wrap_err("Failed to convert execution witness")?;
 
     Ok(ProgramInput {
         blocks,

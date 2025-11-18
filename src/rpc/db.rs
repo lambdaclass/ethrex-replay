@@ -584,14 +584,16 @@ impl LevmDatabase for RpcDB {
 /// calculate all possible child nodes.
 pub fn get_potential_child_nodes(proof: &[NodeRLP], key: &PathRLP) -> Option<Vec<Node>> {
     let mut state_nodes = BTreeMap::new();
-    for node in proof.iter().skip(1) {
-        let hash = Keccak256::digest(node);
-        state_nodes.insert(H256::from_slice(&hash), node.clone());
+    for node_rlp in proof.iter().skip(1) {
+        let hash = Keccak256::digest(node_rlp);
+        let node = Node::decode(node_rlp).ok()?;
+        state_nodes.insert(H256::from_slice(&hash), node);
     }
 
-    let hash = if let Some(root) = proof.first() {
-        let hash = H256::from_slice(&Keccak256::digest(root));
-        state_nodes.insert(hash, root.clone());
+    let hash = if let Some(root_rlp) = proof.first() {
+        let hash = H256::from_slice(&Keccak256::digest(root_rlp));
+        let root_node = Node::decode(root_rlp).ok()?;
+        state_nodes.insert(hash, root_node);
         hash
     } else {
         *EMPTY_KECCACK_HASH

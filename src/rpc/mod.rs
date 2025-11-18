@@ -8,7 +8,8 @@ use bytes::Bytes;
 use ethrex_common::{Address, H256, U256, constants::EMPTY_KECCACK_HASH, types::AccountState};
 use ethrex_rpc::types::block::RpcBlock;
 use ethrex_storage::hash_address;
-use ethrex_trie::Trie;
+use ethrex_trie::{Node, Trie};
+use ethrex_rlp::decode::RLPDecode;
 
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
@@ -149,9 +150,11 @@ pub async fn get_account(
         .ok_or(eyre::Error::msg("account proof is empty".to_string()))?;
 
     let mut state_nodes = BTreeMap::new();
-    for node in &account_proof {
-        let hash = sha3::Keccak256::digest(node);
-        state_nodes.insert(H256::from_slice(&hash), node.clone());
+    for node_rlp in &account_proof {
+        let hash = sha3::Keccak256::digest(node_rlp);
+        let node = Node::decode(node_rlp)
+            .map_err(|e| eyre::eyre!("Failed to decode account proof node: {e}"))?;
+        state_nodes.insert(H256::from_slice(&hash), node);
     }
 
     let hash = H256::from_slice(&sha3::Keccak256::digest(root));
