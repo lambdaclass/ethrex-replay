@@ -3227,11 +3227,12 @@ dependencies = [
 
 [[package]]
 name = "ethrex-blockchain"
-version = "5.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#4820fa008236ca2f0deba10f9101d493bfa12ae5"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
 dependencies = [
  "bytes",
  "ethrex-common",
+ "ethrex-crypto",
  "ethrex-metrics",
  "ethrex-rlp",
  "ethrex-storage",
@@ -3239,7 +3240,6 @@ dependencies = [
  "ethrex-vm",
  "hex",
  "rustc-hash 2.1.1",
- "sha3",
  "thiserror 2.0.17",
  "tokio",
  "tokio-util",
@@ -3248,8 +3248,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-common"
-version = "5.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#4820fa008236ca2f0deba10f9101d493bfa12ae5"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
 dependencies = [
  "bytes",
  "crc32fast",
@@ -3258,6 +3258,7 @@ dependencies = [
  "ethrex-rlp",
  "ethrex-trie",
  "hex",
+ "k256",
  "kzg-rs",
  "lazy_static",
  "libc",
@@ -3278,8 +3279,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-config"
-version = "5.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#4820fa008236ca2f0deba10f9101d493bfa12ae5"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
 dependencies = [
  "ethrex-common",
  "ethrex-p2p",
@@ -3290,18 +3291,19 @@ dependencies = [
 
 [[package]]
 name = "ethrex-crypto"
-version = "5.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#4820fa008236ca2f0deba10f9101d493bfa12ae5"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
 dependencies = [
  "c-kzg",
  "kzg-rs",
  "thiserror 2.0.17",
+ "tiny-keccak",
 ]
 
 [[package]]
 name = "ethrex-dev"
-version = "5.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#4820fa008236ca2f0deba10f9101d493bfa12ae5"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
 dependencies = [
  "bytes",
  "envy",
@@ -3320,8 +3322,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-l2"
-version = "5.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#4820fa008236ca2f0deba10f9101d493bfa12ae5"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
 dependencies = [
  "aligned-sdk",
  "axum 0.8.7",
@@ -3378,18 +3380,19 @@ dependencies = [
 
 [[package]]
 name = "ethrex-l2-common"
-version = "5.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#4820fa008236ca2f0deba10f9101d493bfa12ae5"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
 dependencies = [
  "bytes",
  "ethereum-types 0.15.1",
  "ethrex-common",
+ "ethrex-crypto",
  "ethrex-rlp",
  "ethrex-storage",
  "ethrex-trie",
  "ethrex-vm",
  "hex",
- "lambdaworks-crypto 0.11.0",
+ "lambdaworks-crypto 0.13.0",
  "rkyv",
  "secp256k1",
  "serde",
@@ -3400,8 +3403,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-l2-rpc"
-version = "5.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#4820fa008236ca2f0deba10f9101d493bfa12ae5"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
 dependencies = [
  "axum 0.8.7",
  "bytes",
@@ -3430,8 +3433,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-levm"
-version = "5.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#4820fa008236ca2f0deba10f9101d493bfa12ae5"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
 dependencies = [
  "ark-bn254",
  "ark-ec",
@@ -3445,7 +3448,7 @@ dependencies = [
  "ethrex-crypto",
  "ethrex-rlp",
  "k256",
- "lambdaworks-math 0.11.0",
+ "lambdaworks-math 0.13.0",
  "lazy_static",
  "malachite 0.6.1",
  "p256",
@@ -3463,20 +3466,24 @@ dependencies = [
 
 [[package]]
 name = "ethrex-metrics"
-version = "5.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#4820fa008236ca2f0deba10f9101d493bfa12ae5"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
 dependencies = [
+ "axum 0.8.7",
  "ethrex-common",
+ "prometheus 0.13.4",
  "serde",
  "serde_json",
  "thiserror 2.0.17",
+ "tokio",
+ "tracing",
  "tracing-subscriber 0.3.20",
 ]
 
 [[package]]
 name = "ethrex-p2p"
-version = "5.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#4820fa008236ca2f0deba10f9101d493bfa12ae5"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
 dependencies = [
  "aes",
  "async-trait",
@@ -3487,6 +3494,7 @@ dependencies = [
  "ethereum-types 0.15.1",
  "ethrex-blockchain",
  "ethrex-common",
+ "ethrex-crypto",
  "ethrex-rlp",
  "ethrex-storage",
  "ethrex-storage-rollup",
@@ -3497,14 +3505,13 @@ dependencies = [
  "hmac",
  "indexmap 2.12.0",
  "lazy_static",
- "prometheus",
+ "prometheus 0.14.0",
  "rand 0.8.5",
  "rayon",
  "secp256k1",
  "serde",
  "serde_json",
  "sha2",
- "sha3",
  "snap",
  "spawned-concurrency",
  "spawned-rt",
@@ -3517,8 +3524,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-prover"
-version = "5.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#4820fa008236ca2f0deba10f9101d493bfa12ae5"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
 dependencies = [
  "anyhow",
  "bincode",
@@ -3594,8 +3601,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-rlp"
-version = "5.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#4820fa008236ca2f0deba10f9101d493bfa12ae5"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
 dependencies = [
  "bytes",
  "ethereum-types 0.15.1",
@@ -3608,8 +3615,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-rpc"
-version = "5.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#4820fa008236ca2f0deba10f9101d493bfa12ae5"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
 dependencies = [
  "axum 0.8.7",
  "axum-extra",
@@ -3618,12 +3625,15 @@ dependencies = [
  "ethereum-types 0.15.1",
  "ethrex-blockchain",
  "ethrex-common",
+ "ethrex-crypto",
+ "ethrex-metrics",
  "ethrex-p2p",
  "ethrex-rlp",
  "ethrex-storage",
  "ethrex-trie",
  "ethrex-vm",
  "hex",
+ "hex-literal",
  "jsonwebtoken 9.3.1",
  "rand 0.8.5",
  "reqwest 0.12.24",
@@ -3631,7 +3641,8 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "sha3",
+ "spawned-concurrency",
+ "spawned-rt",
  "thiserror 2.0.17",
  "tokio",
  "tokio-util",
@@ -3643,8 +3654,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-sdk"
-version = "5.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#4820fa008236ca2f0deba10f9101d493bfa12ae5"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
 dependencies = [
  "bytes",
  "ethereum-types 0.15.1",
@@ -3669,8 +3680,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-sdk-contract-utils"
-version = "5.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#4820fa008236ca2f0deba10f9101d493bfa12ae5"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
 dependencies = [
  "thiserror 2.0.17",
  "tracing",
@@ -3678,8 +3689,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-storage"
-version = "5.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#4820fa008236ca2f0deba10f9101d493bfa12ae5"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3687,6 +3698,7 @@ dependencies = [
  "bytes",
  "ethereum-types 0.15.1",
  "ethrex-common",
+ "ethrex-crypto",
  "ethrex-rlp",
  "ethrex-trie",
  "hex",
@@ -3695,15 +3707,14 @@ dependencies = [
  "rustc-hash 2.1.1",
  "serde",
  "serde_json",
- "sha3",
  "thiserror 2.0.17",
  "tracing",
 ]
 
 [[package]]
 name = "ethrex-storage-rollup"
-version = "5.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#4820fa008236ca2f0deba10f9101d493bfa12ae5"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3723,28 +3734,30 @@ dependencies = [
 [[package]]
 name = "ethrex-threadpool"
 version = "0.1.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#4820fa008236ca2f0deba10f9101d493bfa12ae5"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
 dependencies = [
  "crossbeam 0.8.4",
 ]
 
 [[package]]
 name = "ethrex-trie"
-version = "5.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#4820fa008236ca2f0deba10f9101d493bfa12ae5"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
 dependencies = [
  "anyhow",
  "bytes",
  "crossbeam 0.8.4",
  "digest 0.10.7",
  "ethereum-types 0.15.1",
+ "ethrex-crypto",
  "ethrex-rlp",
  "ethrex-threadpool",
  "hex",
  "lazy_static",
+ "rkyv",
+ "rustc-hash 2.1.1",
  "serde",
  "serde_json",
- "sha3",
  "smallvec",
  "thiserror 2.0.17",
  "tracing",
@@ -3752,8 +3765,8 @@ dependencies = [
 
 [[package]]
 name = "ethrex-vm"
-version = "5.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#4820fa008236ca2f0deba10f9101d493bfa12ae5"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
 dependencies = [
  "bincode",
  "bytes",
@@ -3761,14 +3774,13 @@ dependencies = [
  "dyn-clone",
  "ethereum-types 0.15.1",
  "ethrex-common",
+ "ethrex-crypto",
  "ethrex-levm",
  "ethrex-rlp",
  "ethrex-trie",
- "hex",
  "lazy_static",
  "rkyv",
  "serde",
- "sha3",
  "thiserror 2.0.17",
  "tracing",
 ]
@@ -4418,8 +4430,8 @@ dependencies = [
 
 [[package]]
 name = "guest_program"
-version = "5.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#4820fa008236ca2f0deba10f9101d493bfa12ae5"
+version = "7.0.0"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
 dependencies = [
  "bytes",
  "ethrex-blockchain",
@@ -5446,18 +5458,6 @@ dependencies = [
 
 [[package]]
 name = "lambdaworks-crypto"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ec4b462bbec171e1af821f3d9fff72e17de93b3d1022f29aa70fec8262c1cee"
-dependencies = [
- "lambdaworks-math 0.11.0",
- "serde",
- "sha2",
- "sha3",
-]
-
-[[package]]
-name = "lambdaworks-crypto"
 version = "0.12.0"
 source = "git+https://github.com/lambdaclass/lambdaworks.git?rev=5f8f2cfcc8a1a22f77e8dff2d581f1166eefb80b#5f8f2cfcc8a1a22f77e8dff2d581f1166eefb80b"
 dependencies = [
@@ -5470,14 +5470,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "lambdaworks-math"
-version = "0.11.0"
+name = "lambdaworks-crypto"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "708d148956bcdc21ae5c432b4e20bbaa26fd68d5376a3a6c461f41095abea0ba"
+checksum = "58b1a1c1102a5a7fbbda117b79fb3a01e033459c738a3c1642269603484fd1c1"
 dependencies = [
- "rayon",
+ "lambdaworks-math 0.13.0",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
  "serde",
- "serde_json",
+ "sha2",
+ "sha3",
 ]
 
 [[package]]
@@ -5487,6 +5490,21 @@ source = "git+https://github.com/lambdaclass/lambdaworks.git?rev=5f8f2cfcc8a1a22
 dependencies = [
  "getrandom 0.2.16",
  "rand 0.8.5",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "lambdaworks-math"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "018a95aa873eb49896a858dee0d925c33f3978d073c64b08dd4f2c9b35a017c6"
+dependencies = [
+ "getrandom 0.2.16",
+ "num-bigint 0.4.6",
+ "num-traits",
+ "rand 0.8.5",
+ "rayon",
  "serde",
  "serde_json",
 ]
@@ -7285,6 +7303,46 @@ dependencies = [
 ]
 
 [[package]]
+name = "procfs"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "731e0d9356b0c25f16f33b5be79b1c57b562f141ebfcdb0ad8ac2c13a24293b4"
+dependencies = [
+ "bitflags 2.10.0",
+ "hex",
+ "lazy_static",
+ "procfs-core",
+ "rustix 0.38.44",
+]
+
+[[package]]
+name = "procfs-core"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2d3554923a69f4ce04c4a754260c338f505ce22642d3830e049a399fc2059a29"
+dependencies = [
+ "bitflags 2.10.0",
+ "hex",
+]
+
+[[package]]
+name = "prometheus"
+version = "0.13.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3d33c28a30771f7f96db69893f78b857f7450d7e0237e9c8fc6427a81bae7ed1"
+dependencies = [
+ "cfg-if 1.0.4",
+ "fnv",
+ "lazy_static",
+ "libc",
+ "memchr",
+ "parking_lot 0.12.5",
+ "procfs",
+ "protobuf 2.28.0",
+ "thiserror 1.0.69",
+]
+
+[[package]]
 name = "prometheus"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7295,7 +7353,7 @@ dependencies = [
  "lazy_static",
  "memchr",
  "parking_lot 0.12.5",
- "protobuf",
+ "protobuf 3.7.2",
  "thiserror 2.0.17",
 ]
 
@@ -7365,6 +7423,12 @@ checksum = "52c2c1bf36ddb1a1c396b3601a3cec27c2462e45f07c386894ec3ccf5332bd16"
 dependencies = [
  "prost",
 ]
+
+[[package]]
+name = "protobuf"
+version = "2.28.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "106dd99e98437432fed6519dedecfade6a06a73bb7b2a1e019fdd2bee5778d94"
 
 [[package]]
 name = "protobuf"
@@ -9444,9 +9508,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-core-executor"
-version = "5.2.2"
+version = "5.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "117e991e137c9121eac26b2fd06daaa8f9e7c118a167d9a977e0048ac2142fac"
+checksum = "3fb8bc70057a88164e479e367e2f83f7e7fba52d66acfbeef3b2174dc98c3627"
 dependencies = [
  "bincode",
  "bytemuck",
@@ -9487,9 +9551,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-core-machine"
-version = "5.2.2"
+version = "5.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b70e76953d1c4d507136b373bc198df0271d011c9acaa9b1eb8614dd65a0e04"
+checksum = "fe446bea36feb189af83cda6ea5420150e877764e2ed4ab4cb2ee5cd3e20355c"
 dependencies = [
  "bincode",
  "cbindgen",
@@ -9560,9 +9624,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-curves"
-version = "5.2.2"
+version = "5.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e29cb79716167e58c0719d572e686880172f1816cd85e0acab74ea0ff3c795e"
+checksum = "a6a7ce14c504360349f3eda564a0c9de286c35e1dfbcc979921a3384db02ae82"
 dependencies = [
  "cfg-if 1.0.4",
  "dashu",
@@ -9582,9 +9646,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-derive"
-version = "5.2.2"
+version = "5.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ac59616976c008e862f99d26fd0c1c037d464df33d9ca548be88f938f0b1bcf"
+checksum = "9e1144840e0b75e988f3b8d24ffd015bc5fd76599f7864bfd994f3eaf2eb261a"
 dependencies = [
  "quote",
  "syn 1.0.109",
@@ -9592,9 +9656,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-lib"
-version = "5.2.2"
+version = "5.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fce8ad0f153443d09d398eccb650a0b2dcbf829470e394e4bf60ec4379c7af93"
+checksum = "eb1a9935d58cb1dcd757a1b10d727090f5b718f1f03b512d48f0c1952e6ead00"
 dependencies = [
  "bincode",
  "serde",
@@ -9603,9 +9667,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-primitives"
-version = "5.2.2"
+version = "5.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0244dee3a7a0f88cf71c3edf518f4fc97794ae870a107cbe7c810ac3fbf879cb"
+checksum = "a7d2a6187e394c30097ea7a975a4832f172918690dc89a979f0fad67422d3a8b"
 dependencies = [
  "bincode",
  "blake3",
@@ -9668,9 +9732,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-recursion-circuit"
-version = "5.2.2"
+version = "5.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dac2a5bd8b39ebf83160a13595e5197f3f194ddcc6d77af01a14b02a4e7bed12"
+checksum = "44f16af7722bb0f7adabbfc0e60b7fe71ca546959d251c450afb79daaa589c56"
 dependencies = [
  "hashbrown 0.14.5",
  "itertools 0.13.0",
@@ -9703,9 +9767,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-recursion-compiler"
-version = "5.2.2"
+version = "5.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5611ead360e9875f426c5add60ce8082bfee28302a5c7dbfa39cad02e9178f88"
+checksum = "7c83564beb23361e0b93d64f3b8d4a503eac8ced246648f727d44b0827165014"
 dependencies = [
  "backtrace",
  "itertools 0.13.0",
@@ -9725,9 +9789,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-recursion-core"
-version = "5.2.2"
+version = "5.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79029408bee7a503394ab9d738432e709475976034348d5107a1d1a0b06dc287"
+checksum = "8c209fa6e384ff56ea7761ccc65426da08516d72ae55b6d8e4021b58bd4022f8"
 dependencies = [
  "backtrace",
  "cbindgen",
@@ -9768,9 +9832,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-recursion-derive"
-version = "5.2.2"
+version = "5.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "632f557f5bbfc8bc21b2bc319d3a375b46ea4522c00b875f02d73e4c0709b023"
+checksum = "6a8ca2e82fea312a406f4ad4cba1a11812da4cea806607c56ec1670fd55b2ea6"
 dependencies = [
  "quote",
  "syn 1.0.109",
@@ -9778,9 +9842,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-recursion-gnark-ffi"
-version = "5.2.2"
+version = "5.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae30a1148f569a2bd133b5c666654132e0088c1762b826141cca7209106bfb23"
+checksum = "5e146d24ce91c08e36b270a73de9817b9847e759a3d66923b009c67f24a3b9b2"
 dependencies = [
  "anyhow",
  "bincode",
@@ -9849,9 +9913,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-stark"
-version = "5.2.2"
+version = "5.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f0cdde80366245a374d29fecdde2881286002a6e3f51b84f54b86560ed026e5"
+checksum = "40477690a0bb6d7102322947407439a8f1d05aecd535f0081db05e9a31f808f2"
 dependencies = [
  "arrayref",
  "hashbrown 0.14.5",
