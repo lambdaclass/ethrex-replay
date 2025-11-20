@@ -3392,6 +3392,7 @@ dependencies = [
  "ethrex-trie",
  "ethrex-vm",
  "hex",
+ "k256",
  "lambdaworks-crypto 0.13.0",
  "rkyv",
  "secp256k1",
@@ -3460,6 +3461,7 @@ dependencies = [
  "sha2",
  "sha3",
  "strum 0.27.2",
+ "substrate-bn",
  "thiserror 2.0.17",
  "walkdir",
 ]
@@ -10146,6 +10148,19 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.110",
+]
+
+[[package]]
+name = "substrate-bn"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72b5bbfa79abbae15dd642ea8176a21a635ff3c00059961d1ea27ad04e5b441c"
+dependencies = [
+ "byteorder",
+ "crunchy",
+ "lazy_static",
+ "rand 0.8.5",
+ "rustc-hex",
 ]
 
 [[package]]
