@@ -3228,7 +3228,7 @@ dependencies = [
 [[package]]
 name = "ethrex-blockchain"
 version = "7.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#a613937ccd5a54ae031e6978afd79abc8746674c"
 dependencies = [
  "bytes",
  "ethrex-common",
@@ -3249,7 +3249,7 @@ dependencies = [
 [[package]]
 name = "ethrex-common"
 version = "7.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#a613937ccd5a54ae031e6978afd79abc8746674c"
 dependencies = [
  "bytes",
  "crc32fast",
@@ -3280,7 +3280,7 @@ dependencies = [
 [[package]]
 name = "ethrex-config"
 version = "7.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#a613937ccd5a54ae031e6978afd79abc8746674c"
 dependencies = [
  "ethrex-common",
  "ethrex-p2p",
@@ -3292,7 +3292,7 @@ dependencies = [
 [[package]]
 name = "ethrex-crypto"
 version = "7.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#a613937ccd5a54ae031e6978afd79abc8746674c"
 dependencies = [
  "c-kzg",
  "kzg-rs",
@@ -3303,7 +3303,7 @@ dependencies = [
 [[package]]
 name = "ethrex-dev"
 version = "7.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#a613937ccd5a54ae031e6978afd79abc8746674c"
 dependencies = [
  "bytes",
  "envy",
@@ -3323,7 +3323,7 @@ dependencies = [
 [[package]]
 name = "ethrex-l2"
 version = "7.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#a613937ccd5a54ae031e6978afd79abc8746674c"
 dependencies = [
  "aligned-sdk",
  "axum 0.8.7",
@@ -3381,7 +3381,7 @@ dependencies = [
 [[package]]
 name = "ethrex-l2-common"
 version = "7.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#a613937ccd5a54ae031e6978afd79abc8746674c"
 dependencies = [
  "bytes",
  "ethereum-types 0.15.1",
@@ -3405,7 +3405,7 @@ dependencies = [
 [[package]]
 name = "ethrex-l2-rpc"
 version = "7.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#a613937ccd5a54ae031e6978afd79abc8746674c"
 dependencies = [
  "axum 0.8.7",
  "bytes",
@@ -3435,7 +3435,7 @@ dependencies = [
 [[package]]
 name = "ethrex-levm"
 version = "7.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#a613937ccd5a54ae031e6978afd79abc8746674c"
 dependencies = [
  "ark-bn254",
  "ark-ec",
@@ -3469,7 +3469,7 @@ dependencies = [
 [[package]]
 name = "ethrex-metrics"
 version = "7.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#a613937ccd5a54ae031e6978afd79abc8746674c"
 dependencies = [
  "axum 0.8.7",
  "ethrex-common",
@@ -3485,7 +3485,7 @@ dependencies = [
 [[package]]
 name = "ethrex-p2p"
 version = "7.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#a613937ccd5a54ae031e6978afd79abc8746674c"
 dependencies = [
  "aes",
  "async-trait",
@@ -3527,7 +3527,7 @@ dependencies = [
 [[package]]
 name = "ethrex-prover"
 version = "7.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#a613937ccd5a54ae031e6978afd79abc8746674c"
 dependencies = [
  "anyhow",
  "bincode",
@@ -3604,7 +3604,7 @@ dependencies = [
 [[package]]
 name = "ethrex-rlp"
 version = "7.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#a613937ccd5a54ae031e6978afd79abc8746674c"
 dependencies = [
  "bytes",
  "ethereum-types 0.15.1",
@@ -3618,7 +3618,7 @@ dependencies = [
 [[package]]
 name = "ethrex-rpc"
 version = "7.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#a613937ccd5a54ae031e6978afd79abc8746674c"
 dependencies = [
  "axum 0.8.7",
  "axum-extra",
@@ -3657,7 +3657,7 @@ dependencies = [
 [[package]]
 name = "ethrex-sdk"
 version = "7.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#a613937ccd5a54ae031e6978afd79abc8746674c"
 dependencies = [
  "bytes",
  "ethereum-types 0.15.1",
@@ -3683,7 +3683,7 @@ dependencies = [
 [[package]]
 name = "ethrex-sdk-contract-utils"
 version = "7.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#a613937ccd5a54ae031e6978afd79abc8746674c"
 dependencies = [
  "thiserror 2.0.17",
  "tracing",
@@ -3692,7 +3692,7 @@ dependencies = [
 [[package]]
 name = "ethrex-storage"
 version = "7.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#a613937ccd5a54ae031e6978afd79abc8746674c"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3704,6 +3704,7 @@ dependencies = [
  "ethrex-rlp",
  "ethrex-trie",
  "hex",
+ "lru 0.16.2",
  "qfilter",
  "rayon",
  "rustc-hash 2.1.1",
@@ -3716,7 +3717,7 @@ dependencies = [
 [[package]]
 name = "ethrex-storage-rollup"
 version = "7.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#a613937ccd5a54ae031e6978afd79abc8746674c"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3736,7 +3737,7 @@ dependencies = [
 [[package]]
 name = "ethrex-threadpool"
 version = "0.1.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#a613937ccd5a54ae031e6978afd79abc8746674c"
 dependencies = [
  "crossbeam 0.8.4",
 ]
@@ -3744,7 +3745,7 @@ dependencies = [
 [[package]]
 name = "ethrex-trie"
 version = "7.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#a613937ccd5a54ae031e6978afd79abc8746674c"
 dependencies = [
  "anyhow",
  "bytes",
@@ -3768,7 +3769,7 @@ dependencies = [
 [[package]]
 name = "ethrex-vm"
 version = "7.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#a613937ccd5a54ae031e6978afd79abc8746674c"
 dependencies = [
  "bincode",
  "bytes",
@@ -4433,7 +4434,7 @@ dependencies = [
 [[package]]
 name = "guest_program"
 version = "7.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#db234eec7b1da30abcb23eada63cf73c6b3d475b"
+source = "git+https://github.com/lambdaclass/ethrex?branch=add_zisk_zkvm_backend#a613937ccd5a54ae031e6978afd79abc8746674c"
 dependencies = [
  "bytes",
  "ethrex-blockchain",
@@ -4594,6 +4595,8 @@ version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5419bdc4f6a9207fbeba6d11b604d481addf78ecd10c11ad51e76c2f6482748d"
 dependencies = [
+ "allocator-api2",
+ "equivalent",
  "foldhash 0.2.0",
  "serde",
 ]
@@ -5689,6 +5692,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "234cf4f4a04dc1f57e24b96cc0cd600cf2af460d4161ac5ecdd0af8e1f3b2a38"
 dependencies = [
  "hashbrown 0.15.5",
+]
+
+[[package]]
+name = "lru"
+version = "0.16.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96051b46fc183dc9cd4a223960ef37b9af631b55191852a8274bfef064cda20f"
+dependencies = [
+ "hashbrown 0.16.0",
 ]
 
 [[package]]
@@ -7725,7 +7737,7 @@ dependencies = [
  "indoc",
  "instability",
  "itertools 0.13.0",
- "lru",
+ "lru 0.12.5",
  "paste",
  "strum 0.26.3",
  "unicode-segmentation",
@@ -9703,7 +9715,7 @@ dependencies = [
  "hashbrown 0.14.5",
  "hex",
  "itertools 0.13.0",
- "lru",
+ "lru 0.12.5",
  "num-bigint 0.4.6",
  "p3-baby-bear",
  "p3-bn254-fr",
