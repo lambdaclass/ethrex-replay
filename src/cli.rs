@@ -1059,7 +1059,7 @@ async fn replay_block(block_opts: BlockOptions) -> eyre::Result<()> {
         }
         #[cfg(feature = "zisk")]
         {
-            if backend != Backend::Zisk {
+            if backend != Backend::ZisK {
                 execution_result = Some(exec(backend, cache.clone()).await);
             }
         }
@@ -1495,7 +1495,7 @@ pub async fn replay_custom_l2_blocks(n_blocks: u64, opts: EthrexReplayOptions) -
     }
     #[cfg(feature = "zisk")]
     {
-        if backend != Backend::Zisk {
+        if backend != Backend::ZisK {
             execution_result = Some(exec(backend, cache.clone()).await);
         }
     }
