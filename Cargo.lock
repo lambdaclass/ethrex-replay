@@ -3591,6 +3591,7 @@ dependencies = [
  "hex",
  "lazy_static",
  "reqwest 0.12.24",
+ "rkyv",
  "serde",
  "serde_json",
  "serde_with",

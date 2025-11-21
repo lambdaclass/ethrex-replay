@@ -92,6 +92,9 @@ pub enum EthrexReplayCommand {
     #[command(subcommand, about = "Replay a custom block or batch")]
     Custom(CustomSubcommand),
     #[cfg(not(feature = "l2"))]
+    #[command(about = "Generate binary input for ethrex guest")]
+    GenerateInput(GenerateInputOptions),
+    #[cfg(not(feature = "l2"))]
     #[command(about = "Replay a single transaction")]
     Transaction(TransactionOpts),
     #[cfg(feature = "l2")]
@@ -129,7 +132,7 @@ pub enum CustomSubcommand {
     Batch(CustomBatchOptions),
 }
 
-#[derive(Parser, Clone)]
+#[derive(Parser, Clone, Default)]
 pub struct CommonOptions {
     #[arg(
         long,
@@ -439,6 +442,49 @@ pub enum TxVariant {
     ERC20Transfer,
 }
 
+#[derive(Parser)]
+#[command(group(ArgGroup::new("block_list").required(true).multiple(true).args(["block", "blocks", "from"])))]
+pub struct GenerateInputOptions {
+    #[arg(
+        long,
+        conflicts_with_all = ["blocks", "from", "to"],
+        help = "Block to generate input for",
+        help_heading = "Command Options"
+    )]
+    block: Option<u64>,
+    #[arg(long, help = "List of blocks to execute.", num_args = 1.., value_delimiter = ',', conflicts_with_all = ["block", "from", "to"], help_heading = "Command Options")]
+    blocks: Vec<u64>,
+    #[arg(
+        long,
+        conflicts_with_all = ["blocks", "block"],
+        help = "Starting block. (Inclusive)",
+        help_heading = "Command Options"
+    )]
+    from: Option<u64>,
+    #[arg(
+        long,
+        conflicts_with_all = ["blocks", "block"],
+        help = "Ending block. (Inclusive)",
+        requires = "from",
+        help_heading = "Command Options"
+    )]
+    to: Option<u64>,
+    #[arg(
+        long,
+        help = "Directory to store the generated input",
+        value_parser,
+        default_value = "./generated_inputs",
+        help_heading = "Replay Options"
+    )]
+    output_dir: PathBuf,
+    #[arg(
+        long,
+        help = "RPC provider to fetch data from",
+        help_heading = "Replay Options"
+    )]
+    rpc_url: Url,
+}
+
 impl EthrexReplayCommand {
     pub async fn run(self) -> eyre::Result<()> {
         match self {
@@ -653,6 +699,84 @@ impl EthrexReplayCommand {
                 }
 
                 plot(&blocks).await?;
+            }
+            #[cfg(not(feature = "l2"))]
+            Self::GenerateInput(GenerateInputOptions {
+                block,
+                blocks,
+                from,
+                to,
+                output_dir,
+                rpc_url,
+            }) => {
+                let from = match from {
+                    Some(from) => from,
+                    None => {
+                        if let Some(block) = block {
+                            block
+                        } else if !blocks.is_empty() {
+                            *blocks.first().unwrap()
+                        } else {
+                            eyre::bail!("Either block, blocks or to must be specified")
+                        }
+                    }
+                };
+
+                let to = match to {
+                    Some(to) => to,
+                    None => {
+                        if let Some(block) = block {
+                            block
+                        } else if !blocks.is_empty() {
+                            *blocks.last().unwrap()
+                        } else {
+                            fetch_latest_block_number(rpc_url.clone(), false).await?
+                        }
+                    }
+                };
+
+                let opts = EthrexReplayOptions {
+                    common: CommonOptions::default(),
+                    rpc_url: Some(rpc_url.clone()),
+                    cached: false,
+                    network: None,
+                    cache_dir: PathBuf::default(),
+                    cache_level: CacheLevel::Off,
+                    slack_webhook_url: None,
+                    no_zkvm: false,
+                    bench: false,
+                    notification_level: NotificationLevel::Off,
+                };
+
+                if !output_dir.exists() {
+                    std::fs::create_dir_all(&output_dir)?;
+                }
+
+                for block in from..=to {
+                    let (cache, network) = get_blockdata(opts.clone(), Some(block)).await?;
+
+                    let program_input = crate::run::get_l1_input(cache)?;
+
+                    let serialized_program_input =
+                        rkyv::to_bytes::<rkyv::rancor::Error>(&program_input)?;
+
+                    let input_output_path =
+                        output_dir.join(format!("ethrex_{network}_{block}_input.bin"));
+
+                    std::fs::write(input_output_path, serialized_program_input.as_slice())?;
+                }
+
+                if from == to {
+                    info!(
+                        "Generated input for block {from} in directory {}",
+                        output_dir.display()
+                    );
+                } else {
+                    info!(
+                        "Generated inputs for blocks {from} to {to} in directory {}",
+                        output_dir.display()
+                    );
+                }
             }
             #[cfg(feature = "l2")]
             Self::L2(L2Subcommand::Transaction(TransactionOpts {

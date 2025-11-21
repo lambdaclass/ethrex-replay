@@ -143,7 +143,7 @@ pub async fn run_tx(cache: Cache, tx_hash: H256) -> eyre::Result<(Receipt, Vec<A
 }
 
 #[cfg(not(feature = "l2"))]
-fn get_l1_input(cache: Cache) -> eyre::Result<ProgramInput> {
+pub fn get_l1_input(cache: Cache) -> eyre::Result<ProgramInput> {
     use ethrex_common::types::BlockHeader;
     use ethrex_rlp::decode::RLPDecode;
 
