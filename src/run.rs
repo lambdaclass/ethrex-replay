@@ -26,7 +26,7 @@ pub async fn exec(backend: Backend, cache: Cache) -> eyre::Result<Duration> {
     let input = get_l1_input(cache)?;
 
     // Use catch_unwind to capture panics
-    let result = catch_unwind(AssertUnwindSafe(|| ethrex_prover::execute(backend, input)));
+    let result = catch_unwind(AssertUnwindSafe(|| ethrex_prover::execute_timed(backend, input)));
 
     match result {
         Ok(exec_result) => {
