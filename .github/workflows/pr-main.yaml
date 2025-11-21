@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        features: ["", "l2", "l2,sp1", "l2,risc0", "sp1", "risc0"]
+        features: ["", "l2", "l2,sp1", "l2,risc0", "l2,zisk", "sp1", "risc0", "zisk"]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4

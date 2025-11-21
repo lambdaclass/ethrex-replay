@@ -1446,7 +1446,7 @@ pub async fn replay_custom_l2_blocks(n_blocks: u64, opts: EthrexReplayOptions) -
 
     let cache = Cache::new(
         blocks,
-        RpcExecutionWitness::from(execution_witness),
+        RpcExecutionWitness::try_from(execution_witness)?,
         genesis.config,
         opts.cache_dir.clone(),
     );

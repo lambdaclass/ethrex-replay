@@ -178,7 +178,7 @@ pub fn get_l1_input(cache: Cache) -> eyre::Result<ProgramInput> {
         .map(|h| BlockHeader::decode(h).unwrap())
         .find(|h| h.number == first_block_number - 1)
         .map(|h| h.state_root)
-        .unwrap();
+        .ok_or_else(|| eyre::eyre!("Initial state root not found"))?;
 
     let execution_witness = execution_witness_from_rpc_chain_config(
         db,
@@ -209,6 +209,8 @@ fn extract_panic_message(panic_info: &Box<dyn std::any::Any + Send>) -> String {
 #[cfg(feature = "l2")]
 fn get_l2_input(cache: Cache) -> eyre::Result<ProgramInput> {
     use ethrex_common::types::fee_config::FeeConfig;
+    use ethrex_common::types::BlockHeader;
+    use ethrex_rlp::decode::RLPDecode;
 
     let Cache {
         blocks,
@@ -226,8 +228,17 @@ fn get_l2_input(cache: Cache) -> eyre::Result<ProgramInput> {
         .ok_or_else(|| eyre::eyre!("No blocks in cache"))?
         .header
         .number;
+
+    let initial_state_root = db
+        .headers
+        .iter()
+        .map(|h| BlockHeader::decode(h).unwrap())
+        .find(|h| h.number == first_block_number - 1)
+        .map(|h| h.state_root)
+        .ok_or_else(|| eyre::eyre!("Initial state root not found"))?;
+
     let execution_witness =
-        execution_witness_from_rpc_chain_config(db, chain_config, first_block_number)
+        execution_witness_from_rpc_chain_config(db, chain_config, first_block_number, initial_state_root)
             .wrap_err("Failed to convert execution witness")?;
 
     Ok(ProgramInput {
