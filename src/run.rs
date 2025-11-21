@@ -16,7 +16,7 @@ use guest_program::input::ProgramInput;
 use std::{
     panic::{AssertUnwindSafe, catch_unwind},
     sync::Arc,
-    time::{Duration, SystemTime},
+    time::{Duration}
 };
 
 pub async fn exec(backend: Backend, cache: Cache) -> eyre::Result<Duration> {
@@ -25,16 +25,12 @@ pub async fn exec(backend: Backend, cache: Cache) -> eyre::Result<Duration> {
     #[cfg(not(feature = "l2"))]
     let input = get_l1_input(cache)?;
 
-    let start = SystemTime::now();
-
     // Use catch_unwind to capture panics
     let result = catch_unwind(AssertUnwindSafe(|| ethrex_prover::execute(backend, input)));
 
-    let elapsed = start.elapsed()?;
-
     match result {
         Ok(exec_result) => {
-            exec_result.map_err(|e| eyre::Error::msg(format!("Execution failed: {}", e)))?;
+            let (_, elapsed) = exec_result.map_err(|e| eyre::Error::msg(format!("Execution failed: {}", e)))?;
             Ok(elapsed)
         }
         Err(panic_info) => {
@@ -59,18 +55,14 @@ pub async fn prove(
     #[cfg(not(feature = "l2"))]
     let input = get_l1_input(cache)?;
 
-    let start = SystemTime::now();
-
     // Use catch_unwind to capture panics
     let result = catch_unwind(AssertUnwindSafe(|| {
-        ethrex_prover::prove(backend, input, proof_type.into())
+        ethrex_prover::prove_timed(backend, input, proof_type.into())
     }));
-
-    let elapsed = start.elapsed()?;
 
     match result {
         Ok(prove_result) => {
-            prove_result.map_err(|e| eyre::Error::msg(format!("Proving failed: {}", e)))?;
+            let (_, elapsed) = prove_result.map_err(|e| eyre::Error::msg(format!("Proving failed: {}", e)))?;
             Ok(elapsed)
         }
         Err(panic_info) => {
