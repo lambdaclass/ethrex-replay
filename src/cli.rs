@@ -803,7 +803,15 @@ impl EthrexReplayCommand {
 
                 let backend = backend(&opts.common.zkvm)?;
 
-                let execution_result = exec(backend, cache.clone()).await;
+                // Always execute before proving, unless it's ZisK.
+                // This is because of ZisK's client initializing MPI, which can't be done
+                // more than once in the same process.
+                // https://docs.open-mpi.org/en/v5.0.1/man-openmpi/man3/MPI_Init_thread.3.html#description
+                let execution_result = if backend != Backend::ZisK {
+                    Some(exec(backend, cache.clone()).await)
+                } else {
+                    None
+                };
 
                 let proving_result = match opts.common.action {
                     Action::Execute => None,
@@ -1034,10 +1042,17 @@ async fn replay_block(block_opts: BlockOptions) -> eyre::Result<()> {
     let backend = backend(&opts.common.zkvm)?;
 
     let (execution_result, proving_result) = if opts.no_zkvm {
-        (replay_no_zkvm(cache.clone(), &opts).await, None)
+        (Some(replay_no_zkvm(cache.clone(), &opts).await), None)
     } else {
-        // Always execute
-        let execution_result = exec(backend, cache.clone()).await;
+        // Always execute before proving, unless it's ZisK.
+        // This is because of ZisK's client initializing MPI, which can't be done
+        // more than once in the same process.
+        // https://docs.open-mpi.org/en/v5.0.1/man-openmpi/man3/MPI_Init_thread.3.html#description
+        let execution_result = if backend != Backend::ZisK {
+            Some(exec(backend, cache.clone()).await)
+        } else {
+            None
+        };
 
         let proving_result = if opts.common.action == Action::Prove {
             // Only prove if requested
@@ -1067,9 +1082,7 @@ async fn replay_block(block_opts: BlockOptions) -> eyre::Result<()> {
 
     match opts.notification_level {
         NotificationLevel::Failed => {
-            if report.execution_result.is_err()
-                || report.proving_result.as_ref().is_some_and(|r| r.is_err())
-            {
+            if report.has_error() {
                 try_send_report_to_slack(&report, opts.slack_webhook_url).await?;
             }
         }
@@ -1086,9 +1099,7 @@ async fn replay_block(block_opts: BlockOptions) -> eyre::Result<()> {
             CacheLevel::On => {}
             // Only save the cache if the block run or proving failed
             CacheLevel::Failed => {
-                if report.execution_result.is_ok()
-                    && report.proving_result.as_ref().is_none_or(|r| r.is_ok())
-                {
+                if !report.has_error() {
                     cache.delete()?;
                 }
             }
@@ -1250,18 +1261,21 @@ pub async fn replay_custom_l1_blocks(
         opts.cache_dir,
     );
 
-    let execution_result = exec(backend(&opts.common.zkvm)?, cache.clone()).await;
+    let backend = backend(&opts.common.zkvm)?;
+
+    // Always execute before proving, unless it's ZisK.
+    // This is because of ZisK's client initializing MPI, which can't be done
+    // more than once in the same process.
+    // https://docs.open-mpi.org/en/v5.0.1/man-openmpi/man3/MPI_Init_thread.3.html#description
+    let execution_result = if backend != Backend::ZisK {
+        Some(exec(backend, cache.clone()).await)
+    } else {
+        None
+    };
 
     let proving_result = if opts.common.action == Action::Prove {
         // Only prove if requested
-        Some(
-            prove(
-                backend(&opts.common.zkvm)?,
-                opts.common.proof_type,
-                cache.clone(),
-            )
-            .await,
-        )
+        Some(prove(backend, opts.common.proof_type, cache.clone()).await)
     } else {
         None
     };
@@ -1453,7 +1467,15 @@ pub async fn replay_custom_l2_blocks(n_blocks: u64, opts: EthrexReplayOptions) -
 
     let backend = backend(&opts.common.zkvm)?;
 
-    let execution_result = exec(backend, cache.clone()).await;
+    // Always execute before proving, unless it's ZisK.
+    // This is because of ZisK's client initializing MPI, which can't be done
+    // more than once in the same process.
+    // https://docs.open-mpi.org/en/v5.0.1/man-openmpi/man3/MPI_Init_thread.3.html#description
+    let execution_result = if backend != Backend::ZisK {
+        Some(exec(backend, cache.clone()).await)
+    } else {
+        None
+    };
 
     let proving_result = match opts.common.action {
         Action::Execute => None,

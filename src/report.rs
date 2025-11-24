@@ -15,7 +15,7 @@ pub struct Report {
     pub action: Action,
     pub block: Block,
     pub network: Network,
-    pub execution_result: Result<Duration, eyre::Report>,
+    pub execution_result: Option<Result<Duration, eyre::Report>>,
     pub proving_result: Option<Result<Duration, eyre::Report>>,
 }
 
@@ -26,7 +26,7 @@ impl Report {
         action: Action,
         block: Block,
         network: Network,
-        execution_result: Result<Duration, eyre::Report>,
+        execution_result: Option<Result<Duration, eyre::Report>>,
         proving_result: Option<Result<Duration, eyre::Report>>,
     ) -> Self {
         Self {
@@ -38,6 +38,10 @@ impl Report {
             execution_result,
             proving_result,
         }
+    }
+
+    pub fn has_error(&self) -> bool {
+        matches!(self.execution_result, Some(Err(_))) || matches!(self.proving_result, Some(Err(_)))
     }
 
     pub fn to_slack_message(&self) -> SlackWebHookRequest {
@@ -82,15 +86,16 @@ impl Report {
             blocks: vec![
                 SlackWebHookBlock::Header {
                     text: Box::new(SlackWebHookBlock::PlainText {
-                        text: match (&self.execution_result, &self.proving_result) {
-                            (Ok(_), Some(Ok(_))) | (Ok(_), None) => format!(
-                                "✅ Succeeded to {} Block{} on {}",
-                                self.action, maybe_zkvm, self.resource
-                            ),
-                            (Ok(_), Some(Err(_))) | (Err(_), _) => format!(
+                        text: if self.has_error() {
+                            format!(
                                 "⚠️ Failed to {} Block{} on {}",
                                 self.action, maybe_zkvm, self.resource
-                            ),
+                            )
+                        } else {
+                            format!(
+                                "✅ Succeeded to {} Block{} on {}",
+                                self.action, maybe_zkvm, self.resource
+                            )
                         },
                         emoji: true,
                     }),
@@ -116,17 +121,18 @@ impl Report {
                                 format!(
                                     "\n*Execution:* {}",
                                     match &self.execution_result {
-                                        Ok(_) => "Succeeded".to_string(),
-                                        Err(err) => format!("⚠️ Failed with {err}"),
+                                        Some(Ok(_)) => "Succeeded".to_string(),
+                                        Some(Err(err)) => format!("⚠️ Failed with {err}"),
+                                        None => "Not executed".to_string(),
                                     }
                                 )
-                            } else if let Err(err) = &self.execution_result {
+                            } else if let Some(Err(err)) = &self.execution_result {
                                 format!("\n*Execution:* Failed with {err}")
                             } else {
                                 "".to_string()
                             },
                             maybe_execution_time =
-                                if let Ok(execution_duration) = &self.execution_result {
+                                if let Some(Ok(execution_duration)) = &self.execution_result {
                                     format!(
                                         "\n*Execution Time:* {}",
                                         format_duration(execution_duration)
@@ -160,6 +166,12 @@ impl Report {
 
         let txs = self.block.body.transactions.len();
 
+        let maybe_execution_time = if let Some(Ok(execution_duration)) = &self.execution_result {
+            format!(", Execution Time: {}", format_duration(execution_duration))
+        } else {
+            "".to_string()
+        };
+
         let maybe_proving_time = if let Some(Ok(proving_duration)) = &self.proving_result {
             format!(", Proving Time: {}", format_duration(proving_duration))
         } else {
@@ -186,21 +198,21 @@ impl Report {
             "".to_string()
         };
 
+        let maybe_execution_result = if let Some(Err(err)) = &self.execution_result {
+            format!(", Execution Error: {err}")
+        } else {
+            "".to_string()
+        };
+
         match (self.execution_result.as_ref(), self.proving_result.as_ref()) {
-            (Ok(execution_result), Some(Ok(_))) | (Ok(execution_result), None) => {
-                info!(
-                    "[{network}] Block: {block_number}, Gas: {gas}, #Txs: {txs}, Execution Time: {execution_result}{maybe_proving_time}{maybe_etherscan_url}{maybe_ethproofs_url}",
-                    execution_result = format_duration(execution_result)
+            _ if self.has_error() => {
+                error!(
+                    "[{network}] Block: {block_number}, Gas: {gas}, #Txs: {txs}{maybe_execution_result}{maybe_proving_result}{maybe_etherscan_url}{maybe_ethproofs_url}"
                 );
             }
-            (Ok(_), Some(Err(_))) | (Err(_), _) => {
-                error!(
-                    "[{network}] Block: {block_number}, Gas: {gas}, #Txs: {txs}, Execution Result: {execution_result}{maybe_proving_result}{maybe_etherscan_url}{maybe_ethproofs_url}",
-                    execution_result = if let Err(execution_result) = &self.execution_result {
-                        format!("⚠️ Failed with {execution_result}")
-                    } else {
-                        "Succeeded".to_string()
-                    }
+            _ => {
+                info!(
+                    "[{network}] Block: {block_number}, Gas: {gas}, #Txs: {txs}{maybe_execution_time}{maybe_proving_time}{maybe_etherscan_url}{maybe_ethproofs_url}"
                 );
             }
         }
@@ -217,9 +229,15 @@ impl Report {
     /// we do benchmarks in CI.
     pub fn to_bench_file(&self) -> eyre::Result<serde_json::Value> {
         let elapsed = match (&self.execution_result, &self.proving_result) {
-            (Ok(_execution_duration), Some(Ok(proving_duration))) => proving_duration.as_secs_f64(),
-            (Ok(execution_duration), None) => execution_duration.as_secs_f64(),
-            (Err(err), _) | (_, Some(Err(err))) => {
+            (Some(Ok(_execution_duration)), Some(Ok(proving_duration))) => proving_duration.as_secs_f64(),
+            (Some(Ok(execution_duration)), None) => execution_duration.as_secs_f64(),
+            (None, Some(Ok(proving_duration))) => proving_duration.as_secs_f64(),
+            (None, None) => {
+                return Err(eyre::Error::msg(
+                    "Cannot create benchmark file: No execution or proving result available"
+                ));
+            }
+            (Some(Err(err)), _) | (_, Some(Err(err))) => {
                 return Err(eyre::Error::msg(format!(
                     "Cannot create benchmark file: {err}"
                 )));
@@ -246,14 +264,14 @@ impl Display for Report {
             "".to_string()
         };
         match (&self.execution_result, &self.proving_result) {
-            (Ok(_), Some(Ok(_))) | (Ok(_), None) => writeln!(
-                f,
-                "✅ Succeeded to {} Block{} on {}",
-                self.action, maybe_zkvm, self.resource
-            )?,
-            (Ok(_), Some(Err(_))) | (Err(_), _) => writeln!(
+            _ if self.has_error() => writeln!(
                 f,
                 "⚠️ Failed to {} Block{} on {}",
+                self.action, maybe_zkvm, self.resource
+            )?,
+            _ => writeln!(
+                f,
+                "✅ Succeeded to {} Block{} on {}",
                 self.action, maybe_zkvm, self.resource
             )?,
         };
@@ -266,11 +284,12 @@ impl Display for Report {
                 f,
                 "Execution Result: {}",
                 match &self.execution_result {
-                    Ok(_) => "Succeeded".to_string(),
-                    Err(err) => format!("⚠️ Failed with {err}"),
+                    Some(Ok(_)) => "Succeeded".to_string(),
+                    Some(Err(err)) => format!("⚠️ Failed with {err}"),
+                    None => "Not executed".to_string(),
                 }
             )?;
-        } else if let Err(err) = &self.execution_result {
+        } else if let Some(Err(err)) = &self.execution_result {
             writeln!(f, "Execution Error: {err}")?;
         }
         if let Some(Err(err)) = &self.proving_result {
@@ -296,7 +315,7 @@ impl Display for Report {
                     .replace("`", "")
             )?;
         }
-        if let Ok(execution_duration) = &self.execution_result {
+        if let Some(Ok(execution_duration)) = &self.execution_result {
             writeln!(f, "Execution Time: {}", format_duration(execution_duration))?;
         }
         if let Some(Ok(proving_duration)) = &self.proving_result {
