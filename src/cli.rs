@@ -803,18 +803,7 @@ impl EthrexReplayCommand {
 
                 let backend = backend(&opts.common.zkvm)?;
 
-                #[allow(unused_assignments)]
-                let mut execution_result = None;
-                #[cfg(not(feature = "zisk"))]
-                {
-                    execution_result = Some(exec(backend, cache.clone()).await);
-                }
-                #[cfg(feature = "zisk")]
-                {
-                    if backend != Backend::Zisk {
-                        execution_result = Some(exec(backend, cache.clone()).await);
-                    }
-                }
+                let execution_result = exec(backend, cache.clone()).await;
 
                 let proving_result = match opts.common.action {
                     Action::Execute => None,
@@ -1045,24 +1034,10 @@ async fn replay_block(block_opts: BlockOptions) -> eyre::Result<()> {
     let backend = backend(&opts.common.zkvm)?;
 
     let (execution_result, proving_result) = if opts.no_zkvm {
-        (Some(replay_no_zkvm(cache.clone(), &opts).await), None)
+        (replay_no_zkvm(cache.clone(), &opts).await, None)
     } else {
-        // Always execute before proving, unless it's ZisK.
-        // This is because of ZisK's client initializing MPI, which can't be done
-        // more than once in the same process.
-        // https://docs.open-mpi.org/en/v5.0.1/man-openmpi/man3/MPI_Init_thread.3.html#description
-        #[allow(unused_assignments)]
-        let mut execution_result = None;
-        #[cfg(not(feature = "zisk"))]
-        {
-            execution_result = Some(exec(backend, cache.clone()).await);
-        }
-        #[cfg(feature = "zisk")]
-        {
-            if backend != Backend::Zisk {
-                execution_result = Some(exec(backend, cache.clone()).await);
-            }
-        }
+        // Always execute
+        let execution_result = exec(backend, cache.clone()).await;
 
         let proving_result = if opts.common.action == Action::Prove {
             // Only prove if requested
@@ -1092,7 +1067,9 @@ async fn replay_block(block_opts: BlockOptions) -> eyre::Result<()> {
 
     match opts.notification_level {
         NotificationLevel::Failed => {
-            if report.has_error() {
+            if report.execution_result.is_err()
+                || report.proving_result.as_ref().is_some_and(|r| r.is_err())
+            {
                 try_send_report_to_slack(&report, opts.slack_webhook_url).await?;
             }
         }
@@ -1109,7 +1086,9 @@ async fn replay_block(block_opts: BlockOptions) -> eyre::Result<()> {
             CacheLevel::On => {}
             // Only save the cache if the block run or proving failed
             CacheLevel::Failed => {
-                if !report.has_error() {
+                if report.execution_result.is_ok()
+                    && report.proving_result.as_ref().is_none_or(|r| r.is_ok())
+                {
                     cache.delete()?;
                 }
             }
@@ -1271,26 +1250,13 @@ pub async fn replay_custom_l1_blocks(
         opts.cache_dir,
     );
 
-    let backend = backend(&opts.common.zkvm)?;
-
-    #[allow(unused_assignments)]
-    let mut execution_result = None;
-    #[cfg(not(feature = "zisk"))]
-    {
-        execution_result = Some(exec(backend, cache.clone()).await);
-    }
-    #[cfg(feature = "zisk")]
-    {
-        if backend != Backend::Zisk {
-            execution_result = Some(exec(backend, cache.clone()).await);
-        }
-    }
+    let execution_result = exec(backend(&opts.common.zkvm)?, cache.clone()).await;
 
     let proving_result = if opts.common.action == Action::Prove {
         // Only prove if requested
         Some(
             prove(
-                backend,
+                backend(&opts.common.zkvm)?,
                 opts.common.proof_type,
                 cache.clone(),
             )
@@ -1487,18 +1453,7 @@ pub async fn replay_custom_l2_blocks(n_blocks: u64, opts: EthrexReplayOptions) -
 
     let backend = backend(&opts.common.zkvm)?;
 
-    #[allow(unused_assignments)]
-    let mut execution_result = None;
-    #[cfg(not(feature = "zisk"))]
-    {
-        execution_result = Some(exec(backend, cache.clone()).await);
-    }
-    #[cfg(feature = "zisk")]
-    {
-        if backend != Backend::Zisk {
-            execution_result = Some(exec(backend, cache.clone()).await);
-        }
-    }
+    let execution_result = exec(backend, cache.clone()).await;
 
     let proving_result = match opts.common.action {
         Action::Execute => None,
