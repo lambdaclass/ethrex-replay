@@ -44,6 +44,10 @@ jobs:
         if: contains(matrix.features, 'sp1')
         uses: ./.github/actions/install-sp1
 
+      - name: Install ZisK
+        if: contains(matrix.features, 'zisk')
+        uses: ./.github/actions/install-zisk
+
       - name: cargo fmt --check --all
         if: matrix.features == '' # Run only without features because it's redundant to run it on all jobs
         run: cargo fmt --check --all
