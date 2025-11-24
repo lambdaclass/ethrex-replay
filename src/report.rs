@@ -229,12 +229,14 @@ impl Report {
     /// we do benchmarks in CI.
     pub fn to_bench_file(&self) -> eyre::Result<serde_json::Value> {
         let elapsed = match (&self.execution_result, &self.proving_result) {
-            (Some(Ok(_execution_duration)), Some(Ok(proving_duration))) => proving_duration.as_secs_f64(),
+            (Some(Ok(_execution_duration)), Some(Ok(proving_duration))) => {
+                proving_duration.as_secs_f64()
+            }
             (Some(Ok(execution_duration)), None) => execution_duration.as_secs_f64(),
             (None, Some(Ok(proving_duration))) => proving_duration.as_secs_f64(),
             (None, None) => {
                 return Err(eyre::Error::msg(
-                    "Cannot create benchmark file: No execution or proving result available"
+                    "Cannot create benchmark file: No execution or proving result available",
                 ));
             }
             (Some(Err(err)), _) | (_, Some(Err(err))) => {
