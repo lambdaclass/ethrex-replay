@@ -152,11 +152,11 @@ pub async fn get_account(
     let mut state_nodes = BTreeMap::new();
     for node in &account_proof {
         let hash = sha3::Keccak256::digest(node);
-        state_nodes.insert(H256::from_slice(&hash), Node::decode(&node).unwrap());
+        state_nodes.insert(H256::from_slice(&hash), Node::decode(node).unwrap());
     }
 
     let hash = H256::from_slice(&sha3::Keccak256::digest(root));
-    let trie = Trie::from_nodes(hash, &mut state_nodes)?;
+    let trie = Trie::from_nodes(hash, &state_nodes)?;
     if trie.get(&hash_address(address))?.is_none() {
         return Ok(Account::NonExisting {
             account_proof,
