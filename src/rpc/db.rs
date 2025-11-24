@@ -586,12 +586,11 @@ pub fn get_potential_child_nodes(proof: &[NodeRLP], key: &PathRLP) -> Option<Vec
     let mut state_nodes = BTreeMap::new();
     for node in proof.iter().skip(1) {
         let hash = Keccak256::digest(node);
-        state_nodes.insert(H256::from_slice(&hash), Node::decode(&node).unwrap());
+        state_nodes.insert(H256::from_slice(&hash), Node::decode(node).unwrap());
     }
 
     let hash = if let Some(root) = proof.first() {
-        let hash = H256::from_slice(&Keccak256::digest(root));
-        hash
+        H256::from_slice(&Keccak256::digest(root))
     } else {
         *EMPTY_KECCACK_HASH
     };
