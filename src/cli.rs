@@ -811,7 +811,7 @@ impl EthrexReplayCommand {
                 }
                 #[cfg(feature = "zisk")]
                 {
-                    if backend != Backend::ZisK {
+                    if backend != Backend::Zisk {
                         execution_result = Some(exec(backend, cache.clone()).await);
                     }
                 }
@@ -1281,7 +1281,7 @@ pub async fn replay_custom_l1_blocks(
     }
     #[cfg(feature = "zisk")]
     {
-        if backend != Backend::ZisK {
+        if backend != Backend::Zisk {
             execution_result = Some(exec(backend, cache.clone()).await);
         }
     }
