@@ -1127,6 +1127,12 @@ pub fn backend(zkvm: &Option<ZKVM>) -> eyre::Result<Backend> {
             #[cfg(not(feature = "risc0"))]
             return Err(eyre::Error::msg("risc0 feature not enabled"));
         }
+        Some(ZKVM::OpenVM) => {
+            #[cfg(feature = "openvm")]
+            return Ok(Backend::OpenVM);
+            #[cfg(not(feature = "openvm"))]
+            return Err(eyre::Error::msg("openvm feature not enabled"));
+        }
         Some(ZKVM::Zisk) => {
             #[cfg(feature = "zisk")]
             return Ok(Backend::ZisK);
@@ -1134,7 +1140,7 @@ pub fn backend(zkvm: &Option<ZKVM>) -> eyre::Result<Backend> {
             return Err(eyre::Error::msg("zisk feature not enabled"));
         }
         Some(_other) => Err(eyre::Error::msg(
-            "Only SP1, Risc0, and ZisK backends are supported currently",
+            "Only SP1, Risc0, OpenVM, and ZisK backends are supported currently",
         )),
         None => Ok(Backend::Exec),
     }
