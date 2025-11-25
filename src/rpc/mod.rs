@@ -6,10 +6,9 @@ use again::{RetryPolicy, Task};
 
 use bytes::Bytes;
 use ethrex_common::{Address, H256, U256, constants::EMPTY_KECCACK_HASH, types::AccountState};
-use ethrex_rlp::decode::RLPDecode;
 use ethrex_rpc::types::block::RpcBlock;
 use ethrex_storage::hash_address;
-use ethrex_trie::{Node, Trie};
+use ethrex_trie::Trie;
 
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
