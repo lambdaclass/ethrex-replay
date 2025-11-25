@@ -175,7 +175,11 @@ pub fn get_l1_input(cache: Cache) -> eyre::Result<ProgramInput> {
     let initial_state_root = db
         .headers
         .iter()
-        .map(|h| BlockHeader::decode(h).unwrap())
+        .map(|h| {
+            BlockHeader::decode(h).map_err(|_| eyre::Error::msg("Failed to decode block header"))
+        })
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
         .find(|h| h.number == first_block_number - 1)
         .map(|h| h.state_root)
         .ok_or_else(|| eyre::eyre!("Initial state root not found"))?;
@@ -232,7 +236,11 @@ fn get_l2_input(cache: Cache) -> eyre::Result<ProgramInput> {
     let initial_state_root = db
         .headers
         .iter()
-        .map(|h| BlockHeader::decode(h).unwrap())
+        .map(|h| {
+            BlockHeader::decode(h).map_err(|_| eyre::Error::msg("Failed to decode block header"))
+        })
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
         .find(|h| h.number == first_block_number - 1)
         .map(|h| h.state_root)
         .ok_or_else(|| eyre::eyre!("Initial state root not found"))?;

@@ -152,7 +152,8 @@ pub async fn get_account(
     let mut state_nodes = BTreeMap::new();
     for node in &account_proof {
         let hash = sha3::Keccak256::digest(node);
-        state_nodes.insert(H256::from_slice(&hash), Node::decode(node).unwrap());
+        let decoded_node = Node::decode(node).map_err(|_| eyre::eyre!("Failed to decode node"))?;
+        state_nodes.insert(H256::from_slice(&hash), decoded_node);
     }
 
     let hash = H256::from_slice(&sha3::Keccak256::digest(root));
