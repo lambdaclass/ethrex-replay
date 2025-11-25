@@ -101,7 +101,6 @@ pub async fn run_tx(cache: Cache, tx_hash: H256) -> eyre::Result<(Receipt, Vec<A
         execution_witness,
         chain_config,
         block.header.number,
-        Default::default(),
     )
     .wrap_err("Failed to convert execution witness")?;
 
@@ -144,9 +143,6 @@ pub async fn run_tx(cache: Cache, tx_hash: H256) -> eyre::Result<(Receipt, Vec<A
 
 #[cfg(not(feature = "l2"))]
 fn get_l1_input(cache: Cache) -> eyre::Result<ProgramInput> {
-    use ethrex_common::types::BlockHeader;
-    use ethrex_rlp::decode::RLPDecode;
-
     let Cache {
         blocks,
         witness: db,
@@ -172,20 +168,8 @@ fn get_l1_input(cache: Cache) -> eyre::Result<ProgramInput> {
         .header
         .number;
 
-    let initial_state_root = db
-        .headers
-        .iter()
-        .map(|h| BlockHeader::decode(h).unwrap())
-        .find(|h| h.number == first_block_number - 1)
-        .map(|h| h.state_root)
-        .unwrap();
-
-    let execution_witness = execution_witness_from_rpc_chain_config(
-        db,
-        chain_config,
-        first_block_number,
-        initial_state_root,
-    )?;
+    let execution_witness =
+        execution_witness_from_rpc_chain_config(db, chain_config, first_block_number)?;
 
     Ok(ProgramInput {
         blocks,

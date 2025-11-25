@@ -9,6 +9,7 @@ use ethrex_trie::{EMPTY_TRIE_HASH, InMemoryTrieDB};
 use eyre::OptionExt;
 use std::{
     cmp::max,
+    collections::BTreeMap,
     fmt::Display,
     path::PathBuf,
     sync::Arc,
@@ -27,6 +28,7 @@ use ethrex_common::{
         AccountState, AccountUpdate, Block, Code, DEFAULT_BUILDER_GAS_CEIL, ELASTICITY_MULTIPLIER,
         Receipt, block_execution_witness::GuestProgramState,
     },
+    utils::keccak,
 };
 use ethrex_prover::backend::Backend;
 #[cfg(not(feature = "l2"))]
@@ -739,121 +741,131 @@ pub async fn setup_rpc(opts: &EthrexReplayOptions) -> eyre::Result<(EthClient, N
     Ok((eth_client, network))
 }
 
-async fn replay_no_zkvm(_cache: Cache, _opts: &EthrexReplayOptions) -> eyre::Result<Duration> {
-    // let b = backend(&opts.common.zkvm)?;
-    // if !matches!(b, Backend::Exec) {
-    //     eyre::bail!("Tried to execute without zkVM but backend was set to {b:?}");
-    // }
-    // if opts.common.action == Action::Prove {
-    //     eyre::bail!("Proving not enabled without backend");
-    // }
-    // if cache.blocks.len() > 1 {
-    //     eyre::bail!("Cache for L1 witness should contain only one block.");
-    // }
+async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Result<Duration> {
+    let b = backend(&opts.common.zkvm)?;
+    if !matches!(b, Backend::Exec) {
+        eyre::bail!("Tried to execute without zkVM but backend was set to {b:?}");
+    }
+    if opts.common.action == Action::Prove {
+        eyre::bail!("Proving not enabled without backend");
+    }
+    if cache.blocks.len() > 1 {
+        eyre::bail!("Cache for L1 witness should contain only one block.");
+    }
 
-    // let start = Instant::now();
-    // info!("Preparing Storage for execution without zkVM");
+    let start = Instant::now();
+    info!("Preparing Storage for execution without zkVM");
 
-    // let chain_config = cache.get_chain_config()?;
-    // let block = cache.blocks[0].clone();
+    let chain_config = cache.get_chain_config()?;
+    let block = cache.blocks[0].clone();
 
-    // let witness = execution_witness_from_rpc_chain_config(
-    //     cache.witness.clone(),
-    //     chain_config,
-    //     cache.get_first_block_number()?,
-    // )?;
-    // let network = &cache.network;
+    let witness = execution_witness_from_rpc_chain_config(
+        cache.witness.clone(),
+        chain_config,
+        cache.get_first_block_number()?,
+    )?;
 
-    // let guest_program = GuestProgramState::try_from(witness.clone())?;
+    let network = &cache.network;
 
-    // // This will contain all code hashes with the corresponding bytecode
-    // // For the code hashes that we don't have we'll fill it with <CodeHash, Bytes::new()>
-    // let mut all_codes_hashed = guest_program.codes_hashed.clone();
+    let guest_program = GuestProgramState::try_from(witness.clone())?;
+
+    // This will contain all code hashes with the corresponding bytecode
+    // For the code hashes that we don't have we'll fill it with <CodeHash, Bytes::new()>
+    let mut all_codes_hashed = guest_program.codes_hashed.clone();
 
     // let all_nodes = &guest_program.nodes_hashed;
-    // let mut store = Store::new("nothing", EngineType::InMemory)?;
+    let mut store = Store::new("nothing", EngineType::InMemory)?;
 
-    // // - Set up state trie nodes
-    // let state_root = guest_program.parent_block_header.state_root;
+    // - Set up state trie nodes
+    let state_root = guest_program.parent_block_header.state_root;
 
-    // let state_trie = InMemoryTrieDB::from_nodes(state_root, all_nodes)?;
-    // let state_trie_nodes = get_trie_nodes_with_dummies(state_trie);
+    let all_nodes: BTreeMap<H256, Vec<u8>> = cache
+        .witness
+        .state
+        .iter()
+        .filter_map(|b| {
+            if b.as_ref() == [0x80] {
+                return None;
+            } // skip nulls
+            let h = keccak(b);
+            Some((h, b.to_vec()))
+        })
+        .collect();
 
-    // let trie = store.open_direct_state_trie(*EMPTY_TRIE_HASH)?;
+    let state_trie = InMemoryTrieDB::from_nodes(state_root, &all_nodes)?;
 
-    // trie.db().put_batch(state_trie_nodes)?;
+    let state_trie_nodes = get_trie_nodes_with_dummies(state_trie);
 
-    // // - Set up all storage tries for all addresses in the execution witness
-    // let addresses: Vec<Address> = witness
-    //     .keys
-    //     .iter()
-    //     .filter(|k| k.len() == Address::len_bytes())
-    //     .map(|k| Address::from_slice(k))
-    //     .collect();
+    let trie = store.open_direct_state_trie(*EMPTY_TRIE_HASH)?;
 
-    // for address in &addresses {
-    //     let hashed_address = hash_address(address);
+    trie.db().put_batch(state_trie_nodes)?;
 
-    //     // Account state may not be in the state trie
-    //     let Some(account_state_rlp) = guest_program
-    //         .state_trie
-    //         .as_ref()
-    //         .unwrap()
-    //         .get(&hashed_address)?
-    //     else {
-    //         continue;
-    //     };
+    // - Set up all storage tries for all addresses in the execution witness
+    let addresses: Vec<Address> = witness
+        .keys
+        .iter()
+        .filter(|k| k.len() == Address::len_bytes())
+        .map(|k| Address::from_slice(k))
+        .collect();
 
-    //     let account_state = AccountState::decode(&account_state_rlp)?;
+    for address in &addresses {
+        let hashed_address = hash_address(address);
 
-    //     // If code hash of account isn't present insert empty code so that if not found the execution doesn't break.
-    //     let code_hash = account_state.code_hash;
-    //     all_codes_hashed.entry(code_hash).or_insert(Code::default());
+        // Account state may not be in the state trie
+        let Some(account_state_rlp) = guest_program.state_trie.get(&hashed_address)? else {
+            continue;
+        };
 
-    //     let storage_root = account_state.storage_root;
-    //     let Ok(storage_trie) = InMemoryTrieDB::from_nodes(storage_root, all_nodes) else {
-    //         continue;
-    //     };
+        let account_state = AccountState::decode(&account_state_rlp)?;
 
-    //     let storage_trie_nodes = get_trie_nodes_with_dummies(storage_trie);
+        // If code hash of account isn't present insert empty code so that if not found the execution doesn't break.
+        let code_hash = account_state.code_hash;
+        all_codes_hashed.entry(code_hash).or_insert(Code::default());
 
-    //     // If there isn't any storage trie node we don't need to write anything
-    //     if storage_trie_nodes.is_empty() {
-    //         continue;
-    //     }
+        let storage_root = account_state.storage_root;
+        let Ok(storage_trie) = InMemoryTrieDB::from_nodes(storage_root, &all_nodes) else {
+            continue;
+        };
 
-    //     let storage_trie_nodes = vec![(H256::from_slice(&hashed_address), storage_trie_nodes)];
+        let storage_trie_nodes = get_trie_nodes_with_dummies(storage_trie);
 
-    //     store
-    //         .write_storage_trie_nodes_batch(storage_trie_nodes)
-    //         .await?;
-    // }
+        // If there isn't any storage trie node we don't need to write anything
+        if storage_trie_nodes.is_empty() {
+            continue;
+        }
 
-    // store.chain_config = chain_config;
+        let storage_trie_nodes = vec![(H256::from_slice(&hashed_address), storage_trie_nodes)];
 
-    // // Add codes to DB
-    // for (code_hash, mut code) in all_codes_hashed {
-    //     code.hash = code_hash;
-    //     store.add_account_code(code).await?;
-    // }
+        store
+            .write_storage_trie_nodes_batch(storage_trie_nodes)
+            .await?;
+    }
 
-    // // Add block headers to DB
-    // for (_n, header) in guest_program.block_headers.clone() {
-    //     store.add_block_header(header.hash(), header).await?;
-    // }
+    store.chain_config = chain_config;
 
-    // let blockchain = Blockchain::default_with_store(store);
+    // Add codes to DB
+    for (code_hash, mut code) in all_codes_hashed {
+        code.hash = code_hash;
+        store.add_account_code(code).await?;
+    }
 
-    // info!("Storage preparation finished in {:.2?}", start.elapsed());
+    // Add block headers to DB
+    for (_n, header) in guest_program.block_headers.clone() {
+        store.add_block_header(header.hash(), header).await?;
+    }
 
-    // info!("Executing block {} on {}", block.header.number, network);
-    // let start_time = Instant::now();
-    // blockchain.add_block(block)?;
-    // let duration = start_time.elapsed();
-    // info!("add_block execution time: {:.2?}", duration);
+    let blockchain = Blockchain::default_with_store(store);
 
-    // Ok(duration)
-    Ok(Duration::default())
+    info!("Storage preparation finished in {:.2?}", start.elapsed());
+
+    info!("Executing block {} on {}", block.header.number, network);
+    let start_time = Instant::now();
+    blockchain.add_block(block)?;
+    let duration = start_time.elapsed();
+    info!("add_block execution time: {:.2?}", duration);
+
+    Ok(duration)
+    // Ok(Duration::default())
 }
 
 async fn replay_transaction(tx_opts: TransactionOpts) -> eyre::Result<()> {
