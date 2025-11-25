@@ -5,7 +5,7 @@ use bytes::Bytes;
 use ethrex_l2_common::prover::ProofFormat;
 use ethrex_l2_rpc::signer::{LocalSigner, Signer};
 use ethrex_rlp::decode::RLPDecode;
-use ethrex_trie::{EMPTY_TRIE_HASH, InMemoryTrieDB};
+use ethrex_trie::{EMPTY_TRIE_HASH, InMemoryTrieDB, Node};
 use eyre::OptionExt;
 use std::{
     cmp::max,
@@ -779,7 +779,7 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
     // - Set up state trie nodes
     let state_root = guest_program.parent_block_header.state_root;
 
-    let all_nodes: BTreeMap<H256, Vec<u8>> = cache
+    let all_nodes: BTreeMap<H256, Node> = cache
         .witness
         .state
         .iter()
@@ -788,9 +788,9 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
                 return None;
             } // skip nulls
             let h = keccak(b);
-            Some((h, b.to_vec()))
+            Some(Node::decode(b).map(|node| (h, node)))
         })
-        .collect();
+        .collect::<Result<_, _>>()?;
 
     let state_trie = InMemoryTrieDB::from_nodes(state_root, &all_nodes)?;
 
@@ -823,6 +823,10 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
         all_codes_hashed.entry(code_hash).or_insert(Code::default());
 
         let storage_root = account_state.storage_root;
+        if storage_root == *EMPTY_TRIE_HASH || !all_nodes.contains_key(&storage_root) {
+            continue;
+        }
+
         let Ok(storage_trie) = InMemoryTrieDB::from_nodes(storage_root, &all_nodes) else {
             continue;
         };
