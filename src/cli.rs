@@ -714,8 +714,8 @@ impl EthrexReplayCommand {
                     None => {
                         if let Some(block) = block {
                             block
-                        } else if !blocks.is_empty() {
-                            *blocks.first().unwrap()
+                        } else if let Some(block) = blocks.first() {
+                            *block
                         } else {
                             eyre::bail!("Either block, blocks or to must be specified")
                         }
@@ -727,8 +727,8 @@ impl EthrexReplayCommand {
                     None => {
                         if let Some(block) = block {
                             block
-                        } else if !blocks.is_empty() {
-                            *blocks.last().unwrap()
+                        } else if let Some(block) = blocks.first() {
+                            *block
                         } else {
                             fetch_latest_block_number(rpc_url.clone(), false).await?
                         }
