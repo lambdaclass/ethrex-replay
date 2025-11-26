@@ -21,6 +21,7 @@ target
 
 # Default replay cache directory (JIC)
 replay_cache/
+generated_inputs/
 
 # asdf
 .tool-versions

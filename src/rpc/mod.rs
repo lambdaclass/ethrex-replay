@@ -6,9 +6,10 @@ use again::{RetryPolicy, Task};
 
 use bytes::Bytes;
 use ethrex_common::{Address, H256, U256, constants::EMPTY_KECCACK_HASH, types::AccountState};
+use ethrex_rlp::decode::RLPDecode;
 use ethrex_rpc::types::block::RpcBlock;
 use ethrex_storage::hash_address;
-use ethrex_trie::Trie;
+use ethrex_trie::{Node, Trie};
 
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
@@ -151,7 +152,8 @@ pub async fn get_account(
     let mut state_nodes = BTreeMap::new();
     for node in &account_proof {
         let hash = sha3::Keccak256::digest(node);
-        state_nodes.insert(H256::from_slice(&hash), node.clone());
+        let decoded_node = Node::decode(node).map_err(|_| eyre::eyre!("Failed to decode node"))?;
+        state_nodes.insert(H256::from_slice(&hash), decoded_node);
     }
 
     let hash = H256::from_slice(&sha3::Keccak256::digest(root));

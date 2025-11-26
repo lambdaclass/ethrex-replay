@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        features: ["", "l2", "l2,sp1", "l2,risc0", "sp1", "risc0"]
+        features: ["", "l2", "l2,sp1", "l2,risc0", "l2,zisk", "sp1", "risc0", "zisk"]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -44,6 +44,10 @@ jobs:
         if: contains(matrix.features, 'sp1')
         uses: ./.github/actions/install-sp1
 
+      - name: Install ZisK
+        if: contains(matrix.features, 'zisk')
+        uses: ./.github/actions/install-zisk
+
       - name: cargo fmt --check --all
         if: matrix.features == '' # Run only without features because it's redundant to run it on all jobs
         run: cargo fmt --check --all
@@ -56,7 +60,7 @@ jobs:
           set -euxo pipefail
           args=(--release --no-default-features)
           if [ -n "${FEATURE_ARGS}" ]; then
-            args+=("--features" "${FEATURE_ARGS}")
+            args+=("--features" "${FEATURE_ARGS},ci")
           fi
           cargo check "${args[@]}"
 
@@ -68,7 +72,7 @@ jobs:
           set -euxo pipefail
           args=(--release --no-default-features)
           if [ -n "${FEATURE_ARGS}" ]; then
-            args+=("--features" "${FEATURE_ARGS}")
+            args+=("--features" "${FEATURE_ARGS},ci")
           fi
           cargo clippy "${args[@]}" -- -D warnings
 

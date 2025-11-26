@@ -9,6 +9,7 @@ use ethrex_trie::{EMPTY_TRIE_HASH, InMemoryTrieDB};
 use eyre::OptionExt;
 use std::{
     cmp::max,
+    collections::BTreeMap,
     fmt::Display,
     path::PathBuf,
     sync::Arc,
@@ -24,9 +25,10 @@ use ethrex_blockchain::{
 use ethrex_common::{
     Address, H256,
     types::{
-        AccountState, AccountUpdate, Block, Code, DEFAULT_BUILDER_GAS_CEIL, ELASTICITY_MULTIPLIER,
-        Receipt, block_execution_witness::GuestProgramState,
+        AccountState, AccountUpdate, Block, BlockHeader, Code, DEFAULT_BUILDER_GAS_CEIL,
+        ELASTICITY_MULTIPLIER, Receipt, block_execution_witness::GuestProgramState,
     },
+    utils::keccak,
 };
 use ethrex_prover::backend::Backend;
 #[cfg(not(feature = "l2"))]
@@ -90,6 +92,9 @@ pub enum EthrexReplayCommand {
     #[command(subcommand, about = "Replay a custom block or batch")]
     Custom(CustomSubcommand),
     #[cfg(not(feature = "l2"))]
+    #[command(about = "Generate binary input for ethrex guest")]
+    GenerateInput(GenerateInputOptions),
+    #[cfg(not(feature = "l2"))]
     #[command(about = "Replay a single transaction")]
     Transaction(TransactionOpts),
     #[cfg(feature = "l2")]
@@ -127,20 +132,15 @@ pub enum CustomSubcommand {
     Batch(CustomBatchOptions),
 }
 
-#[derive(Parser, Clone)]
+#[derive(Parser, Clone, Default)]
 pub struct CommonOptions {
-    #[arg(
-        long,
-        value_enum,
-        help_heading = "Replay Options",
-        conflicts_with = "no_zkvm"
-    )]
+    #[arg(long, value_enum, help_heading = "Replay Options")]
     pub zkvm: Option<ZKVM>,
     #[arg(long, value_enum, default_value_t = Resource::default(), help_heading = "Replay Options")]
     pub resource: Resource,
     #[arg(long, value_enum, default_value_t = Action::default(), help_heading = "Replay Options")]
     pub action: Action,
-    #[arg(long = "proof", value_enum, default_value_t = ProofType::default(), help_heading = "Replay Options", conflicts_with_all = ["no_zkvm"])]
+    #[arg(long = "proof", value_enum, default_value_t = ProofType::default(), help_heading = "Replay Options")]
     pub proof_type: ProofType,
     #[arg(
         long,
@@ -197,7 +197,7 @@ pub struct EthrexReplayOptions {
         long,
         help = "Execute with `Blockchain::add_block`, without using zkvm as backend",
         help_heading = "Replay Options",
-        conflicts_with = "zkvm"
+        conflicts_with_all = ["zkvm", "proof_type"]
     )]
     pub no_zkvm: bool,
     // CAUTION
@@ -437,6 +437,49 @@ pub enum TxVariant {
     ERC20Transfer,
 }
 
+#[derive(Parser)]
+#[command(group(ArgGroup::new("block_list").required(true).multiple(true).args(["block", "blocks", "from"])))]
+pub struct GenerateInputOptions {
+    #[arg(
+        long,
+        conflicts_with_all = ["blocks", "from", "to"],
+        help = "Block to generate input for",
+        help_heading = "Command Options"
+    )]
+    block: Option<u64>,
+    #[arg(long, help = "List of blocks to execute.", num_args = 1.., value_delimiter = ',', conflicts_with_all = ["block", "from", "to"], help_heading = "Command Options")]
+    blocks: Vec<u64>,
+    #[arg(
+        long,
+        conflicts_with_all = ["blocks", "block"],
+        help = "Starting block. (Inclusive)",
+        help_heading = "Command Options"
+    )]
+    from: Option<u64>,
+    #[arg(
+        long,
+        conflicts_with_all = ["blocks", "block"],
+        help = "Ending block. (Inclusive)",
+        requires = "from",
+        help_heading = "Command Options"
+    )]
+    to: Option<u64>,
+    #[arg(
+        long,
+        help = "Directory to store the generated input",
+        value_parser,
+        default_value = "./generated_inputs",
+        help_heading = "Replay Options"
+    )]
+    output_dir: PathBuf,
+    #[arg(
+        long,
+        help = "RPC provider to fetch data from",
+        help_heading = "Replay Options"
+    )]
+    rpc_url: Url,
+}
+
 impl EthrexReplayCommand {
     pub async fn run(self) -> eyre::Result<()> {
         match self {
@@ -652,6 +695,75 @@ impl EthrexReplayCommand {
 
                 plot(&blocks).await?;
             }
+            #[cfg(not(feature = "l2"))]
+            Self::GenerateInput(GenerateInputOptions {
+                block,
+                blocks,
+                from,
+                to,
+                output_dir,
+                rpc_url,
+            }) => {
+                let opts = EthrexReplayOptions {
+                    common: CommonOptions::default(),
+                    rpc_url: Some(rpc_url.clone()),
+                    cached: false,
+                    network: None,
+                    cache_dir: PathBuf::from("./replay_cache"),
+                    cache_level: CacheLevel::Off,
+                    slack_webhook_url: None,
+                    no_zkvm: false,
+                    bench: false,
+                    notification_level: NotificationLevel::Off,
+                };
+
+                if !output_dir.exists() {
+                    std::fs::create_dir_all(&output_dir)?;
+                }
+
+                let blocks_to_process: Vec<u64> = if !blocks.is_empty() {
+                    blocks
+                } else if let Some(block) = block {
+                    vec![block]
+                } else {
+                    let from = from.ok_or_else(|| {
+                        eyre::eyre!("Either block, blocks, or from must be specified")
+                    })?;
+                    let to = match to {
+                        Some(to) => to,
+                        None => fetch_latest_block_number(rpc_url.clone(), false).await?,
+                    };
+                    (from..=to).collect()
+                };
+
+                for block in &blocks_to_process {
+                    let (cache, network) = get_blockdata(opts.clone(), Some(*block)).await?;
+
+                    let program_input = crate::run::get_l1_input(cache)?;
+
+                    let serialized_program_input =
+                        rkyv::to_bytes::<rkyv::rancor::Error>(&program_input)?;
+
+                    let input_output_path =
+                        output_dir.join(format!("ethrex_{network}_{block}_input.bin"));
+
+                    std::fs::write(input_output_path, serialized_program_input.as_slice())?;
+                }
+
+                if blocks_to_process.len() == 1 {
+                    info!(
+                        "Generated input for block {} in directory {}",
+                        blocks_to_process[0],
+                        output_dir.display()
+                    );
+                } else {
+                    info!(
+                        "Generated inputs for {} blocks in directory {}",
+                        blocks_to_process.len(),
+                        output_dir.display()
+                    );
+                }
+            }
             #[cfg(feature = "l2")]
             Self::L2(L2Subcommand::Transaction(TransactionOpts {
                 tx_hash,
@@ -757,10 +869,30 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
     let chain_config = cache.get_chain_config()?;
     let block = cache.blocks[0].clone();
 
+    let first_block_number = cache.get_first_block_number()?;
+    let headers = cache
+        .witness
+        .headers
+        .iter()
+        .map(|h| {
+            BlockHeader::decode(h).map_err(|_| eyre::Error::msg("Failed to decode block header"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let Some(parent_block_header) = headers.into_iter().find_map(|header| {
+        if header.number == first_block_number - 1 {
+            Some(header)
+        } else {
+            None
+        }
+    }) else {
+        eyre::bail!("No parent block header");
+    };
+
     let witness = execution_witness_from_rpc_chain_config(
         cache.witness.clone(),
         chain_config,
         cache.get_first_block_number()?,
+        parent_block_header.state_root,
     )?;
     let network = &cache.network;
 
@@ -770,13 +902,26 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
     // For the code hashes that we don't have we'll fill it with <CodeHash, Bytes::new()>
     let mut all_codes_hashed = guest_program.codes_hashed.clone();
 
-    let all_nodes = &guest_program.nodes_hashed;
     let mut store = Store::new("nothing", EngineType::InMemory)?;
 
     // - Set up state trie nodes
     let state_root = guest_program.parent_block_header.state_root;
 
-    let state_trie = InMemoryTrieDB::from_nodes(state_root, all_nodes)?;
+    let all_nodes: BTreeMap<H256, Vec<u8>> = cache
+        .witness
+        .state
+        .iter()
+        .filter_map(|b| {
+            if b.as_ref() == [0x80] {
+                return None;
+            } // skip nulls
+            let h = keccak(b);
+            Some((h, b.clone().to_vec()))
+        })
+        .collect();
+
+    let state_trie = InMemoryTrieDB::from_nodes(state_root, &all_nodes)?;
+
     let state_trie_nodes = get_trie_nodes_with_dummies(state_trie);
 
     let trie = store.open_direct_state_trie(*EMPTY_TRIE_HASH)?;
@@ -795,12 +940,7 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
         let hashed_address = hash_address(address);
 
         // Account state may not be in the state trie
-        let Some(account_state_rlp) = guest_program
-            .state_trie
-            .as_ref()
-            .unwrap()
-            .get(&hashed_address)?
-        else {
+        let Some(account_state_rlp) = guest_program.state_trie.get(&hashed_address)? else {
             continue;
         };
 
@@ -811,7 +951,7 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
         all_codes_hashed.entry(code_hash).or_insert(Code::default());
 
         let storage_root = account_state.storage_root;
-        let Ok(storage_trie) = InMemoryTrieDB::from_nodes(storage_root, all_nodes) else {
+        let Ok(storage_trie) = InMemoryTrieDB::from_nodes(storage_root, &all_nodes) else {
             continue;
         };
 
@@ -977,16 +1117,22 @@ pub fn backend(zkvm: &Option<ZKVM>) -> eyre::Result<Backend> {
             #[cfg(feature = "sp1")]
             return Ok(Backend::SP1);
             #[cfg(not(feature = "sp1"))]
-            return Err(eyre::Error::msg("SP1 feature not enabled"));
+            return Err(eyre::Error::msg("sp1 feature not enabled"));
         }
         Some(ZKVM::Risc0) => {
             #[cfg(feature = "risc0")]
             return Ok(Backend::RISC0);
             #[cfg(not(feature = "risc0"))]
-            return Err(eyre::Error::msg("RISC0 feature not enabled"));
+            return Err(eyre::Error::msg("risc0 feature not enabled"));
+        }
+        Some(ZKVM::Zisk) => {
+            #[cfg(feature = "zisk")]
+            return Ok(Backend::ZisK);
+            #[cfg(not(feature = "zisk"))]
+            return Err(eyre::Error::msg("zisk feature not enabled"));
         }
         Some(_other) => Err(eyre::Error::msg(
-            "Only SP1 and RISC0 backends are supported currently",
+            "Only SP1, Risc0, and ZisK backends are supported currently",
         )),
         None => Ok(Backend::Exec),
     }
@@ -1097,7 +1243,7 @@ pub async fn replay_custom_l1_blocks(
 
     let cache = Cache::new(
         blocks,
-        RpcExecutionWitness::from(execution_witness),
+        RpcExecutionWitness::try_from(execution_witness)?,
         chain_config,
         opts.cache_dir,
     );
@@ -1298,7 +1444,7 @@ pub async fn replay_custom_l2_blocks(n_blocks: u64, opts: EthrexReplayOptions) -
 
     let cache = Cache::new(
         blocks,
-        RpcExecutionWitness::from(execution_witness),
+        RpcExecutionWitness::try_from(execution_witness)?,
         genesis.config,
         opts.cache_dir.clone(),
     );
