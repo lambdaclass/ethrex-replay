@@ -740,7 +740,7 @@ impl EthrexReplayCommand {
                     rpc_url: Some(rpc_url.clone()),
                     cached: false,
                     network: None,
-                    cache_dir: PathBuf::default(),
+                    cache_dir: PathBuf::from("./replay_cache"),
                     cache_level: CacheLevel::Off,
                     slack_webhook_url: None,
                     no_zkvm: false,
