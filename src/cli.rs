@@ -5,7 +5,7 @@ use bytes::Bytes;
 use ethrex_l2_common::prover::ProofFormat;
 use ethrex_l2_rpc::signer::{LocalSigner, Signer};
 use ethrex_rlp::decode::RLPDecode;
-use ethrex_trie::{EMPTY_TRIE_HASH, InMemoryTrieDB, Nibbles};
+use ethrex_trie::{EMPTY_TRIE_HASH, InMemoryTrieDB, Nibbles, Node, NodeRLP};
 use eyre::OptionExt;
 use std::{
     cmp::max,
@@ -912,15 +912,19 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
     // - Set up state trie nodes
     let state_root = guest_program.parent_block_header.state_root;
 
-    let mut all_nodes = Vec::new();
-    guest_program
-        .state_trie
-        .get_root_node(Nibbles::default())?
-        .encode_subtrie(&mut all_nodes)?;
-    let all_nodes: BTreeMap<_, _> = all_nodes
-        .into_iter()
-        .map(|n| (keccak(n.clone()), n))
+    let all_nodes: BTreeMap<H256, Vec<u8>> = cache
+        .witness
+        .state
+        .iter()
+        .filter_map(|b| {
+            if b.as_ref() == [0x80] {
+                return None;
+            } // skip nulls
+            let h = keccak(b);
+            Some((h, b.clone().to_vec()))
+        })
         .collect();
+
     let state_trie = InMemoryTrieDB::from_nodes(state_root, &all_nodes)?;
 
     let state_trie_nodes = get_trie_nodes_with_dummies(state_trie);
