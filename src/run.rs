@@ -1,8 +1,6 @@
 use crate::{cache::Cache, cli::ProofType};
 #[cfg(feature = "l2")]
 use ethrex_common::types::fee_config::FeeConfig;
-#[cfg(feature = "l2")]
-use ethrex_common::types::fee_config::FeeConfig;
 use ethrex_common::{
     H256,
     types::{
