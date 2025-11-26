@@ -709,32 +709,6 @@ impl EthrexReplayCommand {
                 output_dir,
                 rpc_url,
             }) => {
-                let from = match from {
-                    Some(from) => from,
-                    None => {
-                        if let Some(block) = block {
-                            block
-                        } else if let Some(block) = blocks.first() {
-                            *block
-                        } else {
-                            eyre::bail!("Either block, blocks or to must be specified")
-                        }
-                    }
-                };
-
-                let to = match to {
-                    Some(to) => to,
-                    None => {
-                        if let Some(block) = block {
-                            block
-                        } else if let Some(block) = blocks.first() {
-                            *block
-                        } else {
-                            fetch_latest_block_number(rpc_url.clone(), false).await?
-                        }
-                    }
-                };
-
                 let opts = EthrexReplayOptions {
                     common: CommonOptions::default(),
                     rpc_url: Some(rpc_url.clone()),
@@ -752,8 +726,23 @@ impl EthrexReplayCommand {
                     std::fs::create_dir_all(&output_dir)?;
                 }
 
-                for block in from..=to {
-                    let (cache, network) = get_blockdata(opts.clone(), Some(block)).await?;
+                let blocks_to_process: Vec<u64> = if !blocks.is_empty() {
+                    blocks
+                } else if let Some(block) = block {
+                    vec![block]
+                } else {
+                    let from = from.ok_or_else(|| {
+                        eyre::eyre!("Either block, blocks, or from must be specified")
+                    })?;
+                    let to = match to {
+                        Some(to) => to,
+                        None => fetch_latest_block_number(rpc_url.clone(), false).await?,
+                    };
+                    (from..=to).collect()
+                };
+
+                for block in &blocks_to_process {
+                    let (cache, network) = get_blockdata(opts.clone(), Some(*block)).await?;
 
                     let program_input = crate::run::get_l1_input(cache)?;
 
@@ -766,14 +755,16 @@ impl EthrexReplayCommand {
                     std::fs::write(input_output_path, serialized_program_input.as_slice())?;
                 }
 
-                if from == to {
+                if blocks_to_process.len() == 1 {
                     info!(
-                        "Generated input for block {from} in directory {}",
+                        "Generated input for block {} in directory {}",
+                        blocks_to_process[0],
                         output_dir.display()
                     );
                 } else {
                     info!(
-                        "Generated inputs for blocks {from} to {to} in directory {}",
+                        "Generated inputs for {} blocks in directory {}",
+                        blocks_to_process.len(),
                         output_dir.display()
                     );
                 }
