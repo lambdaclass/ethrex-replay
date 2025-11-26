@@ -25,8 +25,8 @@ use ethrex_blockchain::{
 use ethrex_common::{
     Address, H256,
     types::{
-        AccountState, AccountUpdate, Block, Code, DEFAULT_BUILDER_GAS_CEIL, ELASTICITY_MULTIPLIER,
-        Receipt, block_execution_witness::GuestProgramState,
+        AccountState, AccountUpdate, Block, BlockHeader, Code, DEFAULT_BUILDER_GAS_CEIL,
+        ELASTICITY_MULTIPLIER, Receipt, block_execution_witness::GuestProgramState,
     },
     utils::keccak,
 };
@@ -134,18 +134,13 @@ pub enum CustomSubcommand {
 
 #[derive(Parser, Clone, Default)]
 pub struct CommonOptions {
-    #[arg(
-        long,
-        value_enum,
-        help_heading = "Replay Options",
-        conflicts_with = "no_zkvm"
-    )]
+    #[arg(long, value_enum, help_heading = "Replay Options")]
     pub zkvm: Option<ZKVM>,
     #[arg(long, value_enum, default_value_t = Resource::default(), help_heading = "Replay Options")]
     pub resource: Resource,
     #[arg(long, value_enum, default_value_t = Action::default(), help_heading = "Replay Options")]
     pub action: Action,
-    #[arg(long = "proof", value_enum, default_value_t = ProofType::default(), help_heading = "Replay Options", conflicts_with_all = ["no_zkvm"])]
+    #[arg(long = "proof", value_enum, default_value_t = ProofType::default(), help_heading = "Replay Options")]
     pub proof_type: ProofType,
     #[arg(
         long,
@@ -202,7 +197,7 @@ pub struct EthrexReplayOptions {
         long,
         help = "Execute with `Blockchain::add_block`, without using zkvm as backend",
         help_heading = "Replay Options",
-        conflicts_with = "zkvm"
+        conflicts_with_all = ["zkvm", "proof_type"]
     )]
     pub no_zkvm: bool,
     // CAUTION
@@ -709,38 +704,12 @@ impl EthrexReplayCommand {
                 output_dir,
                 rpc_url,
             }) => {
-                let from = match from {
-                    Some(from) => from,
-                    None => {
-                        if let Some(block) = block {
-                            block
-                        } else if !blocks.is_empty() {
-                            *blocks.first().unwrap()
-                        } else {
-                            eyre::bail!("Either block, blocks or to must be specified")
-                        }
-                    }
-                };
-
-                let to = match to {
-                    Some(to) => to,
-                    None => {
-                        if let Some(block) = block {
-                            block
-                        } else if !blocks.is_empty() {
-                            *blocks.last().unwrap()
-                        } else {
-                            fetch_latest_block_number(rpc_url.clone(), false).await?
-                        }
-                    }
-                };
-
                 let opts = EthrexReplayOptions {
                     common: CommonOptions::default(),
                     rpc_url: Some(rpc_url.clone()),
                     cached: false,
                     network: None,
-                    cache_dir: PathBuf::default(),
+                    cache_dir: PathBuf::from("./replay_cache"),
                     cache_level: CacheLevel::Off,
                     slack_webhook_url: None,
                     no_zkvm: false,
@@ -752,8 +721,23 @@ impl EthrexReplayCommand {
                     std::fs::create_dir_all(&output_dir)?;
                 }
 
-                for block in from..=to {
-                    let (cache, network) = get_blockdata(opts.clone(), Some(block)).await?;
+                let blocks_to_process: Vec<u64> = if !blocks.is_empty() {
+                    blocks
+                } else if let Some(block) = block {
+                    vec![block]
+                } else {
+                    let from = from.ok_or_else(|| {
+                        eyre::eyre!("Either block, blocks, or from must be specified")
+                    })?;
+                    let to = match to {
+                        Some(to) => to,
+                        None => fetch_latest_block_number(rpc_url.clone(), false).await?,
+                    };
+                    (from..=to).collect()
+                };
+
+                for block in &blocks_to_process {
+                    let (cache, network) = get_blockdata(opts.clone(), Some(*block)).await?;
 
                     let program_input = crate::run::get_l1_input(cache)?;
 
@@ -766,14 +750,16 @@ impl EthrexReplayCommand {
                     std::fs::write(input_output_path, serialized_program_input.as_slice())?;
                 }
 
-                if from == to {
+                if blocks_to_process.len() == 1 {
                     info!(
-                        "Generated input for block {from} in directory {}",
+                        "Generated input for block {} in directory {}",
+                        blocks_to_process[0],
                         output_dir.display()
                     );
                 } else {
                     info!(
-                        "Generated inputs for blocks {from} to {to} in directory {}",
+                        "Generated inputs for {} blocks in directory {}",
+                        blocks_to_process.len(),
                         output_dir.display()
                     );
                 }
@@ -884,9 +870,17 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
     let block = cache.blocks[0].clone();
 
     let first_block_number = cache.get_first_block_number()?;
-    let Some(parent_block_header) = cache.blocks.iter().find_map(|b| {
-        if b.header.number == first_block_number - 1 {
-            Some(b.header.clone())
+    let headers = cache
+        .witness
+        .headers
+        .iter()
+        .map(|h| {
+            BlockHeader::decode(h).map_err(|_| eyre::Error::msg("Failed to decode block header"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let Some(parent_block_header) = headers.into_iter().find_map(|header| {
+        if header.number == first_block_number - 1 {
+            Some(header)
         } else {
             None
         }
@@ -913,15 +907,19 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
     // - Set up state trie nodes
     let state_root = guest_program.parent_block_header.state_root;
 
-    let mut all_nodes = Vec::new();
-    guest_program
-        .state_trie
-        .get_root_node(Nibbles::default())?
-        .encode_subtrie(&mut all_nodes)?;
-    let all_nodes: BTreeMap<_, _> = all_nodes
-        .into_iter()
-        .map(|n| (keccak(n.clone()), n))
+    let all_nodes: BTreeMap<H256, Vec<u8>> = cache
+        .witness
+        .state
+        .iter()
+        .filter_map(|b| {
+            if b.as_ref() == [0x80] {
+                return None;
+            } // skip nulls
+            let h = keccak(b);
+            Some((h, b.clone().to_vec()))
+        })
         .collect();
+
     let state_trie = InMemoryTrieDB::from_nodes(state_root, &all_nodes)?;
 
     let state_trie_nodes = get_trie_nodes_with_dummies(state_trie);
@@ -1140,7 +1138,7 @@ pub fn backend(zkvm: &Option<ZKVM>) -> eyre::Result<Backend> {
             return Err(eyre::Error::msg("zisk feature not enabled"));
         }
         Some(_other) => Err(eyre::Error::msg(
-            "Only SP1, Risc0, OpenVM, and ZisK backends are supported currently",
+            "Only SP1, Risc0, ZisK, and OpenVM backends are supported currently",
         )),
         None => Ok(Backend::Exec),
     }

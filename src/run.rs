@@ -4,11 +4,13 @@ use ethrex_common::types::fee_config::FeeConfig;
 use ethrex_common::{
     H256,
     types::{
-        AccountUpdate, ELASTICITY_MULTIPLIER, Receipt, block_execution_witness::GuestProgramState,
+        AccountUpdate, BlockHeader, ELASTICITY_MULTIPLIER, Receipt,
+        block_execution_witness::GuestProgramState,
     },
 };
 use ethrex_levm::{db::gen_db::GeneralizedDatabase, vm::VMType};
 use ethrex_prover::backend::Backend;
+use ethrex_rlp::decode::RLPDecode;
 use ethrex_rpc::debug::execution_witness::execution_witness_from_rpc_chain_config;
 use ethrex_vm::{DynVmDatabase, Evm, GuestProgramStateWrapper, backends::levm::LEVM};
 use eyre::Context;
@@ -97,11 +99,29 @@ pub async fn run_tx(cache: Cache, tx_hash: H256) -> eyre::Result<(Receipt, Vec<A
         .map_err(|_| eyre::Error::msg("Failed to get genesis block"))?
         .config;
 
+    let first_block_number = cache
+        .blocks
+        .first()
+        .ok_or_else(|| eyre::eyre!("No blocks in cache"))?
+        .header
+        .number;
+    let initial_state_root = execution_witness
+        .headers
+        .iter()
+        .map(|h| {
+            BlockHeader::decode(h).map_err(|_| eyre::Error::msg("Failed to decode block header"))
+        })
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .find(|h| h.number == first_block_number - 1)
+        .map(|h| h.state_root)
+        .ok_or_else(|| eyre::eyre!("Initial state root not found"))?;
+
     let execution_witness = execution_witness_from_rpc_chain_config(
         execution_witness,
         chain_config,
         block.header.number,
-        Default::default(),
+        initial_state_root,
     )
     .wrap_err("Failed to convert execution witness")?;
 
@@ -175,7 +195,11 @@ pub fn get_l1_input(cache: Cache) -> eyre::Result<ProgramInput> {
     let initial_state_root = db
         .headers
         .iter()
-        .map(|h| BlockHeader::decode(h).unwrap())
+        .map(|h| {
+            BlockHeader::decode(h).map_err(|_| eyre::Error::msg("Failed to decode block header"))
+        })
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
         .find(|h| h.number == first_block_number - 1)
         .map(|h| h.state_root)
         .ok_or_else(|| eyre::eyre!("Initial state root not found"))?;
@@ -232,7 +256,11 @@ fn get_l2_input(cache: Cache) -> eyre::Result<ProgramInput> {
     let initial_state_root = db
         .headers
         .iter()
-        .map(|h| BlockHeader::decode(h).unwrap())
+        .map(|h| {
+            BlockHeader::decode(h).map_err(|_| eyre::Error::msg("Failed to decode block header"))
+        })
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
         .find(|h| h.number == first_block_number - 1)
         .map(|h| h.state_root)
         .ok_or_else(|| eyre::eyre!("Initial state root not found"))?;

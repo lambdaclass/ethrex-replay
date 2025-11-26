@@ -60,7 +60,7 @@ jobs:
           set -euxo pipefail
           args=(--release --no-default-features)
           if [ -n "${FEATURE_ARGS}" ]; then
-            args+=("--features" "${FEATURE_ARGS}")
+            args+=("--features" "${FEATURE_ARGS},ci")
           fi
           cargo check "${args[@]}"
 
@@ -72,7 +72,7 @@ jobs:
           set -euxo pipefail
           args=(--release --no-default-features)
           if [ -n "${FEATURE_ARGS}" ]; then
-            args+=("--features" "${FEATURE_ARGS}")
+            args+=("--features" "${FEATURE_ARGS},ci")
           fi
           cargo clippy "${args[@]}" -- -D warnings
 
