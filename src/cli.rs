@@ -25,8 +25,8 @@ use ethrex_blockchain::{
 use ethrex_common::{
     Address, H256,
     types::{
-        AccountState, AccountUpdate, Block, Code, DEFAULT_BUILDER_GAS_CEIL, ELASTICITY_MULTIPLIER,
-        Receipt, block_execution_witness::GuestProgramState,
+        AccountState, AccountUpdate, Block, BlockHeader, Code, DEFAULT_BUILDER_GAS_CEIL,
+        ELASTICITY_MULTIPLIER, Receipt, block_execution_witness::GuestProgramState,
     },
     utils::keccak,
 };
@@ -884,9 +884,17 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
     let block = cache.blocks[0].clone();
 
     let first_block_number = cache.get_first_block_number()?;
-    let Some(parent_block_header) = cache.blocks.iter().find_map(|b| {
-        if b.header.number == first_block_number - 1 {
-            Some(b.header.clone())
+    let headers = cache
+        .witness
+        .headers
+        .iter()
+        .map(|h| {
+            BlockHeader::decode(h).map_err(|_| eyre::Error::msg("Failed to decode block header"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let Some(parent_block_header) = headers.into_iter().find_map(|header| {
+        if header.number == first_block_number - 1 {
+            Some(header)
         } else {
             None
         }
