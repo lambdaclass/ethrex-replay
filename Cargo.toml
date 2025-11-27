@@ -4,6 +4,15 @@ edition = "2024"
 authors = ["LambdaClass"]
 version = "7.0.0"
 
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+
+[profile.release-with-debug]
+inherits = "release"
+debug = 2
+
 [dependencies]
 ethrex-config = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-config", branch = "prover_timing" }
 ethrex-storage = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-storage", branch = "prover_timing" }
@@ -54,5 +63,6 @@ l2 = [
     "ethrex-l2/l2",
     "ethrex-storage-rollup/l2",
 ]
+ci = ["guest_program/ci", "ethrex-prover/ci"]
 profiling = ["ethrex-prover/profiling"]
 jemalloc = ["dep:tikv-jemallocator"]

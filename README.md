@@ -14,6 +14,7 @@ A tool for executing and proving Ethereum blocks, transactions, and L2 batches â
 | `ethrex-replay custom`            | Build your block before to replay it.                                                                                                  |
 | `ethrex-replay transaction`       | Replay a single transaction of a block.                                                                                                |
 | `ethrex-replay cache`             | Generate witness data prior to block replay (see `ethrex-replay cache --help`)                                                         |
+| `ethrex-replay generate-input`    | Generate binary input for the guest program to invoke the zkVM directly (see [Generate Input](#generate-input))                        |
 
 ### L2
 
@@ -61,7 +62,7 @@ Execution of some particular blocks with the `eth_getProof` method won't work wi
 
 ### Dependencies
 
-These dependencies are optional, install them only if you want to run with the features `risc0` or `sp1` respectively. 
+These dependencies are optional, install them only if you want to run with the features `risc0` or `sp1` respectively.
 Make sure to use the correct versions of these.
 
 #### [RISC0](https://dev.risczero.com/api/zkvm/install)
@@ -187,6 +188,7 @@ The following table lists the available features for `ethrex-replay`. To enable 
 - [Prove an L2 batch](#prove-an-l2-batch)
 - [Execute a transaction](#execute-a-transaction)
 - [Plot block composition](#plot-block-composition)
+- [Generate input](#generate-input)
 
 > [!IMPORTANT]
 > The following instructions assume that you've installed `ethrex-replay` as described in the [Getting Started](#getting-started) section.
@@ -250,6 +252,28 @@ ethrex-replay l2 transaction <TX_HASH> --execute --rpc-url <RPC_URL>
 
 ```
 ethrex-replay block-composition --start-block <START_BLOCK> --end-block <END_BLOCK> --rpc-url <RPC_URL> --network <NETWORK>
+```
+
+### Generate input
+
+Generate the binary input for the guest program so you can generate a proof without using `ethrex-replay`, by invoking the zkVM directly. This is useful when you want to pass the guest ELF file (which you can download in the [ethrex](https://github.com/lambdaclass/ethrex) releases) and the input (generated with this command) directly to the zkVM prover.
+
+> [!NOTE]
+>
+> 1. You can specify a single block with `--block`, a list of blocks with `--blocks`, or a range with `--from` and `--to`.
+> 2. If `--to` is not specified when using `--from`, the latest block will be used.
+> 3. The output files are named `ethrex_<network>_<block>_input.bin` and stored in the specified output directory.
+> 4. The `generate-input` command is only available for L1 (not available with the `l2` feature).
+
+```
+# Generate input for a single block
+ethrex-replay generate-input --block <BLOCK_NUMBER> --rpc-url <RPC_URL>
+
+# Generate input for a range of blocks
+ethrex-replay generate-input --from <START_BLOCK> --to <END_BLOCK> --rpc-url <RPC_URL>
+
+# Generate input for specific blocks with a custom output directory
+ethrex-replay generate-input --blocks <BLOCK_1>,<BLOCK_2>,<BLOCK_3> --output-dir ./my_inputs --rpc-url <RPC_URL>
 ```
 
 ---
