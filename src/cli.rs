@@ -5,7 +5,7 @@ use bytes::Bytes;
 use ethrex_l2_common::prover::ProofFormat;
 use ethrex_l2_rpc::signer::{LocalSigner, Signer};
 use ethrex_rlp::decode::RLPDecode;
-use ethrex_trie::{EMPTY_TRIE_HASH, InMemoryTrieDB, Nibbles};
+use ethrex_trie::{EMPTY_TRIE_HASH, InMemoryTrieDB};
 use eyre::OptionExt;
 use std::{
     cmp::max,
