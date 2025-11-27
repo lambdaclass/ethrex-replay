@@ -14,23 +14,23 @@ inherits = "release"
 debug = 2
 
 [dependencies]
-ethrex-config = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-config", branch = "main" }
-ethrex-storage = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-storage", branch = "main" }
-ethrex-common = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-common", branch = "main" }
-ethrex-vm = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-vm", branch = "main" }
-ethrex-levm = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-levm", branch = "main" }
-ethrex-rpc = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-rpc", branch = "main" }
-ethrex-p2p = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-p2p", branch = "main" }
-ethrex-trie = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-trie", branch = "main" }
-ethrex-rlp = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-rlp", branch = "main" }
-ethrex-blockchain = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-blockchain", branch = "main" }
-ethrex-l2 = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2", branch = "main", optional = true }
-ethrex-l2-common = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2-common", branch = "main" }
-ethrex-storage-rollup = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-storage-rollup", branch = "main", optional = true }
-ethrex-sdk = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-sdk", branch = "main" }
-ethrex-l2-rpc = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2-rpc", branch = "main" }
-ethrex-prover = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-prover", branch = "main", default-features = false }
-guest_program = { git = "https://github.com/lambdaclass/ethrex", package = "guest_program", branch = "main", default-features = false }
+ethrex-config = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-config", branch = "pico" }
+ethrex-storage = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-storage", branch = "pico" }
+ethrex-common = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-common", branch = "pico" }
+ethrex-vm = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-vm", branch = "pico" }
+ethrex-levm = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-levm", branch = "pico" }
+ethrex-rpc = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-rpc", branch = "pico" }
+ethrex-p2p = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-p2p", branch = "pico" }
+ethrex-trie = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-trie", branch = "pico" }
+ethrex-rlp = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-rlp", branch = "pico" }
+ethrex-blockchain = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-blockchain", branch = "pico" }
+ethrex-l2 = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2", branch = "pico", optional = true }
+ethrex-l2-common = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2-common", branch = "pico" }
+ethrex-storage-rollup = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-storage-rollup", branch = "pico", optional = true }
+ethrex-sdk = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-sdk", branch = "pico" }
+ethrex-l2-rpc = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2-rpc", branch = "pico" }
+ethrex-prover = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-prover", branch = "pico", default-features = false }
+guest_program = { git = "https://github.com/lambdaclass/ethrex", package = "guest_program", branch = "pico", default-features = false }
 
 serde = { version = "1.0.203", features = ["derive"] }
 hex = "0.4.3"
@@ -56,6 +56,7 @@ rkyv = { version = "0.8.10", features = ["std", "unaligned"] }
 risc0 = ["guest_program/risc0", "ethrex-prover/risc0"]
 sp1 = ["guest_program/sp1", "ethrex-prover/sp1"]
 zisk = ["guest_program/zisk", "ethrex-prover/zisk"]
+pico = ["guest_program/pico", "ethrex-prover/pico"]
 gpu = ["ethrex-prover/gpu"]
 l2 = [
     "guest_program/l2",
