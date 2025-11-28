@@ -1117,8 +1117,14 @@ pub fn backend(zkvm: &Option<ZKVM>) -> eyre::Result<Backend> {
             #[cfg(not(feature = "zisk"))]
             return Err(eyre::Error::msg("zisk feature not enabled"));
         }
+        Some(ZKVM::Pico) => {
+            #[cfg(feature = "pico")]
+            return Ok(Backend::Pico);
+            #[cfg(not(feature = "pico"))]
+            return Err(eyre::Error::msg("pico feature not enabled"));
+        }
         Some(_other) => Err(eyre::Error::msg(
-            "Only SP1, Risc0, ZisK, and OpenVM backends are supported currently",
+            "Only SP1, Risc0, ZisK, OpenVM and Pico backends are supported currently",
         )),
         None => Ok(Backend::Exec),
     }
