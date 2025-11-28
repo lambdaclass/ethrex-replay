@@ -17,7 +17,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        features: ["", "l2", "l2,sp1", "l2,risc0", "l2,zisk", "sp1", "risc0", "zisk"]
+        features:
+          ["", "l2", "l2,sp1", "l2,risc0", "l2,zisk", "sp1", "risc0", "zisk"]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -97,7 +98,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        backend: ["sp1", "risc0", "exec"]
+        backend: ["sp1", "risc0", "exec", "zisk", "openvm"]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -116,20 +117,21 @@ jobs:
         if: matrix.backend == 'sp1'
         uses: ./.github/actions/install-sp1
 
-      - name: Build Risc0
-        if: matrix.backend == 'risc0'
-        run: |
-          cargo b -r --no-default-features --features "${{ matrix.backend }}"
+      - name: Install ZisK
+        if: matrix.backend == 'zisk'
+        uses: ./.github/actions/install-zisk
 
-      - name: Build SP1
-        if: matrix.backend == 'sp1'
-        run: |
-          cargo b -r --features "${{ matrix.backend }}"
+      - name: Install OpenVM
+        if: matrix.backend == 'openvm'
+        uses: ./.github/actions/install-openvm
 
-      - name: Build No backend
-        if: matrix.backend == 'exec'
+      - name: Build
         run: |
-          cargo b -r
+          if [ "${{ matrix.backend }}" = "exec" ]; then
+            cargo b -r
+          else
+            cargo b -r --features "${{ matrix.backend }}"
+          fi
 
       - name: Run
         env:

@@ -11,9 +11,23 @@ else
 REPLAY_BLOCK_ARGS := $(BLOCK_NUMBER) --rpc-url $(RPC_URL)
 endif
 
-## Execution block
+# Execution
 execute-ci:
 	cargo r -r --no-default-features -- block $(REPLAY_BLOCK_ARGS)
+
+execute-sp1-ci:
+	cargo r -r --features sp1 -- block --zkvm sp1 $(REPLAY_BLOCK_ARGS) --bench
+
+execute-risc0-ci:
+	cargo r -r --no-default-features --features risc0 -- block --zkvm risc0 $(REPLAY_BLOCK_ARGS) --bench
+
+execute-zisk-ci:
+	cargo r -r --features zisk -- block --zkvm zisk $(REPLAY_BLOCK_ARGS) --bench
+
+execute-openvm-ci:
+	cargo r -r --features openvm -- block --zkvm openvm $(REPLAY_BLOCK_ARGS) --bench
+
+# Proving
 
 prove-sp1-gpu-ci:
 	SP1_PROVER=cuda cargo r -r --features "sp1,gpu" -- block --zkvm sp1 --action prove --resource gpu $(REPLAY_BLOCK_ARGS) --bench
