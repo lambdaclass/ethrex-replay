@@ -21,11 +21,22 @@ prove-sp1-gpu-ci:
 prove-risc0-gpu-ci:
 	cargo r -r --no-default-features --features "risc0,gpu" -- block --zkvm risc0 --action prove --resource gpu $(REPLAY_BLOCK_ARGS) --bench
 
-execute-sp1-ci:
-	cargo r -r --features "sp1" -- block --zkvm sp1 $(REPLAY_BLOCK_ARGS) --bench
+# Checks
 
-execute-risc0-ci:
-	cargo r -r --no-default-features --features "risc0" -- block --zkvm risc0 $(REPLAY_BLOCK_ARGS) --bench
+# GPU variants are not checked here to avoid requiring CUDA.
+check:
+	cargo check --release
+	cargo check --release -F sp1
+	cargo check --release -F sp1,profiling
+	cargo check --release -F risc0
+	cargo check --release -F zisk
+	cargo check --release -F openvm
+	cargo check --release -F l2
+	cargo check --release -F l2,sp1
+	cargo check --release -F l2,sp1,profiling
+	cargo check --release -F l2,risc0
+	cargo check --release -F l2,zisk
+	cargo check --release -F l2,openvm
 
 update-ethrex:
 	cargo update \
