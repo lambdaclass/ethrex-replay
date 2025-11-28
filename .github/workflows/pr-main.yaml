@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        features: ["", "l2", "l2,sp1", "l2,risc0", "l2,zisk", "sp1", "risc0", "zisk"]
+        features: ["", "l2", "l2,sp1", "l2,risc0", "l2,zisk", "l2,pico", "sp1", "risc0", "zisk", "pico"]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -48,6 +48,10 @@ jobs:
         if: contains(matrix.features, 'zisk')
         uses: ./.github/actions/install-zisk
 
+      - name: Install Pico
+        if: contains(matrix.features, 'pico')
+        uses: ./.github/actions/install-pico
+
       - name: cargo fmt --check --all
         if: matrix.features == '' # Run only without features because it's redundant to run it on all jobs
         run: cargo fmt --check --all
@@ -62,7 +66,11 @@ jobs:
           if [ -n "${FEATURE_ARGS}" ]; then
             args+=("--features" "${FEATURE_ARGS},ci")
           fi
-          cargo check "${args[@]}"
+          if [[ "${FEATURE_ARGS}" == *"pico"* ]]; then
+            cargo +nightly check "${args[@]}"
+          else
+            cargo check "${args[@]}"
+          fi
 
       - name: cargo clippy
         shell: bash
@@ -74,7 +82,11 @@ jobs:
           if [ -n "${FEATURE_ARGS}" ]; then
             args+=("--features" "${FEATURE_ARGS},ci")
           fi
-          cargo clippy "${args[@]}" -- -D warnings
+          if [[ "${FEATURE_ARGS}" == *"pico"* ]]; then
+            cargo +nightly clippy "${args[@]}" -- -D warnings
+          else
+            cargo clippy "${args[@]}" -- -D warnings
+          fi
 
   all-lints:
     name: Lint
