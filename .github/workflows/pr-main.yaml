@@ -149,6 +149,8 @@ jobs:
           fi
 
       - name: Run
+        # Skip reason: https://github.com/lambdaclass/ethrex-replay/issues/53
+        if: ${{ matrix.backend != 'zisk' }}
         env:
           BLOCK_NUMBER: 1265656
           NETWORK: hoodi
