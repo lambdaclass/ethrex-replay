@@ -1,0 +1,12 @@
+name: "Install OpenVM"
+description: "Install OpenVM Toolchain"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install OpenVM
+      shell: bash
+      run: |
+        rustup install nightly-2025-02-14
+        rustup component add rust-src --toolchain nightly-2025-02-14
+        cargo +1.86 install --locked --git https://github.com/openvm-org/openvm.git --tag v1.4.1 cargo-openvm
