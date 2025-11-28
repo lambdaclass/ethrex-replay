@@ -27,7 +27,7 @@ execute-sp1-ci:
 execute-risc0-ci:
 	cargo r -r --no-default-features --features "risc0" -- block --zkvm risc0 $(REPLAY_BLOCK_ARGS) --bench
 
-update_ethrex:
+update-ethrex:
 	cargo update \
 	-p ethrex-config \
 	-p ethrex-storage \
@@ -42,6 +42,5 @@ update_ethrex:
 	-p ethrex-l2 \
 	-p ethrex-storage-rollup \
 	-p ethrex-l2-rpc \
-	-p ethrex\
-	-prover \
+	-p ethrex-prover \
 	-p guest_program
