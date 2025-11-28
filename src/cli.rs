@@ -5,7 +5,7 @@ use bytes::Bytes;
 use ethrex_l2_common::prover::ProofFormat;
 use ethrex_l2_rpc::signer::{LocalSigner, Signer};
 use ethrex_rlp::decode::RLPDecode;
-use ethrex_trie::{EMPTY_TRIE_HASH, InMemoryTrieDB};
+use ethrex_trie::{EMPTY_TRIE_HASH, InMemoryTrieDB, Node};
 use eyre::OptionExt;
 use std::{
     cmp::max,
@@ -25,8 +25,8 @@ use ethrex_blockchain::{
 use ethrex_common::{
     Address, H256,
     types::{
-        AccountState, AccountUpdate, Block, BlockHeader, Code, DEFAULT_BUILDER_GAS_CEIL,
-        ELASTICITY_MULTIPLIER, Receipt, block_execution_witness::GuestProgramState,
+        AccountState, AccountUpdate, Block, Code, DEFAULT_BUILDER_GAS_CEIL, ELASTICITY_MULTIPLIER,
+        Receipt, block_execution_witness::GuestProgramState,
     },
     utils::keccak,
 };
@@ -869,30 +869,10 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
     let chain_config = cache.get_chain_config()?;
     let block = cache.blocks[0].clone();
 
-    let first_block_number = cache.get_first_block_number()?;
-    let headers = cache
-        .witness
-        .headers
-        .iter()
-        .map(|h| {
-            BlockHeader::decode(h).map_err(|_| eyre::Error::msg("Failed to decode block header"))
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-    let Some(parent_block_header) = headers.into_iter().find_map(|header| {
-        if header.number == first_block_number - 1 {
-            Some(header)
-        } else {
-            None
-        }
-    }) else {
-        eyre::bail!("No parent block header");
-    };
-
     let witness = execution_witness_from_rpc_chain_config(
         cache.witness.clone(),
         chain_config,
         cache.get_first_block_number()?,
-        parent_block_header.state_root,
     )?;
     let network = &cache.network;
 
@@ -907,7 +887,7 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
     // - Set up state trie nodes
     let state_root = guest_program.parent_block_header.state_root;
 
-    let all_nodes: BTreeMap<H256, Vec<u8>> = cache
+    let all_nodes: BTreeMap<H256, Node> = cache
         .witness
         .state
         .iter()
@@ -916,9 +896,9 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
                 return None;
             } // skip nulls
             let h = keccak(b);
-            Some((h, b.clone().to_vec()))
+            Some(Node::decode(b).map(|node| (h, node)))
         })
-        .collect();
+        .collect::<Result<_, _>>()?;
 
     let state_trie = InMemoryTrieDB::from_nodes(state_root, &all_nodes)?;
 
@@ -1125,6 +1105,12 @@ pub fn backend(zkvm: &Option<ZKVM>) -> eyre::Result<Backend> {
             #[cfg(not(feature = "risc0"))]
             return Err(eyre::Error::msg("risc0 feature not enabled"));
         }
+        Some(ZKVM::OpenVM) => {
+            #[cfg(feature = "openvm")]
+            return Ok(Backend::OpenVM);
+            #[cfg(not(feature = "openvm"))]
+            return Err(eyre::Error::msg("openvm feature not enabled"));
+        }
         Some(ZKVM::Zisk) => {
             #[cfg(feature = "zisk")]
             return Ok(Backend::ZisK);
@@ -1138,7 +1124,7 @@ pub fn backend(zkvm: &Option<ZKVM>) -> eyre::Result<Backend> {
             return Err(eyre::Error::msg("pico feature not enabled"));
         }
         Some(_other) => Err(eyre::Error::msg(
-            "Only SP1, Risc0, ZisK, and Pico backends are supported currently",
+            "Only SP1, Risc0, ZisK, OpenVM and Pico backends are supported currently",
         )),
         None => Ok(Backend::Exec),
     }

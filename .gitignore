@@ -29,3 +29,7 @@ generated_inputs/
 # Caches we want to store
 !caches/*.json
 !caches/**/*.json
+
+# Temporary backup files
+*~
+.*~

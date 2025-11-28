@@ -55,6 +55,7 @@ rkyv = { version = "0.8.10", features = ["std", "unaligned"] }
 [features]
 risc0 = ["guest_program/risc0", "ethrex-prover/risc0"]
 sp1 = ["guest_program/sp1", "ethrex-prover/sp1"]
+openvm = ["guest_program/openvm", "ethrex-prover/openvm"]
 zisk = ["guest_program/zisk", "ethrex-prover/zisk"]
 pico = ["guest_program/pico", "ethrex-prover/pico"]
 gpu = ["ethrex-prover/gpu"]
