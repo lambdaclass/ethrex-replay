@@ -1026,11 +1026,10 @@ async fn replay_block(block_opts: BlockOptions) -> eyre::Result<()> {
         // This is because of ZisK's client initializing MPI, which can't be done
         // more than once in the same process.
         // https://docs.open-mpi.org/en/v5.0.1/man-openmpi/man3/MPI_Init_thread.3.html#description
-        let execution_result = if backend != Backend::ZisK {
-            Some(exec(backend, cache.clone()).await)
-        } else {
-            None
-        };
+        #[cfg(feature = "zisk")]
+        let execution_result = None;
+        #[cfg(not(feature = "zisk"))]
+        let execution_result = Some(exec(backend, cache.clone()).await);
 
         let proving_result = if opts.common.action == Action::Prove {
             // Only prove if requested
@@ -1251,11 +1250,10 @@ pub async fn replay_custom_l1_blocks(
     // This is because of ZisK's client initializing MPI, which can't be done
     // more than once in the same process.
     // https://docs.open-mpi.org/en/v5.0.1/man-openmpi/man3/MPI_Init_thread.3.html#description
-    let execution_result = if backend != Backend::ZisK {
-        Some(exec(backend, cache.clone()).await)
-    } else {
-        None
-    };
+    #[cfg(feature = "zisk")]
+    let execution_result = None;
+    #[cfg(not(feature = "zisk"))]
+    let execution_result = Some(exec(backend, cache.clone()).await);
 
     let proving_result = if opts.common.action == Action::Prove {
         // Only prove if requested
