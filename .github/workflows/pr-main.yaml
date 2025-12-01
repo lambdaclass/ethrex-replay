@@ -132,15 +132,13 @@ jobs:
         if: matrix.backend == 'sp1'
         uses: ./.github/actions/install-sp1
 
-      - name: Install ZisK
-        if: matrix.backend == 'zisk'
-        uses: ./.github/actions/install-zisk
-
       - name: Install OpenVM
         if: matrix.backend == 'openvm'
         uses: ./.github/actions/install-openvm
 
       - name: Build
+        # Skip reason: https://github.com/lambdaclass/ethrex-replay/issues/53
+        if: ${{ matrix.backend != 'zisk' }}
         run: |
           if [ "${{ matrix.backend }}" = "exec" ]; then
             cargo b -r
