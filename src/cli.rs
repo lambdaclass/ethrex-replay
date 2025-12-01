@@ -1,7 +1,5 @@
 #[cfg(not(feature = "l2"))]
 use crate::helpers::get_block_numbers_in_cache_dir;
-#[cfg(feature = "pico")]
-use pico_vm::emulator::stdin::EmulatorStdinBuilder;
 use crate::helpers::get_trie_nodes_with_dummies;
 use bytes::Bytes;
 use ethrex_l2_common::prover::ProofFormat;
@@ -743,16 +741,6 @@ impl EthrexReplayCommand {
 
                     let program_input = crate::run::get_l1_input(cache)?;
 
-                    #[cfg(feature = "pico")]
-                    let serialized_program_input = {
-                        let mut stdin: EmulatorStdinBuilder<_, pico_vm::instances::configs::embed_kb_bn254_poseidon2::KoalaBearBn254Poseidon2> = EmulatorStdinBuilder::default();
-                        let input_bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&program_input)?;
-                        stdin.write_slice(&input_bytes);
-                        let (stdin, _) = stdin.finalize::<()>();
-                        bincode::serialize(&stdin).unwrap()
-                    };
-
-                    #[cfg(not(feature = "pico"))]
                     let serialized_program_input =
                         rkyv::to_bytes::<rkyv::rancor::Error>(&program_input)?;
 
