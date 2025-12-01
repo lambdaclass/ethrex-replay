@@ -5,6 +5,7 @@ runs:
   using: "composite"
   steps:
     - name: Install Pico
+      shell: bash
       run: |
         rustup install nightly-2025-08-04
         rustup component add rust-src --toolchain nightly-2025-08-04
