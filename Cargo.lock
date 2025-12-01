@@ -3930,6 +3930,7 @@ name = "ethrex-replay"
 version = "7.0.0"
 dependencies = [
  "again",
+ "bincode 1.3.3",
  "bytes",
  "charming",
  "clap",
@@ -3955,6 +3956,8 @@ dependencies = [
  "guest_program",
  "hex",
  "lazy_static",
+ "pico-sdk",
+ "pico-vm",
  "reqwest 0.12.24",
  "rkyv",
  "serde",
