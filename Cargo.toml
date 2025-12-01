@@ -14,23 +14,23 @@ inherits = "release"
 debug = 2
 
 [dependencies]
-ethrex-config = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-config", branch = "prover_timing" }
-ethrex-storage = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-storage", branch = "prover_timing" }
-ethrex-common = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-common", branch = "prover_timing" }
-ethrex-vm = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-vm", branch = "prover_timing" }
-ethrex-levm = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-levm", branch = "prover_timing" }
-ethrex-rpc = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-rpc", branch = "prover_timing" }
-ethrex-p2p = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-p2p", branch = "prover_timing" }
-ethrex-trie = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-trie", branch = "prover_timing" }
-ethrex-rlp = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-rlp", branch = "prover_timing" }
-ethrex-blockchain = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-blockchain", branch = "prover_timing" }
-ethrex-l2 = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2", branch = "prover_timing", optional = true }
-ethrex-l2-common = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2-common", branch = "prover_timing" }
-ethrex-storage-rollup = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-storage-rollup", branch = "prover_timing", optional = true }
-ethrex-sdk = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-sdk", branch = "prover_timing" }
-ethrex-l2-rpc = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2-rpc", branch = "prover_timing" }
-ethrex-prover = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-prover", branch = "prover_timing", default-features = false }
-guest_program = { git = "https://github.com/lambdaclass/ethrex", package = "guest_program", branch = "prover_timing", default-features = false }
+ethrex-config = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-config", branch = "guest_program_timed_api" }
+ethrex-storage = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-storage", branch = "guest_program_timed_api" }
+ethrex-common = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-common", branch = "guest_program_timed_api" }
+ethrex-vm = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-vm", branch = "guest_program_timed_api" }
+ethrex-levm = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-levm", branch = "guest_program_timed_api" }
+ethrex-rpc = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-rpc", branch = "guest_program_timed_api" }
+ethrex-p2p = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-p2p", branch = "guest_program_timed_api" }
+ethrex-trie = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-trie", branch = "guest_program_timed_api" }
+ethrex-rlp = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-rlp", branch = "guest_program_timed_api" }
+ethrex-blockchain = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-blockchain", branch = "guest_program_timed_api" }
+ethrex-l2 = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2", branch = "guest_program_timed_api", optional = true }
+ethrex-l2-common = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2-common", branch = "guest_program_timed_api" }
+ethrex-storage-rollup = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-storage-rollup", branch = "guest_program_timed_api", optional = true }
+ethrex-sdk = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-sdk", branch = "guest_program_timed_api" }
+ethrex-l2-rpc = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2-rpc", branch = "guest_program_timed_api" }
+ethrex-prover = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-prover", branch = "guest_program_timed_api", default-features = false }
+guest_program = { git = "https://github.com/lambdaclass/ethrex", package = "guest_program", branch = "guest_program_timed_api", default-features = false }
 
 serde = { version = "1.0.203", features = ["derive"] }
 hex = "0.4.3"
