@@ -67,7 +67,7 @@ jobs:
             args+=("--features" "${FEATURE_ARGS},ci")
           fi
           if [[ "${FEATURE_ARGS}" == *"pico"* ]]; then
-            cargo +nightly check "${args[@]}"
+            cargo +nightly-2025-08-04 check "${args[@]}"
           else
             cargo check "${args[@]}"
           fi
@@ -83,7 +83,7 @@ jobs:
             args+=("--features" "${FEATURE_ARGS},ci")
           fi
           if [[ "${FEATURE_ARGS}" == *"pico"* ]]; then
-            cargo +nightly clippy "${args[@]}" -- -D warnings
+            cargo +nightly-2025-08-04 clippy "${args[@]}" -- -D warnings
           else
             cargo clippy "${args[@]}" -- -D warnings
           fi
