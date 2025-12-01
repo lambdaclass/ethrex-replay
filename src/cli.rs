@@ -227,6 +227,7 @@ pub struct EthrexReplayOptions {
 pub enum ZKVM {
     Jolt,
     Nexus,
+    #[clap(name = "openvm")]
     OpenVM,
     Pico,
     Risc0,
