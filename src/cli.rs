@@ -789,25 +789,29 @@ impl EthrexReplayCommand {
 
                 let backend = backend(&opts.common.zkvm)?;
 
-                // Always execute before proving, unless it's ZisK.
-                // This is because of ZisK's client initializing MPI, which can't be done
-                // more than once in the same process.
-                // https://docs.open-mpi.org/en/v5.0.1/man-openmpi/man3/MPI_Init_thread.3.html#description
-                let execution_result = if backend != Backend::ZisK {
-                    Some(exec(backend, cache.clone()).await)
-                } else {
-                    None
-                };
+                match opts.common.action {
+                    Action::Execute => {
+                        let execution_result = exec(backend, cache.clone()).await;
 
-                let proving_result = match opts.common.action {
-                    Action::Execute => None,
-                    Action::Prove => Some(prove(backend, opts.common.proof_type, cache).await),
-                };
+                        println!("Batch {batch} execution result: {execution_result:?}");
+                    }
+                    Action::Prove => {
+                        // Always execute before proving, unless it's ZisK.
+                        // This is because of ZisK's client initializing MPI, which can't be done
+                        // more than once in the same process.
+                        // https://docs.open-mpi.org/en/v5.0.1/man-openmpi/man3/MPI_Init_thread.3.html#description
+                        #[cfg(not(feature = "zisk"))]
+                        {
+                            let execution_result = exec(backend, cache.clone()).await;
 
-                println!("Batch {batch} execution result: {execution_result:?}");
+                            println!("Batch {batch} execution result: {execution_result:?}");
+                        }
 
-                if let Some(proving_result) = proving_result {
-                    println!("Batch {batch} proving result: {proving_result:?}");
+                        let proving_result =
+                            prove(backend, opts.common.proof_type, cache.clone()).await;
+
+                        println!("Batch {batch} proving result: {proving_result:?}");
+                    }
                 }
             }
             #[cfg(feature = "l2")]
@@ -1022,23 +1026,27 @@ async fn replay_block(block_opts: BlockOptions) -> eyre::Result<()> {
     let (execution_result, proving_result) = if opts.no_zkvm {
         (Some(replay_no_zkvm(cache.clone(), &opts).await), None)
     } else {
-        // Always execute before proving, unless it's ZisK.
-        // This is because of ZisK's client initializing MPI, which can't be done
-        // more than once in the same process.
-        // https://docs.open-mpi.org/en/v5.0.1/man-openmpi/man3/MPI_Init_thread.3.html#description
-        #[cfg(feature = "zisk")]
-        let execution_result = None;
-        #[cfg(not(feature = "zisk"))]
-        let execution_result = Some(exec(backend, cache.clone()).await);
+        match opts.common.action {
+            Action::Execute => {
+                let execution_result = exec(backend, cache.clone()).await;
 
-        let proving_result = if opts.common.action == Action::Prove {
-            // Only prove if requested
-            Some(prove(backend, opts.common.proof_type, cache.clone()).await)
-        } else {
-            None
-        };
+                (Some(execution_result), None)
+            }
+            Action::Prove => {
+                // Always execute before proving, unless it's ZisK.
+                // This is because of ZisK's client initializing MPI, which can't be done
+                // more than once in the same process.
+                // https://docs.open-mpi.org/en/v5.0.1/man-openmpi/man3/MPI_Init_thread.3.html#description
+                #[cfg(not(feature = "zisk"))]
+                let execution_result = Some(exec(backend, cache.clone()).await);
+                #[cfg(feature = "zisk")]
+                let execution_result = None;
 
-        (execution_result, proving_result)
+                let proving_result = prove(backend, opts.common.proof_type, cache.clone()).await;
+
+                (execution_result, Some(proving_result))
+            }
+        }
     };
 
     let report = Report::new_for(
@@ -1246,20 +1254,26 @@ pub async fn replay_custom_l1_blocks(
 
     let backend = backend(&opts.common.zkvm)?;
 
-    // Always execute before proving, unless it's ZisK.
-    // This is because of ZisK's client initializing MPI, which can't be done
-    // more than once in the same process.
-    // https://docs.open-mpi.org/en/v5.0.1/man-openmpi/man3/MPI_Init_thread.3.html#description
-    #[cfg(feature = "zisk")]
-    let execution_result = None;
-    #[cfg(not(feature = "zisk"))]
-    let execution_result = Some(exec(backend, cache.clone()).await);
+    let (execution_result, proving_result) = match opts.common.action {
+        Action::Execute => {
+            let execution_result = exec(backend, cache.clone()).await;
 
-    let proving_result = if opts.common.action == Action::Prove {
-        // Only prove if requested
-        Some(prove(backend, opts.common.proof_type, cache.clone()).await)
-    } else {
-        None
+            (Some(execution_result), None)
+        }
+        Action::Prove => {
+            // Always execute before proving, unless it's ZisK.
+            // This is because of ZisK's client initializing MPI, which can't be done
+            // more than once in the same process.
+            // https://docs.open-mpi.org/en/v5.0.1/man-openmpi/man3/MPI_Init_thread.3.html#description
+            #[cfg(not(feature = "zisk"))]
+            let execution_result = Some(exec(backend, cache.clone()).await);
+            #[cfg(feature = "zisk")]
+            let execution_result = None;
+
+            let proving_result = prove(backend, opts.common.proof_type, cache.clone()).await;
+
+            (execution_result, Some(proving_result))
+        }
     };
 
     let report = Report::new_for(
