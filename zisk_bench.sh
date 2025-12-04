@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-# Function to add commas (thousands separator)
+# Portable comma function (works without locale)
 comma() {
-    printf "%'d" "$1"
+    echo "$1" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta'
 }
 
 # Gas Used map
@@ -43,11 +43,10 @@ for BLOCK in "${BLOCKS[@]}"; do
 
     GAS=${GAS_USED[$BLOCK]}
 
-    # Pretty formatting using printf
     printf "| %-8s | %12s | %13s | %12s | %14s | %10s | %12s |\n" \
         "$BLOCK" \
-        "$(comma $GAS)" \
-        "$(comma $STEPS)" \
+        "$(comma "$GAS")" \
+        "$(comma "$STEPS")" \
         "$DURATION" \
         "$TP" \
         "$FREQ" \
