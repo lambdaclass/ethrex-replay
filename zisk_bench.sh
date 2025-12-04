@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 
-# Map gas used per block
+# Function to add commas (thousands separator)
+comma() {
+    printf "%'d" "$1"
+}
+
+# Gas Used map
 declare -A GAS_USED=(
   [23919400]=41075722
   [23919500]=40237085
@@ -19,8 +24,9 @@ BLOCKS=(
   23919900 23920000 23920100 23920200 23920300
 )
 
-echo "| Block | Gas Used | Steps | Duration (s) | TP (Msteps/s) | Freq (MHz) | Clocks/step |"
-echo "|-------|-----------|--------|--------------|----------------|------------|--------------|"
+# Print header
+echo "| Block    | Gas Used     | Steps         | Duration (s) | TP (Msteps/s) | Freq (MHz) | Clocks/step |"
+echo "|----------|--------------|---------------|--------------|----------------|------------|--------------|"
 
 for BLOCK in "${BLOCKS[@]}"; do
     INPUT="generated_inputs/ethrex_mainnet_${BLOCK}_input.bin"
@@ -37,5 +43,14 @@ for BLOCK in "${BLOCKS[@]}"; do
 
     GAS=${GAS_USED[$BLOCK]}
 
-    echo "| $BLOCK | $GAS | $STEPS | $DURATION | $TP | $FREQ | $CLOCKS |"
+    # Pretty formatting using printf
+    printf "| %-8s | %12s | %13s | %12s | %14s | %10s | %12s |\n" \
+        "$BLOCK" \
+        "$(comma $GAS)" \
+        "$(comma $STEPS)" \
+        "$DURATION" \
+        "$TP" \
+        "$FREQ" \
+        "$CLOCKS"
 done
+
