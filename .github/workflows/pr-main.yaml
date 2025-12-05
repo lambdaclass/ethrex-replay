@@ -17,7 +17,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        features: ["", "l2", "l2,sp1", "l2,risc0", "l2,zisk", "sp1", "risc0", "zisk"]
+        features:
+          [
+            "",
+            "l2",
+            "l2,sp1",
+            "l2,risc0",
+            "l2,zisk",
+            "l2,openvm",
+            "sp1",
+            "risc0",
+            "zisk",
+            "openvm",
+          ]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -47,6 +59,10 @@ jobs:
       - name: Install ZisK
         if: contains(matrix.features, 'zisk')
         uses: ./.github/actions/install-zisk
+
+      - name: Install OpenVM
+        if: contains(matrix.features, 'openvm')
+        uses: ./.github/actions/install-openvm
 
       - name: cargo fmt --check --all
         if: matrix.features == '' # Run only without features because it's redundant to run it on all jobs
@@ -97,7 +113,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        backend: ["sp1", "risc0", "exec"]
+        backend: ["sp1", "risc0", "exec", "zisk", "openvm"]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -116,22 +132,23 @@ jobs:
         if: matrix.backend == 'sp1'
         uses: ./.github/actions/install-sp1
 
-      - name: Build Risc0
-        if: matrix.backend == 'risc0'
-        run: |
-          cargo b -r --no-default-features --features "${{ matrix.backend }}"
+      - name: Install OpenVM
+        if: matrix.backend == 'openvm'
+        uses: ./.github/actions/install-openvm
 
-      - name: Build SP1
-        if: matrix.backend == 'sp1'
+      - name: Build
+        # Skip reason: https://github.com/lambdaclass/ethrex-replay/issues/53
+        if: ${{ matrix.backend != 'zisk' }}
         run: |
-          cargo b -r --features "${{ matrix.backend }}"
-
-      - name: Build No backend
-        if: matrix.backend == 'exec'
-        run: |
-          cargo b -r
+          if [ "${{ matrix.backend }}" = "exec" ]; then
+            cargo b -r
+          else
+            cargo b -r --features "${{ matrix.backend }}"
+          fi
 
       - name: Run
+        # Skip reason: https://github.com/lambdaclass/ethrex-replay/issues/53
+        if: ${{ matrix.backend != 'zisk' }}
         env:
           BLOCK_NUMBER: 1265656
           NETWORK: hoodi
