@@ -949,7 +949,7 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
             .await?;
     }
 
-    store.chain_config = chain_config;
+    store.set_chain_config(&chain_config).await?;
 
     // Add codes to DB
     for (code_hash, mut code) in all_codes_hashed {
