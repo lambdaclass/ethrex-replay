@@ -9,7 +9,7 @@ use ethrex_trie::{EMPTY_TRIE_HASH, InMemoryTrieDB, Node};
 use eyre::OptionExt;
 use std::{
     cmp::max,
-    collections::BTreeMap,
+    collections::{BTreeMap, HashMap},
     fmt::Display,
     path::PathBuf,
     sync::Arc,
@@ -1477,7 +1477,7 @@ pub async fn produce_custom_l2_blocks(
     let mut blocks = Vec::new();
     let mut current_parent_hash = head_block_hash;
     let mut current_timestamp = initial_timestamp;
-    let mut last_privilege_nonce = None;
+    let mut last_privilege_nonce = HashMap::new();
 
     for _ in 0..n_blocks {
         let block = produce_custom_l2_block(
@@ -1504,7 +1504,7 @@ pub async fn produce_custom_l2_block(
     rollup_store: &StoreRollup,
     head_block_hash: H256,
     timestamp: u64,
-    last_privilege_nonce: &mut Option<u64>,
+    last_privilege_nonce: &mut HashMap<u64, Option<u64>>,
 ) -> eyre::Result<Block> {
     let build_payload_args = BuildPayloadArgs {
         parent: head_block_hash,
@@ -1526,6 +1526,7 @@ pub async fn produce_custom_l2_block(
         store,
         last_privilege_nonce,
         DEFAULT_BUILDER_GAS_CEIL,
+        Vec::new(),
     )
     .await?;
 
