@@ -9,7 +9,7 @@ use ethrex_trie::{EMPTY_TRIE_HASH, InMemoryTrieDB, Node};
 use eyre::OptionExt;
 use std::{
     cmp::max,
-    collections::{BTreeMap, HashMap},
+    collections::BTreeMap,
     fmt::Display,
     path::PathBuf,
     sync::Arc,
@@ -42,6 +42,8 @@ use ethrex_storage::{EngineType, Store};
 #[cfg(feature = "l2")]
 use ethrex_storage_rollup::EngineTypeRollup;
 use reqwest::Url;
+#[cfg(feature = "l2")]
+use std::collections::HashMap;
 #[cfg(feature = "l2")]
 use std::path::Path;
 #[cfg(not(feature = "l2"))]
