@@ -14,9 +14,8 @@ config :ethrex_replay_web, EthrexReplayWeb.Repo,
 # watchers to your application. For example, we can use it
 # to bundle .js and .css sources.
 config :ethrex_replay_web, EthrexReplayWebWeb.Endpoint,
-  # Binding to loopback ipv4 address prevents access from other machines.
-  # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
-  http: [ip: {127, 0, 0, 1}],
+  # Binding to 0.0.0.0 allows access from other machines.
+  http: [ip: {0, 0, 0, 0}, port: 4000],
   check_origin: false,
   code_reloader: true,
   debug_errors: true,
