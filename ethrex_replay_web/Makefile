@@ -1,4 +1,4 @@
-.PHONY: setup run dev clean reset deps compile test format check help
+.PHONY: setup run dev clean reset deps compile test format check help install-inotify
 
 # Default target
 help:
@@ -18,8 +18,29 @@ help:
 	@echo ""
 
 # First-time setup: install deps, create db, build assets
-setup:
+setup: install-inotify
 	mix setup
+
+# Install inotify-tools on Linux if not present (needed for Phoenix file watching)
+install-inotify:
+	@if [ "$$(uname)" = "Linux" ]; then \
+		if ! command -v inotifywait >/dev/null 2>&1; then \
+			echo "Installing inotify-tools..."; \
+			if command -v apt-get >/dev/null 2>&1; then \
+				sudo apt-get update && sudo apt-get install -y inotify-tools; \
+			elif command -v dnf >/dev/null 2>&1; then \
+				sudo dnf install -y inotify-tools; \
+			elif command -v yum >/dev/null 2>&1; then \
+				sudo yum install -y inotify-tools; \
+			elif command -v pacman >/dev/null 2>&1; then \
+				sudo pacman -S --noconfirm inotify-tools; \
+			else \
+				echo "Warning: Could not detect package manager. Please install inotify-tools manually."; \
+			fi \
+		else \
+			echo "inotify-tools already installed"; \
+		fi \
+	fi
 
 # Start the Phoenix server
 run:
