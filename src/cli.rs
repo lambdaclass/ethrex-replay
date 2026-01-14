@@ -31,6 +31,8 @@ use ethrex_common::{
     },
     utils::keccak,
 };
+#[cfg(feature = "l2")]
+use ethrex_common::{U256, types::GenesisAccount};
 use ethrex_prover::backend::Backend;
 #[cfg(not(feature = "l2"))]
 use ethrex_rpc::types::block_identifier::BlockIdentifier;
@@ -1371,6 +1373,7 @@ pub async fn produce_l1_block(
     timestamp: u64,
     signer: &Signer,
 ) -> eyre::Result<(Block, H256)> {
+    let chain_id = store.get_chain_config().chain_id;
     let build_payload_args = BuildPayloadArgs {
         parent: head_block_hash,
         timestamp,
@@ -1397,7 +1400,7 @@ pub async fn produce_l1_block(
             TxVariant::ERC20Transfer => unimplemented!(),
         };
 
-        let tx = tx_builder.build_tx(n, signer).await;
+        let tx = tx_builder.build_tx(n, signer, chain_id).await;
 
         blockchain.add_transaction_to_pool(tx).await?;
     }
@@ -1450,8 +1453,31 @@ pub async fn replay_custom_l2_blocks(
 
     let network = Network::LocalDevnetL2;
 
-    let genesis = network.get_genesis()?;
-    let output_input = block_opts.output_input;
+    let mut genesis = network.get_genesis()?;
+    let output_input = block_opts.output_input.clone();
+
+    let signer = Signer::Local(LocalSigner::new(
+        "941e103320615d394a55708be13e45994c7d93b932b064dbcb2b511fe3254e2e"
+            .parse()
+            .expect("invalid private key"),
+    ));
+
+    let txs_per_block = block_opts.n_txs.unwrap_or_default();
+    if txs_per_block > 0 {
+        let signer_address = signer.address();
+        // Ensure the signer is funded in the in-memory L2 genesis.
+        if !genesis.alloc.contains_key(&signer_address) {
+            genesis.alloc.insert(
+                signer_address,
+                GenesisAccount {
+                    code: Bytes::new(),
+                    storage: HashMap::new(),
+                    balance: U256::from(10u128.pow(30)),
+                    nonce: 0,
+                },
+            );
+        }
+    }
 
     let mut store = {
         let mut store_inner = Store::new("./", EngineType::InMemory)?;
@@ -1484,6 +1510,8 @@ pub async fn replay_custom_l2_blocks(
         genesis_hash,
         genesis.timestamp + 1,
         n_blocks,
+        &block_opts,
+        &signer,
     )
     .await?;
 
@@ -1560,11 +1588,22 @@ pub async fn produce_custom_l2_blocks(
     head_block_hash: H256,
     initial_timestamp: u64,
     n_blocks: u64,
+    block_opts: &CustomBlockOptions,
+    signer: &Signer,
 ) -> eyre::Result<Vec<Block>> {
     let mut blocks = Vec::new();
     let mut current_parent_hash = head_block_hash;
     let mut current_timestamp = initial_timestamp;
     let mut last_privilege_nonce = HashMap::new();
+    let mut next_nonce = 0u64;
+
+    if block_opts.n_txs.unwrap_or_default() > 0 {
+        let latest_block_number = store.get_latest_block_number().await?;
+        next_nonce = store
+            .get_nonce_by_account_address(latest_block_number, signer.address())
+            .await?
+            .unwrap_or(0);
+    }
 
     for _ in 0..n_blocks {
         let block = produce_custom_l2_block(
@@ -1573,6 +1612,9 @@ pub async fn produce_custom_l2_blocks(
             rollup_store,
             current_parent_hash,
             current_timestamp,
+            block_opts,
+            signer,
+            &mut next_nonce,
             &mut last_privilege_nonce,
         )
         .await?;
@@ -1591,6 +1633,9 @@ pub async fn produce_custom_l2_block(
     rollup_store: &StoreRollup,
     head_block_hash: H256,
     timestamp: u64,
+    block_opts: &CustomBlockOptions,
+    signer: &Signer,
+    next_nonce: &mut u64,
     last_privilege_nonce: &mut HashMap<u64, Option<u64>>,
 ) -> eyre::Result<Block> {
     let build_payload_args = BuildPayloadArgs {
@@ -1606,6 +1651,26 @@ pub async fn produce_custom_l2_block(
     };
 
     let payload = create_payload(&build_payload_args, store, Bytes::new())?;
+
+    let tx_count = block_opts.n_txs.unwrap_or_default();
+    if tx_count > 0 {
+        let tx_builder = match block_opts
+            .tx
+            .as_ref()
+            .ok_or_eyre("--tx needs to be passed")?
+        {
+            TxVariant::ETHTransfer => TxBuilder::ETHTransfer,
+            TxVariant::ERC20Transfer => unimplemented!(),
+        };
+
+        let chain_id = store.get_chain_config().chain_id;
+
+        for _ in 0..tx_count {
+            let tx = tx_builder.build_tx(*next_nonce, signer, chain_id).await;
+            blockchain.add_transaction_to_pool(tx).await?;
+            *next_nonce += 1;
+        }
+    }
 
     let payload_build_result = build_payload(
         blockchain.clone(),
