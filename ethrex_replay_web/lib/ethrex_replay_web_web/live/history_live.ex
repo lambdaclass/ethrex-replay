@@ -131,6 +131,7 @@ defmodule EthrexReplayWebWeb.HistoryLive do
                   <th>Action</th>
                   <th>Block</th>
                   <th>Network</th>
+                  <th>Ethrex</th>
                   <th>Duration</th>
                   <th>Created</th>
                   <th></th>
@@ -146,6 +147,7 @@ defmodule EthrexReplayWebWeb.HistoryLive do
                     <td>{String.capitalize(job.action)}</td>
                     <td class="font-mono text-sm">{job.block_number || "latest"}</td>
                     <td>{String.capitalize(job.network)}</td>
+                    <td class="font-mono text-xs text-base-content/60">{job.ethrex_branch || "main"}</td>
                     <td class="text-base-content/60">
                       {format_duration(job.execution_time_ms)}
                     </td>

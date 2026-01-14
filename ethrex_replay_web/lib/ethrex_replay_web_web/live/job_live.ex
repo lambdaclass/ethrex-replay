@@ -246,6 +246,9 @@ defmodule EthrexReplayWebWeb.JobLive do
                     <.detail_row label="Proof Type" value={String.capitalize(@job.proof_type)} />
                   <% end %>
                   <.detail_row label="Cache" value={String.capitalize(@job.cache_level || "on")} />
+                  <%= if @job.ethrex_branch do %>
+                    <.detail_row label="Ethrex Branch" value={@job.ethrex_branch} />
+                  <% end %>
                 </div>
               </div>
             </div>
@@ -392,6 +395,7 @@ defmodule EthrexReplayWebWeb.JobLive do
       network: job.network,
       rpc_url: job.rpc_url,
       cache_level: job.cache_level,
+      ethrex_branch: job.ethrex_branch,
       block_number: job.block_number
     }
 
