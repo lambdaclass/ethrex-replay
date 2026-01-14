@@ -43,6 +43,8 @@ use ethrex_storage::{EngineType, Store};
 use ethrex_storage_rollup::EngineTypeRollup;
 use reqwest::Url;
 #[cfg(feature = "l2")]
+use std::collections::HashMap;
+#[cfg(feature = "l2")]
 use std::path::Path;
 #[cfg(not(feature = "l2"))]
 use tracing::debug;
@@ -961,7 +963,7 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
             .await?;
     }
 
-    store.chain_config = chain_config;
+    store.set_chain_config(&chain_config).await?;
 
     // Add codes to DB
     for (code_hash, mut code) in all_codes_hashed {
@@ -1518,7 +1520,7 @@ pub async fn produce_custom_l2_blocks(
     let mut blocks = Vec::new();
     let mut current_parent_hash = head_block_hash;
     let mut current_timestamp = initial_timestamp;
-    let mut last_privilege_nonce = None;
+    let mut last_privilege_nonce = HashMap::new();
 
     for _ in 0..n_blocks {
         let block = produce_custom_l2_block(
@@ -1545,7 +1547,7 @@ pub async fn produce_custom_l2_block(
     rollup_store: &StoreRollup,
     head_block_hash: H256,
     timestamp: u64,
-    last_privilege_nonce: &mut Option<u64>,
+    last_privilege_nonce: &mut HashMap<u64, Option<u64>>,
 ) -> eyre::Result<Block> {
     let build_payload_args = BuildPayloadArgs {
         parent: head_block_hash,
@@ -1567,6 +1569,7 @@ pub async fn produce_custom_l2_block(
         store,
         last_privilege_nonce,
         DEFAULT_BUILDER_GAS_CEIL,
+        Vec::new(),
     )
     .await?;
 
