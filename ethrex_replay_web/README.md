@@ -251,6 +251,61 @@ _build/prod/rel/ethrex_replay_web/bin/ethrex_replay_web start
 # Dockerfile will be added in a future update
 ```
 
+## Server Updates
+
+When updating the application on a server (after a `git pull`), you may need to run database migrations if there are schema changes.
+
+### When to Run Migrations
+
+Run migrations after pulling changes when:
+- You see errors like `no such column: ...` or `table ... does not exist`
+- The CHANGELOG or commit messages mention database changes
+- New migration files appear in `priv/repo/migrations/`
+
+### How to Update
+
+```bash
+# Navigate to the web app directory
+cd ethrex_replay_web
+
+# 1. Stop the running server
+#    - If running in foreground: Ctrl+C
+#    - If running in background: kill $(pgrep -f "phx.server")
+
+# 2. Pull latest changes
+git pull
+
+# 3. Install any new dependencies
+mix deps.get
+
+# 4. Run database migrations
+mix ecto.migrate
+
+# 5. Restart the server
+make run
+```
+
+### Migration Commands Reference
+
+| Command | Description |
+|---------|-------------|
+| `mix ecto.migrate` | Run pending migrations |
+| `mix ecto.migrations` | List all migrations and their status |
+| `mix ecto.rollback` | Rollback the last migration |
+| `mix ecto.reset` | Drop and recreate the database (loses all data) |
+
+### Production Release Updates
+
+For production releases, run migrations before starting:
+
+```bash
+# Run migrations
+_build/prod/rel/ethrex_replay_web/bin/ethrex_replay_web eval "EthrexReplayWeb.Release.migrate"
+
+# Then start the server
+_build/prod/rel/ethrex_replay_web/bin/ethrex_replay_web start
+```
+
 ## Troubleshooting
 
 ### Common Issues
@@ -271,6 +326,11 @@ _build/prod/rel/ethrex_replay_web/bin/ethrex_replay_web start
 **"Database errors"**
 - Ensure SQLite3 is installed
 - Run `mix ecto.reset` to recreate the database
+
+**"no such column" errors after update**
+- Run `mix ecto.migrate` to apply pending migrations
+- If migrations show as "up" but column is missing, run `mix ecto.rollback && mix ecto.migrate`
+- As a last resort, `mix ecto.reset` will recreate the database (loses all job history)
 
 ## Contributing
 
