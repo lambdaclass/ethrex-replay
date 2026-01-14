@@ -7,6 +7,7 @@ use ethrex_l2_rpc::signer::{LocalSigner, Signer};
 use ethrex_rlp::decode::RLPDecode;
 use ethrex_trie::{EMPTY_TRIE_HASH, InMemoryTrieDB, Node};
 use eyre::OptionExt;
+use guest_program::input::ProgramInput;
 use std::{
     cmp::max,
     collections::BTreeMap,
@@ -418,6 +419,12 @@ pub struct CustomBlockOptions {
         requires = "n_txs"
     )]
     pub tx: Option<TxVariant>,
+    #[arg(
+        long,
+        help = "Write the serialized program input to this file.",
+        help_heading = "Command Options"
+    )]
+    pub output_input: Option<PathBuf>,
 }
 
 #[derive(Parser)]
@@ -850,7 +857,7 @@ impl EthrexReplayCommand {
                     notification_level: NotificationLevel::default(),
                 };
 
-                replay_custom_l2_blocks(max(1, n_blocks), opts).await?;
+                replay_custom_l2_blocks(max(1, n_blocks), block_opts, opts).await?;
             }
         }
 
@@ -863,6 +870,23 @@ pub async fn setup_rpc(opts: &EthrexReplayOptions) -> eyre::Result<(EthClient, N
     let chain_id = eth_client.get_chain_id().await?.as_u64();
     let network = network_from_chain_id(chain_id);
     Ok((eth_client, network))
+}
+
+fn write_program_input(output_path: &PathBuf, program_input: &ProgramInput) -> eyre::Result<()> {
+    if output_path.exists() && output_path.is_dir() {
+        return Err(eyre::eyre!(
+            "output input path is a directory: {}",
+            output_path.display()
+        ));
+    }
+
+    if let Some(parent) = output_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+
+    let serialized_program_input = rkyv::to_bytes::<rkyv::rancor::Error>(program_input)?;
+    std::fs::write(output_path, serialized_program_input.as_slice())?;
+    Ok(())
 }
 
 async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Result<Duration> {
@@ -1212,6 +1236,8 @@ pub async fn replay_custom_l1_blocks(
     let network = Network::LocalDevnet;
 
     let genesis = network.get_genesis()?;
+    #[cfg(not(feature = "l2"))]
+    let output_input = block_opts.output_input.clone();
 
     let mut store = {
         let mut store_inner = Store::new("./", EngineType::InMemory)?;
@@ -1253,6 +1279,13 @@ pub async fn replay_custom_l1_blocks(
         chain_config,
         opts.cache_dir,
     );
+
+    #[cfg(not(feature = "l2"))]
+    if let Some(output_path) = output_input {
+        let program_input = crate::run::get_l1_input(cache.clone())?;
+        write_program_input(&output_path, &program_input)?;
+        info!("Saved program input to {}", output_path.display());
+    }
 
     let backend = backend(&opts.common.zkvm)?;
 
@@ -1407,13 +1440,18 @@ use ethrex_storage_rollup::StoreRollup;
 use ethrex_vm::BlockExecutionResult;
 
 #[cfg(feature = "l2")]
-pub async fn replay_custom_l2_blocks(n_blocks: u64, opts: EthrexReplayOptions) -> eyre::Result<()> {
+pub async fn replay_custom_l2_blocks(
+    n_blocks: u64,
+    block_opts: CustomBlockOptions,
+    opts: EthrexReplayOptions,
+) -> eyre::Result<()> {
     use ethrex_blockchain::{BlockchainOptions, BlockchainType, L2Config};
     use ethrex_common::types::fee_config::FeeConfig;
 
     let network = Network::LocalDevnetL2;
 
     let genesis = network.get_genesis()?;
+    let output_input = block_opts.output_input;
 
     let mut store = {
         let mut store_inner = Store::new("./", EngineType::InMemory)?;
@@ -1462,6 +1500,12 @@ pub async fn replay_custom_l2_blocks(n_blocks: u64, opts: EthrexReplayOptions) -
         genesis.config,
         opts.cache_dir.clone(),
     );
+
+    if let Some(output_path) = output_input {
+        let program_input = crate::run::get_l2_input(cache.clone())?;
+        write_program_input(&output_path, &program_input)?;
+        info!("Saved program input to {}", output_path.display());
+    }
 
     let backend = backend(&opts.common.zkvm)?;
 
