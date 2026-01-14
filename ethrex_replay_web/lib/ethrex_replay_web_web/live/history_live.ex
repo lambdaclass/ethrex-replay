@@ -100,6 +100,14 @@ defmodule EthrexReplayWebWeb.HistoryLive do
             <span class="status-dot status-dot-pending"></span>
             Pending
           </button>
+          <button
+            phx-click="filter"
+            phx-value-status="cancelled"
+            class={["btn btn-sm", if(@filter == "cancelled", do: "btn-primary", else: "btn-ghost")]}
+          >
+            <span class="status-dot status-dot-cancelled"></span>
+            Cancelled
+          </button>
         </div>
 
         <!-- Jobs Table -->
