@@ -151,7 +151,12 @@ defmodule EthrexReplayWebWeb.HistoryLive do
                     <td class="text-base-content/60">
                       {format_duration(job.execution_time_ms)}
                     </td>
-                    <td class="text-base-content/60 text-sm">
+                    <td
+                      class="text-base-content/60 text-sm"
+                      phx-hook="LocalTime"
+                      id={"job-created-#{job.id}"}
+                      data-timestamp={NaiveDateTime.to_iso8601(job.inserted_at)}
+                    >
                       {format_datetime(job.inserted_at)}
                     </td>
                     <td>

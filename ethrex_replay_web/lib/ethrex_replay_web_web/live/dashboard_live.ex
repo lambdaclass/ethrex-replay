@@ -33,7 +33,7 @@ defmodule EthrexReplayWebWeb.DashboardLive do
       "action" => "execute",
       "resource" => "cpu",
       "proof_type" => "compressed",
-      "network" => "mainnet",
+      "network" => "",
       "cache_level" => "on",
       "block_number" => "",
       "rpc_url" => "",
@@ -137,8 +137,13 @@ defmodule EthrexReplayWebWeb.DashboardLive do
                       </label>
                       <select name="zkvm" class="select select-bordered w-full" value={@form[:zkvm].value}>
                         <%= for zkvm <- Job.zkvms() do %>
-                          <option value={zkvm} selected={@form[:zkvm].value == zkvm}>
-                            {String.upcase(zkvm)}
+                          <% status = Job.zkvm_status(zkvm) %>
+                          <option
+                            value={zkvm}
+                            selected={@form[:zkvm].value == zkvm}
+                            disabled={status == :coming_soon}
+                          >
+                            {String.upcase(zkvm)}<%= if status == :coming_soon, do: " (Coming soon)" %><%= if status == :experimental, do: " (Experimental)" %>
                           </option>
                         <% end %>
                       </select>
@@ -170,8 +175,10 @@ defmodule EthrexReplayWebWeb.DashboardLive do
                     <div class="form-control">
                       <label class="label">
                         <span class="label-text">Network</span>
+                        <span class="label-text-alt text-base-content/50">Optional - inferred from RPC</span>
                       </label>
                       <select name="network" class="select select-bordered w-full" value={@form[:network].value}>
+                        <option value="" selected={@form[:network].value == ""}>Auto-detect</option>
                         <%= for network <- Job.networks() do %>
                           <option value={network} selected={@form[:network].value == network}>
                             {String.capitalize(network)}
@@ -198,8 +205,16 @@ defmodule EthrexReplayWebWeb.DashboardLive do
                     <div class="form-control">
                       <label class="label">
                         <span class="label-text">Proof Type</span>
+                        <%= if @form[:action].value == "execute" do %>
+                          <span class="label-text-alt text-base-content/50">Only for prove</span>
+                        <% end %>
                       </label>
-                      <select name="proof_type" class="select select-bordered w-full" value={@form[:proof_type].value}>
+                      <select
+                        name="proof_type"
+                        class="select select-bordered w-full"
+                        value={@form[:proof_type].value}
+                        disabled={@form[:action].value == "execute"}
+                      >
                         <option value="compressed" selected={@form[:proof_type].value == "compressed"}>Compressed</option>
                         <option value="groth16" selected={@form[:proof_type].value == "groth16"}>Groth16</option>
                       </select>
@@ -210,7 +225,7 @@ defmodule EthrexReplayWebWeb.DashboardLive do
                   <div class="form-control">
                     <label class="label">
                       <span class="label-text">RPC URL</span>
-                      <span class="label-text-alt text-base-content/50">Required</span>
+                      <span class="label-text-alt text-base-content/50">Optional if using cached blocks</span>
                     </label>
                     <input
                       type="url"
@@ -218,7 +233,6 @@ defmodule EthrexReplayWebWeb.DashboardLive do
                       value={@form[:rpc_url].value}
                       placeholder="https://eth-mainnet.g.alchemy.com/v2/..."
                       class="input input-bordered w-full"
-                      required
                     />
                   </div>
 
@@ -278,7 +292,7 @@ defmodule EthrexReplayWebWeb.DashboardLive do
                     <button
                       type="submit"
                       class="btn btn-primary btn-lg gap-2"
-                      disabled={@submitting || @form[:rpc_url].value == ""}
+                      disabled={@submitting}
                     >
                       <%= if @submitting do %>
                         <span class="loading loading-spinner loading-sm"></span>
@@ -384,7 +398,13 @@ defmodule EthrexReplayWebWeb.DashboardLive do
                           <span class="text-sm font-medium">{String.upcase(job.zkvm)}</span>
                           <span class="text-xs text-base-content/50">{job.block_number || "latest"}</span>
                         </div>
-                        <span class="text-xs text-base-content/50">
+                        <span
+                          class="text-xs text-base-content/50"
+                          phx-hook="LocalTime"
+                          id={"job-time-#{job.id}"}
+                          data-timestamp={NaiveDateTime.to_iso8601(job.inserted_at)}
+                          data-format="relative"
+                        >
                           {format_time(job.inserted_at)}
                         </span>
                       </a>
@@ -469,20 +489,19 @@ defmodule EthrexReplayWebWeb.DashboardLive do
       end
 
     # Parse ethrex_branch (nil if empty)
-    ethrex_branch =
-      case params["ethrex_branch"] do
-        nil -> nil
-        "" -> nil
-        branch -> String.trim(branch)
-      end
+    ethrex_branch = empty_to_nil(params["ethrex_branch"])
+
+    # Parse optional fields (empty string to nil)
+    network = empty_to_nil(params["network"])
+    rpc_url = empty_to_nil(params["rpc_url"])
 
     attrs = %{
       zkvm: params["zkvm"],
       action: params["action"],
       resource: params["resource"],
       proof_type: params["proof_type"],
-      network: params["network"],
-      rpc_url: params["rpc_url"],
+      network: network,
+      rpc_url: rpc_url,
       cache_level: params["cache_level"],
       ethrex_branch: ethrex_branch,
       block_number: block_number
@@ -576,6 +595,16 @@ defmodule EthrexReplayWebWeb.DashboardLive do
       diff < 3600 -> "#{div(diff, 60)}m ago"
       diff < 86400 -> "#{div(diff, 3600)}h ago"
       true -> "#{div(diff, 86400)}d ago"
+    end
+  end
+
+  defp empty_to_nil(nil), do: nil
+  defp empty_to_nil(""), do: nil
+
+  defp empty_to_nil(str) when is_binary(str) do
+    case String.trim(str) do
+      "" -> nil
+      trimmed -> trimmed
     end
   end
 end

@@ -147,7 +147,7 @@ defmodule EthrexReplayWebWeb.JobLive do
                 <div
                   id="log-viewer"
                   phx-hook="LogStream"
-                  data-auto-scroll={@auto_scroll}
+                  data-auto-scroll={to_string(@auto_scroll)}
                   class="log-viewer bg-base-300/50 rounded-lg p-4 h-96 overflow-y-auto"
                 >
                   <%= if @logs == [] do %>
@@ -261,9 +261,29 @@ defmodule EthrexReplayWebWeb.JobLive do
                   Timing
                 </h2>
                 <div class="space-y-3 mt-2">
-                  <.detail_row label="Created" value={format_datetime(@job.inserted_at)} />
+                  <div class="flex justify-between text-sm">
+                    <span class="text-base-content/60">Created</span>
+                    <span
+                      class="font-medium"
+                      phx-hook="LocalTime"
+                      id="job-created-time"
+                      data-timestamp={NaiveDateTime.to_iso8601(@job.inserted_at)}
+                    >
+                      {format_datetime(@job.inserted_at)}
+                    </span>
+                  </div>
                   <%= if @job.updated_at != @job.inserted_at do %>
-                    <.detail_row label="Updated" value={format_datetime(@job.updated_at)} />
+                    <div class="flex justify-between text-sm">
+                      <span class="text-base-content/60">Updated</span>
+                      <span
+                        class="font-medium"
+                        phx-hook="LocalTime"
+                        id="job-updated-time"
+                        data-timestamp={NaiveDateTime.to_iso8601(@job.updated_at)}
+                      >
+                        {format_datetime(@job.updated_at)}
+                      </span>
+                    </div>
                   <% end %>
                 </div>
               </div>

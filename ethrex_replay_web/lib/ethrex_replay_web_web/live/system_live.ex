@@ -167,9 +167,9 @@ defmodule EthrexReplayWebWeb.SystemLive do
           </div>
         </div>
 
-        <!-- Supported ZKVMs -->
+        <!-- ZKVM Support Status -->
         <div class="mt-8">
-          <h2 class="text-2xl font-bold mb-4">Supported ZKVMs</h2>
+          <h2 class="text-2xl font-bold mb-4">ZKVM Support Status</h2>
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <%= for zkvm <- Job.zkvms() do %>
               <div class="card bg-base-200 border border-base-300 card-hover">
@@ -187,13 +187,13 @@ defmodule EthrexReplayWebWeb.SystemLive do
           </div>
         </div>
 
-        <!-- GPU Compatibility -->
+        <!-- GPU Support -->
         <div class="mt-8">
-          <h2 class="text-2xl font-bold mb-4">GPU Compatibility</h2>
+          <h2 class="text-2xl font-bold mb-4">GPU Support by ZKVM</h2>
           <div class="card bg-base-200 border border-base-300">
             <div class="card-body">
               <p class="text-base-content/70 mb-4">
-                GPU acceleration is available for select ZKVMs. Here's the compatibility matrix:
+                GPU acceleration (CUDA) is available for select ZKVMs during proving:
               </p>
               <div class="overflow-x-auto">
                 <table class="table">
@@ -310,7 +310,7 @@ defmodule EthrexReplayWebWeb.SystemLive do
 
   defp zkvm_description("sp1"), do: "Succinct Prover 1"
   defp zkvm_description("risc0"), do: "RISC Zero zkVM"
-  defp zkvm_description("openvm"), do: "OpenVM by a]16z"
+  defp zkvm_description("openvm"), do: "OpenVM by a16z"
   defp zkvm_description("zisk"), do: "ZisK by Polygon"
   defp zkvm_description("jolt"), do: "Jolt by a16z"
   defp zkvm_description("nexus"), do: "Nexus zkVM"

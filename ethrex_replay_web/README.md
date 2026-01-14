@@ -334,11 +334,7 @@ _build/prod/rel/ethrex_replay_web/bin/ethrex_replay_web start
 
 ## Contributing
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+See the [main repository](https://github.com/lambdaclass/ethrex-replay) for contribution guidelines.
 
 ## License
 

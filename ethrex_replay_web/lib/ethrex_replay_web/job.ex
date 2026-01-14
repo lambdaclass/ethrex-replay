@@ -60,30 +60,38 @@ defmodule EthrexReplayWeb.Job do
       :exit_code,
       :error
     ])
-    |> validate_required([:zkvm, :action, :resource, :network, :rpc_url])
+    |> validate_required([:zkvm, :action, :resource])
     |> validate_inclusion(:zkvm, @zkvms)
     |> validate_inclusion(:action, @actions)
     |> validate_inclusion(:resource, @resources)
     |> validate_inclusion(:proof_type, @proof_types ++ [nil])
-    |> validate_inclusion(:network, @networks)
+    |> validate_inclusion(:network, @networks ++ [nil])
     |> validate_inclusion(:cache_level, @cache_levels ++ [nil])
     |> validate_inclusion(:status, @statuses)
     |> validate_number(:block_number, greater_than: 0)
     |> validate_rpc_url()
     |> validate_gpu_zkvm_compatibility()
+    |> validate_zkvm_available()
   end
 
   defp validate_rpc_url(changeset) do
-    validate_change(changeset, :rpc_url, fn :rpc_url, url ->
-      case URI.parse(url) do
-        %URI{scheme: scheme, host: host}
-        when scheme in ["http", "https"] and is_binary(host) and host != "" ->
-          []
+    rpc_url = get_field(changeset, :rpc_url)
 
-        _ ->
-          [rpc_url: "must be a valid HTTP or HTTPS URL"]
-      end
-    end)
+    # RPC URL is optional (can use cached blocks)
+    if rpc_url && rpc_url != "" do
+      validate_change(changeset, :rpc_url, fn :rpc_url, url ->
+        case URI.parse(url) do
+          %URI{scheme: scheme, host: host}
+          when scheme in ["http", "https"] and is_binary(host) and host != "" ->
+            []
+
+          _ ->
+            [rpc_url: "must be a valid HTTP or HTTPS URL"]
+        end
+      end)
+    else
+      changeset
+    end
   end
 
   defp validate_gpu_zkvm_compatibility(changeset) do
@@ -99,6 +107,17 @@ defmodule EthrexReplayWeb.Job do
     end
   end
 
+  defp validate_zkvm_available(changeset) do
+    zkvm = get_field(changeset, :zkvm)
+    available = ~w(sp1 risc0 openvm zisk)
+
+    if zkvm && zkvm not in available do
+      add_error(changeset, :zkvm, "#{String.upcase(zkvm)} is not yet available")
+    else
+      changeset
+    end
+  end
+
   # Accessor functions for enum values
   def zkvms, do: @zkvms
   def actions, do: @actions
@@ -107,4 +126,23 @@ defmodule EthrexReplayWeb.Job do
   def networks, do: @networks
   def cache_levels, do: @cache_levels
   def statuses, do: @statuses
+
+  # ZKVM support status
+  @supported_zkvms ~w(sp1 risc0)
+  @experimental_zkvms ~w(openvm zisk)
+  @coming_soon_zkvms ~w(jolt nexus pico ziren)
+
+  def supported_zkvms, do: @supported_zkvms
+  def experimental_zkvms, do: @experimental_zkvms
+  def coming_soon_zkvms, do: @coming_soon_zkvms
+  def available_zkvms, do: @supported_zkvms ++ @experimental_zkvms
+
+  def zkvm_status(zkvm) do
+    cond do
+      zkvm in @supported_zkvms -> :supported
+      zkvm in @experimental_zkvms -> :experimental
+      zkvm in @coming_soon_zkvms -> :coming_soon
+      true -> :unknown
+    end
+  end
 end

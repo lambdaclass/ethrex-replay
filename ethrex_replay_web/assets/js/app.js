@@ -36,7 +36,10 @@ const Hooks = {
       // Check if auto-scroll is enabled
       const autoScroll = this.el.dataset.autoScroll === "true"
       if (autoScroll) {
-        this.scrollToBottom()
+        // Use requestAnimationFrame to ensure DOM is fully updated
+        requestAnimationFrame(() => {
+          this.scrollToBottom()
+        })
       }
     },
     scrollToBottom() {
@@ -58,6 +61,42 @@ const Hooks = {
           }, 1500)
         })
       })
+    }
+  },
+
+  // LocalTime hook for displaying timestamps in user's locale
+  LocalTime: {
+    mounted() {
+      this.formatTime()
+    },
+    updated() {
+      this.formatTime()
+    },
+    formatTime() {
+      const timestamp = this.el.dataset.timestamp
+      if (!timestamp) return
+
+      const date = new Date(timestamp + "Z") // Append Z to indicate UTC
+      const format = this.el.dataset.format || "datetime"
+
+      if (format === "relative") {
+        this.el.textContent = this.relativeTime(date)
+      } else if (format === "date") {
+        this.el.textContent = date.toLocaleDateString()
+      } else if (format === "time") {
+        this.el.textContent = date.toLocaleTimeString()
+      } else {
+        this.el.textContent = date.toLocaleString()
+      }
+    },
+    relativeTime(date) {
+      const now = new Date()
+      const diff = Math.floor((now - date) / 1000)
+
+      if (diff < 60) return `${diff}s ago`
+      if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+      if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+      return `${Math.floor(diff / 86400)}d ago`
     }
   }
 }
