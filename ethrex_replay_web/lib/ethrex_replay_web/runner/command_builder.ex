@@ -35,7 +35,14 @@ defmodule EthrexReplayWeb.Runner.CommandBuilder do
 
   defp build_command_string(job) do
     args = build_args(job)
-    "cargo #{Enum.join(args, " ")}"
+    command = "cargo #{Enum.join(args, " ")}"
+
+    # Add branch info to preview if custom branch is set
+    case job.ethrex_branch do
+      nil -> command
+      "" -> command
+      branch -> "# ethrex: #{branch}\n#{command}"
+    end
   end
 
   defp build_args(job) do
@@ -179,6 +186,7 @@ defmodule EthrexReplayWeb.Runner.CommandBuilder do
             "rpc_url" -> :rpc_url
             "cache_level" -> :cache_level
             "proof_type" -> :proof_type
+            "ethrex_branch" -> :ethrex_branch
             other -> String.to_existing_atom(other)
           end
 

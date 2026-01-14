@@ -36,7 +36,8 @@ defmodule EthrexReplayWebWeb.DashboardLive do
       "network" => "mainnet",
       "cache_level" => "on",
       "block_number" => "",
-      "rpc_url" => ""
+      "rpc_url" => "",
+      "ethrex_branch" => ""
     }
 
     {:ok,
@@ -48,7 +49,8 @@ defmodule EthrexReplayWebWeb.DashboardLive do
      |> assign(:current_job, current_job)
      |> assign(:form, to_form(default_config))
      |> assign(:command_preview, build_preview(default_config))
-     |> assign(:submitting, false)}
+     |> assign(:submitting, false)
+     |> assign(:show_advanced, false)}
   end
 
   @impl true
@@ -230,6 +232,35 @@ defmodule EthrexReplayWebWeb.DashboardLive do
                       <option value="off" selected={@form[:cache_level].value == "off"}>Off</option>
                       <option value="failed" selected={@form[:cache_level].value == "failed"}>Failed Only</option>
                     </select>
+                  </div>
+
+                  <!-- Advanced Settings -->
+                  <div class="collapse collapse-arrow bg-base-300 rounded-lg">
+                    <input type="checkbox" phx-click="toggle_advanced" checked={@show_advanced} />
+                    <div class="collapse-title font-medium flex items-center gap-2">
+                      <span class="hero-cog-8-tooth w-5 h-5"></span>
+                      Advanced Settings
+                    </div>
+                    <div class="collapse-content">
+                      <div class="form-control pt-2">
+                        <label class="label">
+                          <span class="label-text">Ethrex Branch/Commit</span>
+                          <span class="label-text-alt text-base-content/50">Leave empty to use repo default</span>
+                        </label>
+                        <input
+                          type="text"
+                          name="ethrex_branch"
+                          value={@form[:ethrex_branch].value}
+                          placeholder="main"
+                          class="input input-bordered w-full"
+                        />
+                        <label class="label">
+                          <span class="label-text-alt text-base-content/50">
+                            Override the ethrex dependency branch or commit hash
+                          </span>
+                        </label>
+                      </div>
+                    </div>
                   </div>
 
                   <!-- Command Preview -->
@@ -416,6 +447,11 @@ defmodule EthrexReplayWebWeb.DashboardLive do
   # Event Handlers
 
   @impl true
+  def handle_event("toggle_advanced", _params, socket) do
+    {:noreply, assign(socket, :show_advanced, !socket.assigns.show_advanced)}
+  end
+
+  @impl true
   def handle_event("validate", params, socket) do
     preview = build_preview(params)
     {:noreply, assign(socket, form: to_form(params), command_preview: preview)}
@@ -432,6 +468,14 @@ defmodule EthrexReplayWebWeb.DashboardLive do
         :error -> nil
       end
 
+    # Parse ethrex_branch (nil if empty)
+    ethrex_branch =
+      case params["ethrex_branch"] do
+        nil -> nil
+        "" -> nil
+        branch -> String.trim(branch)
+      end
+
     attrs = %{
       zkvm: params["zkvm"],
       action: params["action"],
@@ -440,6 +484,7 @@ defmodule EthrexReplayWebWeb.DashboardLive do
       network: params["network"],
       rpc_url: params["rpc_url"],
       cache_level: params["cache_level"],
+      ethrex_branch: ethrex_branch,
       block_number: block_number
     }
 

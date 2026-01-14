@@ -12,7 +12,7 @@ defmodule EthrexReplayWeb.Jobs.JobServer do
 
   @timeout_ms 3_600_000  # 1 hour timeout
 
-  defstruct [:job, :port, :buffer, :logs, :started_at]
+  defstruct [:job, :port, :buffer, :logs, :started_at, :original_cargo_toml]
 
   # Client API
 
@@ -50,7 +50,8 @@ defmodule EthrexReplayWeb.Jobs.JobServer do
        port: nil,
        buffer: "",
        logs: [],
-       started_at: nil
+       started_at: nil,
+       original_cargo_toml: nil
      }}
   end
 
@@ -63,6 +64,12 @@ defmodule EthrexReplayWeb.Jobs.JobServer do
       {:ok, updated_job} ->
         broadcast_status(updated_job, :running)
 
+        # Get the project directory (parent of ethrex_replay_web)
+        project_dir = get_project_dir()
+
+        # Apply branch override if specified
+        original_cargo_toml = apply_branch_override(updated_job, project_dir)
+
         # Build and execute command
         case CommandBuilder.build(updated_job) do
           {:ok, {executable, args}} ->
@@ -71,9 +78,6 @@ defmodule EthrexReplayWeb.Jobs.JobServer do
             # Save the command to the database
             command_string = "#{executable} #{Enum.join(args, " ")}"
             {:ok, updated_job} = Jobs.update_job(updated_job, %{command: command_string})
-
-            # Get the project directory (parent of ethrex_replay_web)
-            project_dir = get_project_dir()
 
             port =
               Port.open(
@@ -93,10 +97,17 @@ defmodule EthrexReplayWeb.Jobs.JobServer do
             Process.send_after(self(), :timeout, @timeout_ms)
 
             {:noreply,
-             %{state | job: updated_job, port: port, started_at: System.monotonic_time(:millisecond)}}
+             %{state |
+               job: updated_job,
+               port: port,
+               started_at: System.monotonic_time(:millisecond),
+               original_cargo_toml: original_cargo_toml
+             }}
 
           {:error, reason} ->
             Logger.error("Failed to build command: #{reason}")
+            # Restore Cargo.toml if we modified it
+            restore_cargo_toml(original_cargo_toml, project_dir)
             {:ok, failed_job} = Jobs.mark_failed(updated_job, reason)
             broadcast_status(failed_job, :failed)
             {:stop, :normal, %{state | job: failed_job}}
@@ -126,6 +137,9 @@ defmodule EthrexReplayWeb.Jobs.JobServer do
   @impl true
   def handle_info({port, {:exit_status, exit_code}}, %{port: port} = state) do
     Logger.info("Job #{state.job.id} exited with code #{exit_code}")
+
+    # Restore Cargo.toml if we modified it
+    restore_cargo_toml(state.original_cargo_toml, get_project_dir())
 
     # Process any remaining buffer
     final_logs =
@@ -177,6 +191,9 @@ defmodule EthrexReplayWeb.Jobs.JobServer do
       Port.close(state.port)
     end
 
+    # Restore Cargo.toml if we modified it
+    restore_cargo_toml(state.original_cargo_toml, get_project_dir())
+
     {:ok, failed_job} = Jobs.mark_failed(state.job, "Job timed out after #{@timeout_ms}ms")
     broadcast_status(failed_job, :failed)
     broadcast_job_finished(state.job.id)
@@ -186,6 +203,9 @@ defmodule EthrexReplayWeb.Jobs.JobServer do
   @impl true
   def handle_info({:EXIT, port, reason}, %{port: port} = state) do
     Logger.warning("Job #{state.job.id} port exited unexpectedly: #{inspect(reason)}")
+
+    # Restore Cargo.toml if we modified it
+    restore_cargo_toml(state.original_cargo_toml, get_project_dir())
 
     {:ok, failed_job} = Jobs.mark_failed(state.job, "Process terminated unexpectedly: #{inspect(reason)}")
     broadcast_status(failed_job, :failed)
@@ -212,6 +232,9 @@ defmodule EthrexReplayWeb.Jobs.JobServer do
       Port.close(state.port)
     end
 
+    # Restore Cargo.toml if we modified it
+    restore_cargo_toml(state.original_cargo_toml, get_project_dir())
+
     {:ok, cancelled_job} = Jobs.mark_cancelled(state.job)
     broadcast_status(cancelled_job, :cancelled)
     broadcast_job_finished(state.job.id)
@@ -225,6 +248,9 @@ defmodule EthrexReplayWeb.Jobs.JobServer do
     if state.port do
       Port.close(state.port)
     end
+
+    # Restore Cargo.toml if we modified it (safety net)
+    restore_cargo_toml(state.original_cargo_toml, get_project_dir())
 
     :ok
   end
@@ -387,6 +413,87 @@ defmodule EthrexReplayWeb.Jobs.JobServer do
       EthrexReplayWeb.PubSub,
       "jobs",
       {:job_finished, job_id}
+    )
+  end
+
+  # Branch override functions
+
+  defp apply_branch_override(job, project_dir) do
+    case job.ethrex_branch do
+      nil -> nil
+      "" -> nil
+      branch ->
+        cargo_toml_path = Path.join(project_dir, "Cargo.toml")
+
+        case File.read(cargo_toml_path) do
+          {:ok, original_content} ->
+            # Determine if it's a commit hash (40 hex chars) or branch name
+            new_content =
+              if commit_hash?(branch) do
+                # Replace branch = "main" with rev = "<commit>"
+                replace_branch_with_rev(original_content, branch)
+              else
+                # Replace branch = "main" with branch = "<new_branch>"
+                replace_branch(original_content, branch)
+              end
+
+            # Write the modified Cargo.toml
+            case File.write(cargo_toml_path, new_content) do
+              :ok ->
+                Logger.info("Applied ethrex branch override: #{branch}")
+                original_content
+
+              {:error, reason} ->
+                Logger.error("Failed to write Cargo.toml: #{inspect(reason)}")
+                nil
+            end
+
+          {:error, reason} ->
+            Logger.error("Failed to read Cargo.toml: #{inspect(reason)}")
+            nil
+        end
+    end
+  end
+
+  defp restore_cargo_toml(nil, _project_dir), do: :ok
+
+  defp restore_cargo_toml(original_content, project_dir) do
+    cargo_toml_path = Path.join(project_dir, "Cargo.toml")
+
+    case File.write(cargo_toml_path, original_content) do
+      :ok ->
+        Logger.info("Restored original Cargo.toml")
+        :ok
+
+      {:error, reason} ->
+        Logger.error("Failed to restore Cargo.toml: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
+
+  defp commit_hash?(str) do
+    # Check if it's a 40-character hex string (full SHA) or 7+ char short SHA
+    String.length(str) >= 7 and
+      String.length(str) <= 40 and
+      String.match?(str, ~r/^[a-fA-F0-9]+$/)
+  end
+
+  defp replace_branch_with_rev(content, commit) do
+    # Replace all occurrences of branch = "main" in ethrex dependencies with rev = "<commit>"
+    # This regex matches the pattern: branch = "main" after lambdaclass/ethrex
+    Regex.replace(
+      ~r/(git\s*=\s*"https:\/\/github\.com\/lambdaclass\/ethrex"[^}]*?)branch\s*=\s*"main"/,
+      content,
+      "\\1rev = \"#{commit}\""
+    )
+  end
+
+  defp replace_branch(content, new_branch) do
+    # Replace all occurrences of branch = "main" with branch = "<new_branch>"
+    Regex.replace(
+      ~r/(git\s*=\s*"https:\/\/github\.com\/lambdaclass\/ethrex"[^}]*?)branch\s*=\s*"main"/,
+      content,
+      "\\1branch = \"#{new_branch}\""
     )
   end
 end

@@ -25,6 +25,7 @@ defmodule EthrexReplayWeb.Job do
     field :network, :string
     field :rpc_url, :string
     field :cache_level, :string
+    field :ethrex_branch, :string
     field :status, :string, default: "pending"
     field :command, :string
     field :execution_time_ms, :integer
@@ -50,6 +51,7 @@ defmodule EthrexReplayWeb.Job do
       :network,
       :rpc_url,
       :cache_level,
+      :ethrex_branch,
       :status,
       :command,
       :execution_time_ms,
