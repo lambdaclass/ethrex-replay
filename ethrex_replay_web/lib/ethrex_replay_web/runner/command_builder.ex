@@ -177,25 +177,28 @@ defmodule EthrexReplayWeb.Runner.CommandBuilder do
     end
   end
 
+  @known_keys %{
+    "zkvm" => :zkvm,
+    "action" => :action,
+    "resource" => :resource,
+    "network" => :network,
+    "block_number" => :block_number,
+    "rpc_url" => :rpc_url,
+    "cache_level" => :cache_level,
+    "proof_type" => :proof_type,
+    "ethrex_branch" => :ethrex_branch
+  }
+
   defp atomize_keys(map) when is_map(map) do
     Map.new(map, fn
       {k, v} when is_binary(k) ->
-        key =
-          case k do
-            "block_number" -> :block_number
-            "rpc_url" -> :rpc_url
-            "cache_level" -> :cache_level
-            "proof_type" -> :proof_type
-            "ethrex_branch" -> :ethrex_branch
-            other -> String.to_existing_atom(other)
-          end
-
-        {key, v}
+        case Map.get(@known_keys, k) do
+          nil -> {k, v}  # Keep unknown keys as-is (e.g., _csrf_token)
+          atom_key -> {atom_key, v}
+        end
 
       {k, v} ->
         {k, v}
     end)
-  rescue
-    ArgumentError -> map
   end
 end
