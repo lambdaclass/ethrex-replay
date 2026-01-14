@@ -27,7 +27,7 @@ defmodule EthrexReplayWebWeb.SystemLive do
           <div class="flex-1">
             <a href="/" class="navbar-brand flex items-center gap-2">
               <svg class="w-8 h-8 text-primary" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 1.5l-9 5.25v10.5l9 5.25 9-5.25V6.75L12 1.5zm0 2.5l6.5 3.75L12 11.5 5.5 7.75 12 4zm-7 5.5l6 3.5v7l-6-3.5v-7zm14 0v7l-6 3.5v-7l6-3.5z"/>
+                <path d="M12 1.5l-9 5.25v10.5l9 5.25 9-5.25V6.75L12 1.5zm0 2.5l6.5 3.75L12 11.5 5.5 7.75 12 4zm-7 5.5l6 3.5v7l-6-3.5v-7zm14 0v7l-6 3.5v-7l6-3.5z" />
               </svg>
               <span>Ethrex Replay</span>
             </a>
@@ -46,7 +46,9 @@ defmodule EthrexReplayWebWeb.SystemLive do
         <!-- Header -->
         <div class="mb-8">
           <h1 class="text-3xl font-bold">System Information</h1>
-          <p class="text-base-content/60 mt-1">Hardware specifications and supported configurations</p>
+          <p class="text-base-content/60 mt-1">
+            Hardware specifications and supported configurations
+          </p>
         </div>
 
         <div class="grid md:grid-cols-2 gap-6">
@@ -75,8 +77,8 @@ defmodule EthrexReplayWebWeb.SystemLive do
               </div>
             </div>
           </div>
-
-          <!-- GPU Card -->
+          
+    <!-- GPU Card -->
           <div class="card bg-base-200 border border-base-300 card-hover">
             <div class="card-body">
               <div class="flex items-center gap-3 mb-4">
@@ -97,28 +99,29 @@ defmodule EthrexReplayWebWeb.SystemLive do
                 <%= if @hardware_info.gpu[:memory_gb] do %>
                   <div>
                     <div class="text-xs text-base-content/50 uppercase tracking-wide mb-1">VRAM</div>
-                    <div class="metric-value">{@hardware_info.gpu.memory_gb} <span class="text-lg text-base-content/60">GB</span></div>
+                    <div class="metric-value">
+                      {@hardware_info.gpu.memory_gb}
+                      <span class="text-lg text-base-content/60">GB</span>
+                    </div>
                   </div>
                 <% end %>
                 <div>
                   <div class="text-xs text-base-content/50 uppercase tracking-wide mb-1">Status</div>
                   <%= if @hardware_info.gpu[:available] do %>
                     <span class="badge badge-success gap-1">
-                      <span class="hero-check w-4 h-4"></span>
-                      Available
+                      <span class="hero-check w-4 h-4"></span> Available
                     </span>
                   <% else %>
                     <span class="badge badge-warning gap-1">
-                      <span class="hero-exclamation-triangle w-4 h-4"></span>
-                      Not Detected
+                      <span class="hero-exclamation-triangle w-4 h-4"></span> Not Detected
                     </span>
                   <% end %>
                 </div>
               </div>
             </div>
           </div>
-
-          <!-- RAM Card -->
+          
+    <!-- RAM Card -->
           <div class="card bg-base-200 border border-base-300 card-hover">
             <div class="card-body">
               <div class="flex items-center gap-3 mb-4">
@@ -134,13 +137,15 @@ defmodule EthrexReplayWebWeb.SystemLive do
               <div class="space-y-4">
                 <div>
                   <div class="text-xs text-base-content/50 uppercase tracking-wide mb-1">Total</div>
-                  <div class="metric-value">{@hardware_info.ram.total_gb} <span class="text-lg text-base-content/60">GB</span></div>
+                  <div class="metric-value">
+                    {@hardware_info.ram.total_gb} <span class="text-lg text-base-content/60">GB</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-
-          <!-- OS Card -->
+          
+    <!-- OS Card -->
           <div class="card bg-base-200 border border-base-300 card-hover">
             <div class="card-body">
               <div class="flex items-center gap-3 mb-4">
@@ -166,8 +171,8 @@ defmodule EthrexReplayWebWeb.SystemLive do
             </div>
           </div>
         </div>
-
-        <!-- ZKVM Support Status -->
+        
+    <!-- ZKVM Support Status -->
         <div class="mt-8">
           <h2 class="text-2xl font-bold mb-4">ZKVM Support Status</h2>
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -186,8 +191,8 @@ defmodule EthrexReplayWebWeb.SystemLive do
             <% end %>
           </div>
         </div>
-
-        <!-- GPU Support -->
+        
+    <!-- GPU Support -->
         <div class="mt-8">
           <h2 class="text-2xl font-bold mb-4">GPU Support by ZKVM</h2>
           <div class="card bg-base-200 border border-base-300">
@@ -242,8 +247,8 @@ defmodule EthrexReplayWebWeb.SystemLive do
             </div>
           </div>
         </div>
-
-        <!-- Supported Networks -->
+        
+    <!-- Supported Networks -->
         <div class="mt-8">
           <h2 class="text-2xl font-bold mb-4">Supported Networks</h2>
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -258,13 +263,18 @@ defmodule EthrexReplayWebWeb.SystemLive do
           </div>
         </div>
       </main>
-
-      <!-- Footer -->
+      
+    <!-- Footer -->
       <footer class="footer footer-center p-6 bg-base-200 text-base-content/60 mt-auto">
         <div>
           <p>
-            Built with <span class="text-primary">ethrex</span> ·
-            <a href="https://github.com/lambdaclass/ethrex-replay" class="link link-hover text-primary" target="_blank">
+            Built with <span class="text-primary">ethrex</span>
+            ·
+            <a
+              href="https://github.com/lambdaclass/ethrex-replay"
+              class="link link-hover text-primary"
+              target="_blank"
+            >
               GitHub
             </a>
           </p>

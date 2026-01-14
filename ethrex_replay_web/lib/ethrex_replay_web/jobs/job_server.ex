@@ -10,7 +10,8 @@ defmodule EthrexReplayWeb.Jobs.JobServer do
   alias EthrexReplayWeb.Jobs
   alias EthrexReplayWeb.Runner.CommandBuilder
 
-  @timeout_ms 3_600_000  # 1 hour timeout
+  # 1 hour timeout
+  @timeout_ms 3_600_000
 
   defstruct [:job, :port, :buffer, :logs, :started_at, :original_cargo_toml]
 
@@ -97,11 +98,12 @@ defmodule EthrexReplayWeb.Jobs.JobServer do
             Process.send_after(self(), :timeout, @timeout_ms)
 
             {:noreply,
-             %{state |
-               job: updated_job,
-               port: port,
-               started_at: System.monotonic_time(:millisecond),
-               original_cargo_toml: original_cargo_toml
+             %{
+               state
+               | job: updated_job,
+                 port: port,
+                 started_at: System.monotonic_time(:millisecond),
+                 original_cargo_toml: original_cargo_toml
              }}
 
           {:error, reason} ->
@@ -207,7 +209,9 @@ defmodule EthrexReplayWeb.Jobs.JobServer do
     # Restore Cargo.toml if we modified it
     restore_cargo_toml(state.original_cargo_toml, get_project_dir())
 
-    {:ok, failed_job} = Jobs.mark_failed(state.job, "Process terminated unexpectedly: #{inspect(reason)}")
+    {:ok, failed_job} =
+      Jobs.mark_failed(state.job, "Process terminated unexpectedly: #{inspect(reason)}")
+
     broadcast_status(failed_job, :failed)
     broadcast_job_finished(state.job.id)
     {:stop, :normal, %{state | job: failed_job, port: nil}}
@@ -324,6 +328,7 @@ defmodule EthrexReplayWeb.Jobs.JobServer do
         # Pattern: "Execution Time: XXm YYs ZZZms"
         match = Regex.run(~r/[Ee]xecution\s+[Tt]ime[:\s]+(\d+)m\s+(\d+)s\s+(\d+)ms/i, line) ->
           [_, minutes, seconds, ms] = match
+
           String.to_integer(minutes) * 60 * 1000 +
             String.to_integer(seconds) * 1000 +
             String.to_integer(ms)
@@ -420,8 +425,12 @@ defmodule EthrexReplayWeb.Jobs.JobServer do
 
   defp apply_branch_override(job, project_dir) do
     case job.ethrex_branch do
-      nil -> nil
-      "" -> nil
+      nil ->
+        nil
+
+      "" ->
+        nil
+
       branch ->
         cargo_toml_path = Path.join(project_dir, "Cargo.toml")
 

@@ -63,7 +63,7 @@ defmodule EthrexReplayWebWeb.DashboardLive do
           <div class="flex-1">
             <a href="/" class="navbar-brand flex items-center gap-2">
               <svg class="w-8 h-8 text-primary" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 1.5l-9 5.25v10.5l9 5.25 9-5.25V6.75L12 1.5zm0 2.5l6.5 3.75L12 11.5 5.5 7.75 12 4zm-7 5.5l6 3.5v7l-6-3.5v-7zm14 0v7l-6 3.5v-7l6-3.5z"/>
+                <path d="M12 1.5l-9 5.25v10.5l9 5.25 9-5.25V6.75L12 1.5zm0 2.5l6.5 3.75L12 11.5 5.5 7.75 12 4zm-7 5.5l6 3.5v7l-6-3.5v-7zm14 0v7l-6 3.5v-7l6-3.5z" />
               </svg>
               <span>Ethrex Replay</span>
             </a>
@@ -91,8 +91,8 @@ defmodule EthrexReplayWebWeb.DashboardLive do
             </p>
           </div>
         </div>
-
-        <!-- Stats Grid -->
+        
+    <!-- Stats Grid -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <.stat_card
             label="Queue"
@@ -124,8 +124,7 @@ defmodule EthrexReplayWebWeb.DashboardLive do
             <div class="card bg-base-200 border border-base-300 card-hover">
               <div class="card-body">
                 <h2 class="card-title text-xl mb-4">
-                  <span class="hero-cog-6-tooth w-6 h-6"></span>
-                  Configuration
+                  <span class="hero-cog-6-tooth w-6 h-6"></span> Configuration
                 </h2>
 
                 <.form for={@form} phx-change="validate" phx-submit="submit" class="space-y-6">
@@ -135,7 +134,11 @@ defmodule EthrexReplayWebWeb.DashboardLive do
                       <label class="label">
                         <span class="label-text">ZKVM</span>
                       </label>
-                      <select name="zkvm" class="select select-bordered w-full" value={@form[:zkvm].value}>
+                      <select
+                        name="zkvm"
+                        class="select select-bordered w-full"
+                        value={@form[:zkvm].value}
+                      >
                         <%= for zkvm <- Job.zkvms() do %>
                           <% status = Job.zkvm_status(zkvm) %>
                           <option
@@ -143,7 +146,10 @@ defmodule EthrexReplayWebWeb.DashboardLive do
                             selected={@form[:zkvm].value == zkvm}
                             disabled={status == :coming_soon}
                           >
-                            {String.upcase(zkvm)}<%= if status == :coming_soon, do: " (Coming soon)" %><%= if status == :experimental, do: " (Experimental)" %>
+                            {String.upcase(zkvm)}{if status == :coming_soon, do: " (Coming soon)"}{if status ==
+                                                                                                        :experimental,
+                                                                                                      do:
+                                                                                                        " (Experimental)"}
                           </option>
                         <% end %>
                       </select>
@@ -153,9 +159,17 @@ defmodule EthrexReplayWebWeb.DashboardLive do
                       <label class="label">
                         <span class="label-text">Action</span>
                       </label>
-                      <select name="action" class="select select-bordered w-full" value={@form[:action].value}>
-                        <option value="execute" selected={@form[:action].value == "execute"}>Execute</option>
-                        <option value="prove" selected={@form[:action].value == "prove"}>Prove</option>
+                      <select
+                        name="action"
+                        class="select select-bordered w-full"
+                        value={@form[:action].value}
+                      >
+                        <option value="execute" selected={@form[:action].value == "execute"}>
+                          Execute
+                        </option>
+                        <option value="prove" selected={@form[:action].value == "prove"}>
+                          Prove
+                        </option>
                       </select>
                     </div>
 
@@ -163,21 +177,31 @@ defmodule EthrexReplayWebWeb.DashboardLive do
                       <label class="label">
                         <span class="label-text">Resource</span>
                       </label>
-                      <select name="resource" class="select select-bordered w-full" value={@form[:resource].value}>
+                      <select
+                        name="resource"
+                        class="select select-bordered w-full"
+                        value={@form[:resource].value}
+                      >
                         <option value="cpu" selected={@form[:resource].value == "cpu"}>CPU</option>
                         <option value="gpu" selected={@form[:resource].value == "gpu"}>GPU</option>
                       </select>
                     </div>
                   </div>
-
-                  <!-- Row 2: Network, Block Number, Proof Type -->
+                  
+    <!-- Row 2: Network, Block Number, Proof Type -->
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div class="form-control">
                       <label class="label">
                         <span class="label-text">Network</span>
-                        <span class="label-text-alt text-base-content/50">Optional - inferred from RPC</span>
+                        <span class="label-text-alt text-base-content/50">
+                          Optional - inferred from RPC
+                        </span>
                       </label>
-                      <select name="network" class="select select-bordered w-full" value={@form[:network].value}>
+                      <select
+                        name="network"
+                        class="select select-bordered w-full"
+                        value={@form[:network].value}
+                      >
                         <option value="" selected={@form[:network].value == ""}>Auto-detect</option>
                         <%= for network <- Job.networks() do %>
                           <option value={network} selected={@form[:network].value == network}>
@@ -190,7 +214,9 @@ defmodule EthrexReplayWebWeb.DashboardLive do
                     <div class="form-control">
                       <label class="label">
                         <span class="label-text">Block Number</span>
-                        <span class="label-text-alt text-base-content/50">Leave empty for latest</span>
+                        <span class="label-text-alt text-base-content/50">
+                          Leave empty for latest
+                        </span>
                       </label>
                       <input
                         type="number"
@@ -215,17 +241,23 @@ defmodule EthrexReplayWebWeb.DashboardLive do
                         value={@form[:proof_type].value}
                         disabled={@form[:action].value == "execute"}
                       >
-                        <option value="compressed" selected={@form[:proof_type].value == "compressed"}>Compressed</option>
-                        <option value="groth16" selected={@form[:proof_type].value == "groth16"}>Groth16</option>
+                        <option value="compressed" selected={@form[:proof_type].value == "compressed"}>
+                          Compressed
+                        </option>
+                        <option value="groth16" selected={@form[:proof_type].value == "groth16"}>
+                          Groth16
+                        </option>
                       </select>
                     </div>
                   </div>
-
-                  <!-- Row 3: RPC URL -->
+                  
+    <!-- Row 3: RPC URL -->
                   <div class="form-control">
                     <label class="label">
                       <span class="label-text">RPC URL</span>
-                      <span class="label-text-alt text-base-content/50">Optional if using cached blocks</span>
+                      <span class="label-text-alt text-base-content/50">
+                        Optional if using cached blocks
+                      </span>
                     </label>
                     <input
                       type="url"
@@ -235,31 +267,38 @@ defmodule EthrexReplayWebWeb.DashboardLive do
                       class="input input-bordered w-full"
                     />
                   </div>
-
-                  <!-- Row 4: Cache Level -->
+                  
+    <!-- Row 4: Cache Level -->
                   <div class="form-control">
                     <label class="label">
                       <span class="label-text">Cache Level</span>
                     </label>
-                    <select name="cache_level" class="select select-bordered w-full" value={@form[:cache_level].value}>
+                    <select
+                      name="cache_level"
+                      class="select select-bordered w-full"
+                      value={@form[:cache_level].value}
+                    >
                       <option value="on" selected={@form[:cache_level].value == "on"}>On</option>
                       <option value="off" selected={@form[:cache_level].value == "off"}>Off</option>
-                      <option value="failed" selected={@form[:cache_level].value == "failed"}>Failed Only</option>
+                      <option value="failed" selected={@form[:cache_level].value == "failed"}>
+                        Failed Only
+                      </option>
                     </select>
                   </div>
-
-                  <!-- Advanced Settings -->
+                  
+    <!-- Advanced Settings -->
                   <div class="collapse collapse-arrow bg-base-300 rounded-lg">
                     <input type="checkbox" phx-click="toggle_advanced" checked={@show_advanced} />
                     <div class="collapse-title font-medium flex items-center gap-2">
-                      <span class="hero-cog-8-tooth w-5 h-5"></span>
-                      Advanced Settings
+                      <span class="hero-cog-8-tooth w-5 h-5"></span> Advanced Settings
                     </div>
                     <div class="collapse-content">
                       <div class="form-control pt-2">
                         <label class="label">
                           <span class="label-text">Ethrex Branch/Commit</span>
-                          <span class="label-text-alt text-base-content/50">Leave empty to use repo default</span>
+                          <span class="label-text-alt text-base-content/50">
+                            Leave empty to use repo default
+                          </span>
                         </label>
                         <input
                           type="text"
@@ -276,8 +315,8 @@ defmodule EthrexReplayWebWeb.DashboardLive do
                       </div>
                     </div>
                   </div>
-
-                  <!-- Command Preview -->
+                  
+    <!-- Command Preview -->
                   <div>
                     <label class="label">
                       <span class="label-text text-base-content/60">Command Preview</span>
@@ -286,8 +325,8 @@ defmodule EthrexReplayWebWeb.DashboardLive do
                       {@command_preview}
                     </div>
                   </div>
-
-                  <!-- Submit Button -->
+                  
+    <!-- Submit Button -->
                   <div class="flex justify-end">
                     <button
                       type="submit"
@@ -295,11 +334,9 @@ defmodule EthrexReplayWebWeb.DashboardLive do
                       disabled={@submitting}
                     >
                       <%= if @submitting do %>
-                        <span class="loading loading-spinner loading-sm"></span>
-                        Submitting...
+                        <span class="loading loading-spinner loading-sm"></span> Submitting...
                       <% else %>
-                        <span class="hero-play w-5 h-5"></span>
-                        Start Job
+                        <span class="hero-play w-5 h-5"></span> Start Job
                       <% end %>
                     </button>
                   </div>
@@ -307,16 +344,15 @@ defmodule EthrexReplayWebWeb.DashboardLive do
               </div>
             </div>
           </div>
-
-          <!-- Sidebar Column -->
+          
+    <!-- Sidebar Column -->
           <div class="space-y-6">
             <!-- Current Job Card -->
             <%= if @current_job do %>
               <div class="card bg-base-200 border border-primary/30 glow-primary">
                 <div class="card-body">
                   <h2 class="card-title text-lg">
-                    <span class="status-dot status-dot-running"></span>
-                    Running Job
+                    <span class="status-dot status-dot-running"></span> Running Job
                   </h2>
                   <div class="space-y-2 text-sm">
                     <div class="flex justify-between">
@@ -334,20 +370,18 @@ defmodule EthrexReplayWebWeb.DashboardLive do
                   </div>
                   <div class="card-actions justify-end mt-4">
                     <a href={~p"/jobs/#{@current_job.id}"} class="btn btn-sm btn-outline btn-primary">
-                      View Logs
-                      <span class="hero-arrow-right w-4 h-4"></span>
+                      View Logs <span class="hero-arrow-right w-4 h-4"></span>
                     </a>
                   </div>
                 </div>
               </div>
             <% end %>
-
-            <!-- System Info Card -->
+            
+    <!-- System Info Card -->
             <div class="card bg-base-200 border border-base-300 card-hover">
               <div class="card-body">
                 <h2 class="card-title text-lg">
-                  <span class="hero-cpu-chip w-5 h-5"></span>
-                  System
+                  <span class="hero-cpu-chip w-5 h-5"></span> System
                 </h2>
                 <div class="space-y-3 text-sm">
                   <div>
@@ -363,7 +397,9 @@ defmodule EthrexReplayWebWeb.DashboardLive do
                       {@hardware_info.gpu.model}
                     </div>
                     <%= if @hardware_info.gpu[:memory_gb] do %>
-                      <div class="text-base-content/50 text-xs">{@hardware_info.gpu.memory_gb} GB VRAM</div>
+                      <div class="text-base-content/50 text-xs">
+                        {@hardware_info.gpu.memory_gb} GB VRAM
+                      </div>
                     <% end %>
                   </div>
                   <div>
@@ -373,30 +409,33 @@ defmodule EthrexReplayWebWeb.DashboardLive do
                 </div>
                 <div class="card-actions justify-end mt-2">
                   <a href="/system" class="btn btn-sm btn-ghost">
-                    More Details
-                    <span class="hero-arrow-right w-4 h-4"></span>
+                    More Details <span class="hero-arrow-right w-4 h-4"></span>
                   </a>
                 </div>
               </div>
             </div>
-
-            <!-- Recent Jobs Card -->
+            
+    <!-- Recent Jobs Card -->
             <div class="card bg-base-200 border border-base-300 card-hover">
               <div class="card-body">
                 <h2 class="card-title text-lg">
-                  <span class="hero-clock w-5 h-5"></span>
-                  Recent Jobs
+                  <span class="hero-clock w-5 h-5"></span> Recent Jobs
                 </h2>
                 <%= if @recent_jobs == [] do %>
                   <p class="text-base-content/50 text-sm">No jobs yet</p>
                 <% else %>
                   <div class="space-y-2">
                     <%= for job <- @recent_jobs do %>
-                      <a href={~p"/jobs/#{job.id}"} class="flex items-center justify-between p-2 rounded-lg hover:bg-base-300 transition-colors">
+                      <a
+                        href={~p"/jobs/#{job.id}"}
+                        class="flex items-center justify-between p-2 rounded-lg hover:bg-base-300 transition-colors"
+                      >
                         <div class="flex items-center gap-2">
                           <span class={"status-dot status-dot-#{job.status}"}></span>
                           <span class="text-sm font-medium">{String.upcase(job.zkvm)}</span>
-                          <span class="text-xs text-base-content/50">{job.block_number || "latest"}</span>
+                          <span class="text-xs text-base-content/50">
+                            {job.block_number || "latest"}
+                          </span>
                         </div>
                         <span
                           class="text-xs text-base-content/50"
@@ -413,8 +452,7 @@ defmodule EthrexReplayWebWeb.DashboardLive do
                 <% end %>
                 <div class="card-actions justify-end mt-2">
                   <a href="/history" class="btn btn-sm btn-ghost">
-                    View All
-                    <span class="hero-arrow-right w-4 h-4"></span>
+                    View All <span class="hero-arrow-right w-4 h-4"></span>
                   </a>
                 </div>
               </div>
@@ -422,13 +460,18 @@ defmodule EthrexReplayWebWeb.DashboardLive do
           </div>
         </div>
       </main>
-
-      <!-- Footer -->
+      
+    <!-- Footer -->
       <footer class="footer footer-center p-6 bg-base-200 text-base-content/60 mt-auto">
         <div>
           <p>
-            Built with <span class="text-primary">ethrex</span> ·
-            <a href="https://github.com/lambdaclass/ethrex-replay" class="link link-hover text-primary" target="_blank">
+            Built with <span class="text-primary">ethrex</span>
+            ·
+            <a
+              href="https://github.com/lambdaclass/ethrex-replay"
+              class="link link-hover text-primary"
+              target="_blank"
+            >
               GitHub
             </a>
           </p>
@@ -453,9 +496,16 @@ defmodule EthrexReplayWebWeb.DashboardLive do
     ]}>
       <div class="card-body p-4">
         <div class="flex items-center gap-3">
-          <span class={[@icon, "w-8 h-8", if(@highlight, do: "text-primary", else: "text-base-content/50")]}></span>
+          <span class={[
+            @icon,
+            "w-8 h-8",
+            if(@highlight, do: "text-primary", else: "text-base-content/50")
+          ]}>
+          </span>
           <div>
-            <div class={["metric-value", if(@highlight, do: "", else: "text-base-content")]}>{@value}</div>
+            <div class={["metric-value", if(@highlight, do: "", else: "text-base-content")]}>
+              {@value}
+            </div>
             <div class="text-xs text-base-content/50 uppercase tracking-wide">{@label}</div>
           </div>
         </div>
@@ -517,6 +567,7 @@ defmodule EthrexReplayWebWeb.DashboardLive do
 
       {:error, changeset} ->
         errors = format_errors(changeset)
+
         {:noreply,
          socket
          |> assign(:submitting, false)

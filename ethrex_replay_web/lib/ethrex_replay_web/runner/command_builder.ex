@@ -193,7 +193,8 @@ defmodule EthrexReplayWeb.Runner.CommandBuilder do
     Map.new(map, fn
       {k, v} when is_binary(k) ->
         case Map.get(@known_keys, k) do
-          nil -> {k, v}  # Keep unknown keys as-is (e.g., _csrf_token)
+          # Keep unknown keys as-is (e.g., _csrf_token)
+          nil -> {k, v}
           atom_key -> {atom_key, v}
         end
 

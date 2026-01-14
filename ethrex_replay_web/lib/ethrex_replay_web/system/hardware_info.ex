@@ -163,7 +163,9 @@ defmodule EthrexReplayWeb.System.HardwareInfo do
         :error
 
       _path ->
-        case System.cmd("nvidia-smi", ["--query-gpu=name,memory.total", "--format=csv,noheader,nounits"],
+        case System.cmd(
+               "nvidia-smi",
+               ["--query-gpu=name,memory.total", "--format=csv,noheader,nounits"],
                stderr_to_stdout: true
              ) do
           {output, 0} ->

@@ -31,7 +31,7 @@ defmodule EthrexReplayWebWeb.HistoryLive do
           <div class="flex-1">
             <a href="/" class="navbar-brand flex items-center gap-2">
               <svg class="w-8 h-8 text-primary" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 1.5l-9 5.25v10.5l9 5.25 9-5.25V6.75L12 1.5zm0 2.5l6.5 3.75L12 11.5 5.5 7.75 12 4zm-7 5.5l6 3.5v7l-6-3.5v-7zm14 0v7l-6 3.5v-7l6-3.5z"/>
+                <path d="M12 1.5l-9 5.25v10.5l9 5.25 9-5.25V6.75L12 1.5zm0 2.5l6.5 3.75L12 11.5 5.5 7.75 12 4zm-7 5.5l6 3.5v7l-6-3.5v-7zm14 0v7l-6 3.5v-7l6-3.5z" />
               </svg>
               <span>Ethrex Replay</span>
             </a>
@@ -54,12 +54,11 @@ defmodule EthrexReplayWebWeb.HistoryLive do
             <p class="text-base-content/60 mt-1">View and manage past proof generation jobs</p>
           </div>
           <a href="/" class="btn btn-primary">
-            <span class="hero-plus w-5 h-5"></span>
-            New Job
+            <span class="hero-plus w-5 h-5"></span> New Job
           </a>
         </div>
-
-        <!-- Filters -->
+        
+    <!-- Filters -->
         <div class="flex flex-wrap gap-2 mb-6">
           <button
             phx-click="filter"
@@ -73,44 +72,39 @@ defmodule EthrexReplayWebWeb.HistoryLive do
             phx-value-status="running"
             class={["btn btn-sm", if(@filter == "running", do: "btn-primary", else: "btn-ghost")]}
           >
-            <span class="status-dot status-dot-running"></span>
-            Running
+            <span class="status-dot status-dot-running"></span> Running
           </button>
           <button
             phx-click="filter"
             phx-value-status="completed"
             class={["btn btn-sm", if(@filter == "completed", do: "btn-primary", else: "btn-ghost")]}
           >
-            <span class="status-dot status-dot-completed"></span>
-            Completed
+            <span class="status-dot status-dot-completed"></span> Completed
           </button>
           <button
             phx-click="filter"
             phx-value-status="failed"
             class={["btn btn-sm", if(@filter == "failed", do: "btn-primary", else: "btn-ghost")]}
           >
-            <span class="status-dot status-dot-failed"></span>
-            Failed
+            <span class="status-dot status-dot-failed"></span> Failed
           </button>
           <button
             phx-click="filter"
             phx-value-status="pending"
             class={["btn btn-sm", if(@filter == "pending", do: "btn-primary", else: "btn-ghost")]}
           >
-            <span class="status-dot status-dot-pending"></span>
-            Pending
+            <span class="status-dot status-dot-pending"></span> Pending
           </button>
           <button
             phx-click="filter"
             phx-value-status="cancelled"
             class={["btn btn-sm", if(@filter == "cancelled", do: "btn-primary", else: "btn-ghost")]}
           >
-            <span class="status-dot status-dot-cancelled"></span>
-            Cancelled
+            <span class="status-dot status-dot-cancelled"></span> Cancelled
           </button>
         </div>
-
-        <!-- Jobs Table -->
+        
+    <!-- Jobs Table -->
         <%= if filtered_jobs(@jobs, @filter) == [] do %>
           <div class="card bg-base-200 border border-base-300">
             <div class="card-body items-center text-center py-12">
@@ -124,8 +118,7 @@ defmodule EthrexReplayWebWeb.HistoryLive do
                 <% end %>
               </p>
               <a href="/" class="btn btn-primary mt-4">
-                <span class="hero-plus w-5 h-5"></span>
-                New Job
+                <span class="hero-plus w-5 h-5"></span> New Job
               </a>
             </div>
           </div>
@@ -147,7 +140,11 @@ defmodule EthrexReplayWebWeb.HistoryLive do
               </thead>
               <tbody>
                 <%= for job <- filtered_jobs(@jobs, @filter) do %>
-                  <tr class="hover:bg-base-300/50 cursor-pointer" phx-click="view_job" phx-value-id={job.id}>
+                  <tr
+                    class="hover:bg-base-300/50 cursor-pointer"
+                    phx-click="view_job"
+                    phx-value-id={job.id}
+                  >
                     <td>
                       <.status_badge status={job.status} />
                     </td>
@@ -155,7 +152,9 @@ defmodule EthrexReplayWebWeb.HistoryLive do
                     <td>{String.capitalize(job.action)}</td>
                     <td class="font-mono text-sm">{job.block_number || "latest"}</td>
                     <td>{String.capitalize(job.network)}</td>
-                    <td class="font-mono text-xs text-base-content/60">{job.ethrex_branch || "main"}</td>
+                    <td class="font-mono text-xs text-base-content/60">
+                      {job.ethrex_branch || "main"}
+                    </td>
                     <td class="text-base-content/60">
                       {format_duration(job.execution_time_ms)}
                     </td>
@@ -179,13 +178,18 @@ defmodule EthrexReplayWebWeb.HistoryLive do
           </div>
         <% end %>
       </main>
-
-      <!-- Footer -->
+      
+    <!-- Footer -->
       <footer class="footer footer-center p-6 bg-base-200 text-base-content/60 mt-auto">
         <div>
           <p>
-            Built with <span class="text-primary">ethrex</span> ·
-            <a href="https://github.com/lambdaclass/ethrex-replay" class="link link-hover text-primary" target="_blank">
+            Built with <span class="text-primary">ethrex</span>
+            ·
+            <a
+              href="https://github.com/lambdaclass/ethrex-replay"
+              class="link link-hover text-primary"
+              target="_blank"
+            >
               GitHub
             </a>
           </p>
@@ -270,12 +274,17 @@ defmodule EthrexReplayWebWeb.HistoryLive do
 
   defp format_duration(ms) when is_integer(ms) do
     cond do
-      ms < 1000 -> "#{ms}ms"
-      ms < 60_000 -> "#{Float.round(ms / 1000, 1)}s"
+      ms < 1000 ->
+        "#{ms}ms"
+
+      ms < 60_000 ->
+        "#{Float.round(ms / 1000, 1)}s"
+
       ms < 3_600_000 ->
         mins = div(ms, 60_000)
         secs = Float.round(rem(ms, 60_000) / 1000, 0) |> trunc()
         "#{mins}m #{secs}s"
+
       true ->
         hours = div(ms, 3_600_000)
         mins = div(rem(ms, 3_600_000), 60_000)

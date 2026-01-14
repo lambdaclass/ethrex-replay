@@ -52,7 +52,7 @@ defmodule EthrexReplayWebWeb.JobLive do
           <div class="flex-1">
             <a href="/" class="navbar-brand flex items-center gap-2">
               <svg class="w-8 h-8 text-primary" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 1.5l-9 5.25v10.5l9 5.25 9-5.25V6.75L12 1.5zm0 2.5l6.5 3.75L12 11.5 5.5 7.75 12 4zm-7 5.5l6 3.5v7l-6-3.5v-7zm14 0v7l-6 3.5v-7l6-3.5z"/>
+                <path d="M12 1.5l-9 5.25v10.5l9 5.25 9-5.25V6.75L12 1.5zm0 2.5l6.5 3.75L12 11.5 5.5 7.75 12 4zm-7 5.5l6 3.5v7l-6-3.5v-7zm14 0v7l-6 3.5v-7l6-3.5z" />
               </svg>
               <span>Ethrex Replay</span>
             </a>
@@ -102,21 +102,19 @@ defmodule EthrexReplayWebWeb.JobLive do
                       class="btn btn-outline btn-error btn-sm"
                       data-confirm="Are you sure you want to cancel this job?"
                     >
-                      <span class="hero-stop w-4 h-4"></span>
-                      Cancel
+                      <span class="hero-stop w-4 h-4"></span> Cancel
                     </button>
                   <% end %>
                 </div>
               </div>
             </div>
-
-            <!-- Command -->
+            
+    <!-- Command -->
             <%= if @job.command do %>
               <div class="card bg-base-200 border border-base-300">
                 <div class="card-body">
                   <h2 class="card-title text-lg mb-2">
-                    <span class="hero-command-line w-5 h-5"></span>
-                    Command
+                    <span class="hero-command-line w-5 h-5"></span> Command
                   </h2>
                   <div class="command-preview text-sm">
                     {@job.command}
@@ -124,14 +122,13 @@ defmodule EthrexReplayWebWeb.JobLive do
                 </div>
               </div>
             <% end %>
-
-            <!-- Logs -->
+            
+    <!-- Logs -->
             <div class="card bg-base-200 border border-base-300">
               <div class="card-body">
                 <div class="flex items-center justify-between mb-2">
                   <h2 class="card-title text-lg">
-                    <span class="hero-document-text w-5 h-5"></span>
-                    Logs
+                    <span class="hero-document-text w-5 h-5"></span> Logs
                   </h2>
                   <label class="label cursor-pointer gap-2">
                     <span class="label-text text-sm">Auto-scroll</span>
@@ -153,8 +150,7 @@ defmodule EthrexReplayWebWeb.JobLive do
                   <%= if @logs == [] do %>
                     <%= if @job.status == "running" do %>
                       <div class="flex items-center gap-2 text-base-content/50">
-                        <span class="loading loading-dots loading-sm"></span>
-                        Waiting for output...
+                        <span class="loading loading-dots loading-sm"></span> Waiting for output...
                       </div>
                     <% else %>
                       <div class="text-base-content/50">No logs available</div>
@@ -172,14 +168,13 @@ defmodule EthrexReplayWebWeb.JobLive do
                 </div>
               </div>
             </div>
-
-            <!-- Results (if completed) -->
+            
+    <!-- Results (if completed) -->
             <%= if @job.status == "completed" do %>
               <div class="card bg-base-200 border border-success/30">
                 <div class="card-body">
                   <h2 class="card-title text-lg text-success">
-                    <span class="hero-check-badge w-5 h-5"></span>
-                    Results
+                    <span class="hero-check-badge w-5 h-5"></span> Results
                   </h2>
                   <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
                     <%= if @job.execution_time_ms do %>
@@ -204,14 +199,13 @@ defmodule EthrexReplayWebWeb.JobLive do
                 </div>
               </div>
             <% end %>
-
-            <!-- Error (if failed) -->
+            
+    <!-- Error (if failed) -->
             <%= if @job.status == "failed" && @job.error do %>
               <div class="card bg-base-200 border border-error/30">
                 <div class="card-body">
                   <h2 class="card-title text-lg text-error">
-                    <span class="hero-exclamation-triangle w-5 h-5"></span>
-                    Error
+                    <span class="hero-exclamation-triangle w-5 h-5"></span> Error
                   </h2>
                   <div class="bg-error/10 text-error rounded-lg p-4 mt-2 font-mono text-sm">
                     {@job.error}
@@ -225,15 +219,14 @@ defmodule EthrexReplayWebWeb.JobLive do
               </div>
             <% end %>
           </div>
-
-          <!-- Sidebar -->
+          
+    <!-- Sidebar -->
           <div class="space-y-6">
             <!-- Job Details -->
             <div class="card bg-base-200 border border-base-300">
               <div class="card-body">
                 <h2 class="card-title text-lg">
-                  <span class="hero-information-circle w-5 h-5"></span>
-                  Details
+                  <span class="hero-information-circle w-5 h-5"></span> Details
                 </h2>
                 <div class="space-y-3 mt-2">
                   <.detail_row label="Job ID" value={short_id(@job.id)} />
@@ -252,13 +245,12 @@ defmodule EthrexReplayWebWeb.JobLive do
                 </div>
               </div>
             </div>
-
-            <!-- Timing -->
+            
+    <!-- Timing -->
             <div class="card bg-base-200 border border-base-300">
               <div class="card-body">
                 <h2 class="card-title text-lg">
-                  <span class="hero-clock w-5 h-5"></span>
-                  Timing
+                  <span class="hero-clock w-5 h-5"></span> Timing
                 </h2>
                 <div class="space-y-3 mt-2">
                   <div class="flex justify-between text-sm">
@@ -288,35 +280,31 @@ defmodule EthrexReplayWebWeb.JobLive do
                 </div>
               </div>
             </div>
-
-            <!-- RPC URL -->
+            
+    <!-- RPC URL -->
             <div class="card bg-base-200 border border-base-300">
               <div class="card-body">
                 <h2 class="card-title text-lg">
-                  <span class="hero-globe-alt w-5 h-5"></span>
-                  RPC Endpoint
+                  <span class="hero-globe-alt w-5 h-5"></span> RPC Endpoint
                 </h2>
                 <div class="bg-base-300/50 rounded-lg p-3 mt-2 font-mono text-xs break-all">
                   {@job.rpc_url}
                 </div>
               </div>
             </div>
-
-            <!-- Actions -->
+            
+    <!-- Actions -->
             <div class="card bg-base-200 border border-base-300">
               <div class="card-body">
                 <h2 class="card-title text-lg">
-                  <span class="hero-bolt w-5 h-5"></span>
-                  Actions
+                  <span class="hero-bolt w-5 h-5"></span> Actions
                 </h2>
                 <div class="flex flex-col gap-2 mt-2">
                   <a href="/" class="btn btn-outline btn-sm">
-                    <span class="hero-plus w-4 h-4"></span>
-                    New Job
+                    <span class="hero-plus w-4 h-4"></span> New Job
                   </a>
                   <button phx-click="rerun" class="btn btn-outline btn-primary btn-sm">
-                    <span class="hero-arrow-path w-4 h-4"></span>
-                    Rerun Job
+                    <span class="hero-arrow-path w-4 h-4"></span> Rerun Job
                   </button>
                 </div>
               </div>
@@ -324,13 +312,18 @@ defmodule EthrexReplayWebWeb.JobLive do
           </div>
         </div>
       </main>
-
-      <!-- Footer -->
+      
+    <!-- Footer -->
       <footer class="footer footer-center p-6 bg-base-200 text-base-content/60">
         <div>
           <p>
-            Built with <span class="text-primary">ethrex</span> ·
-            <a href="https://github.com/lambdaclass/ethrex-replay" class="link link-hover text-primary" target="_blank">
+            Built with <span class="text-primary">ethrex</span>
+            ·
+            <a
+              href="https://github.com/lambdaclass/ethrex-replay"
+              class="link link-hover text-primary"
+              target="_blank"
+            >
               GitHub
             </a>
           </p>
@@ -470,12 +463,17 @@ defmodule EthrexReplayWebWeb.JobLive do
 
   defp format_duration(ms) when is_integer(ms) do
     cond do
-      ms < 1000 -> "#{ms}ms"
-      ms < 60_000 -> "#{Float.round(ms / 1000, 1)}s"
+      ms < 1000 ->
+        "#{ms}ms"
+
+      ms < 60_000 ->
+        "#{Float.round(ms / 1000, 1)}s"
+
       ms < 3_600_000 ->
         mins = div(ms, 60_000)
         secs = Float.round(rem(ms, 60_000) / 1000, 0) |> trunc()
         "#{mins}m #{secs}s"
+
       true ->
         hours = div(ms, 3_600_000)
         mins = div(rem(ms, 3_600_000), 60_000)
