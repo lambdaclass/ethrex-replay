@@ -33,3 +33,8 @@ generated_inputs/
 # Temporary backup files
 *~
 .*~
+
+# Binary artifacts
+*.bin
+zkvm-zisk-program
+diff.diff
