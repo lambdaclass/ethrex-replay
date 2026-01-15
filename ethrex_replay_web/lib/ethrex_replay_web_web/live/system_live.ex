@@ -320,7 +320,7 @@ defmodule EthrexReplayWebWeb.SystemLive do
 
   defp zkvm_description("sp1"), do: "Succinct Prover 1"
   defp zkvm_description("risc0"), do: "RISC Zero zkVM"
-  defp zkvm_description("openvm"), do: "OpenVM by a16z"
+  defp zkvm_description("openvm"), do: "OpenVM zkVM"
   defp zkvm_description("zisk"), do: "ZisK by Polygon"
   defp zkvm_description("jolt"), do: "Jolt by a16z"
   defp zkvm_description("nexus"), do: "Nexus zkVM"

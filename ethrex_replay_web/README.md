@@ -30,7 +30,7 @@ A Phoenix/Elixir web application for executing and proving Ethereum blocks using
   - ZKVM compatibility matrix
   - GPU availability status
 
-## Screenshots
+## Interface
 
 The application features a dark mode interface inspired by [ethproofs.org](https://ethproofs.org):
 
