@@ -1512,6 +1512,16 @@ pub async fn replay_custom_l2_blocks(
         &signer,
     )
     .await?;
+    if let (Some(first), Some(last)) = (blocks.first(), blocks.last()) {
+        if blocks.len() > 1 {
+            info!(
+                "Built {} L2 blocks ({}..={})",
+                blocks.len(),
+                first.header.number,
+                last.header.number
+            );
+        }
+    }
 
     let execution_witness = blockchain
         .generate_witness_for_blocks_with_fee_configs(
@@ -1557,13 +1567,21 @@ pub async fn replay_custom_l2_blocks(
         }
     };
 
+    let report_block = if cache.blocks.len() > 1 {
+        cache.blocks.last().cloned().ok_or_else(|| {
+            eyre::Error::msg("no block found in the cache, this should never happen")
+        })?
+    } else {
+        cache.blocks.first().cloned().ok_or_else(|| {
+            eyre::Error::msg("no block found in the cache, this should never happen")
+        })?
+    };
+
     let report = Report::new_for(
         opts.common.zkvm,
         opts.common.resource,
         opts.common.action,
-        cache.blocks.first().cloned().ok_or_else(|| {
-            eyre::Error::msg("no block found in the cache, this should never happen")
-        })?,
+        report_block,
         network,
         execution_result,
         proving_result,
@@ -1579,6 +1597,7 @@ pub async fn replay_custom_l2_blocks(
 }
 
 #[cfg(feature = "l2")]
+#[expect(clippy::too_many_arguments)]
 pub async fn produce_custom_l2_blocks(
     blockchain: Arc<Blockchain>,
     store: &mut Store,
