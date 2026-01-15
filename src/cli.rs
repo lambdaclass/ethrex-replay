@@ -1466,17 +1466,15 @@ pub async fn replay_custom_l2_blocks(
     if txs_per_block > 0 {
         let signer_address = signer.address();
         // Ensure the signer is funded in the in-memory L2 genesis.
-        if !genesis.alloc.contains_key(&signer_address) {
-            genesis.alloc.insert(
-                signer_address,
-                GenesisAccount {
-                    code: Bytes::new(),
-                    storage: HashMap::new(),
-                    balance: U256::from(10u128.pow(30)),
-                    nonce: 0,
-                },
-            );
-        }
+        genesis
+            .alloc
+            .entry(signer_address)
+            .or_insert_with(|| GenesisAccount {
+                code: Bytes::new(),
+                storage: HashMap::new(),
+                balance: U256::from(10u128.pow(30)),
+                nonce: 0,
+            });
     }
 
     let mut store = {
