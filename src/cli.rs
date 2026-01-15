@@ -1644,6 +1644,7 @@ pub async fn produce_custom_l2_blocks(
 }
 
 #[cfg(feature = "l2")]
+#[expect(clippy::too_many_arguments)]
 pub async fn produce_custom_l2_block(
     blockchain: Arc<Blockchain>,
     store: &mut Store,
