@@ -423,10 +423,10 @@ pub struct CustomBlockOptions {
     pub tx: Option<TxVariant>,
     #[arg(
         long,
-        help = "Write the serialized program input to this file.",
+        help = "Save the serialized ProgramInput to this file.",
         help_heading = "Command Options"
     )]
-    pub output_input: Option<PathBuf>,
+    pub save_program_input: Option<PathBuf>,
 }
 
 #[derive(Parser)]
@@ -877,7 +877,7 @@ pub async fn setup_rpc(opts: &EthrexReplayOptions) -> eyre::Result<(EthClient, N
 fn write_program_input(output_path: &PathBuf, program_input: &ProgramInput) -> eyre::Result<()> {
     if output_path.exists() && output_path.is_dir() {
         return Err(eyre::eyre!(
-            "output input path is a directory: {}",
+            "program input path is a directory: {}",
             output_path.display()
         ));
     }
@@ -1239,7 +1239,7 @@ pub async fn replay_custom_l1_blocks(
 
     let genesis = network.get_genesis()?;
     #[cfg(not(feature = "l2"))]
-    let output_input = block_opts.output_input.clone();
+    let save_program_input = block_opts.save_program_input.clone();
 
     let mut store = {
         let mut store_inner = Store::new("./", EngineType::InMemory)?;
@@ -1283,7 +1283,7 @@ pub async fn replay_custom_l1_blocks(
     );
 
     #[cfg(not(feature = "l2"))]
-    if let Some(output_path) = output_input {
+    if let Some(output_path) = save_program_input {
         let program_input = crate::run::get_l1_input(cache.clone())?;
         write_program_input(&output_path, &program_input)?;
         info!("Saved program input to {}", output_path.display());
@@ -1454,7 +1454,7 @@ pub async fn replay_custom_l2_blocks(
     let network = Network::LocalDevnetL2;
 
     let mut genesis = network.get_genesis()?;
-    let output_input = block_opts.output_input.clone();
+    let save_program_input = block_opts.save_program_input.clone();
 
     let signer = Signer::Local(LocalSigner::new(
         "941e103320615d394a55708be13e45994c7d93b932b064dbcb2b511fe3254e2e"
@@ -1537,7 +1537,7 @@ pub async fn replay_custom_l2_blocks(
         opts.cache_dir.clone(),
     );
 
-    if let Some(output_path) = output_input {
+    if let Some(output_path) = save_program_input {
         let program_input = crate::run::get_l2_input(cache.clone())?;
         write_program_input(&output_path, &program_input)?;
         info!("Saved program input to {}", output_path.display());
