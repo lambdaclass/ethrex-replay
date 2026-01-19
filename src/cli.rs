@@ -755,9 +755,9 @@ impl EthrexReplayCommand {
                     let input_output_path =
                         output_dir.join(format!("ethrex_{network}_{block}_input.bin"));
 
-                    write_program_input(&input_output_path, &program_input).wrap_err_with(|| {
-                        format!("failed to write ProgramInput for block {block} on {network}")
-                    })?;
+                    write_program_input(&input_output_path, &program_input).wrap_err_with(
+                        || format!("failed to write ProgramInput for block {block} on {network}"),
+                    )?;
                 }
 
                 if blocks_to_process.len() == 1 {
