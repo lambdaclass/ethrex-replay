@@ -6,7 +6,7 @@ use ethrex_l2_common::prover::ProofFormat;
 use ethrex_l2_rpc::signer::{LocalSigner, Signer};
 use ethrex_rlp::decode::RLPDecode;
 use ethrex_trie::{EMPTY_TRIE_HASH, InMemoryTrieDB, Node};
-use eyre::OptionExt;
+use eyre::{Context, OptionExt};
 use guest_program::input::ProgramInput;
 use std::{
     cmp::max,
@@ -752,13 +752,12 @@ impl EthrexReplayCommand {
 
                     let program_input = crate::run::get_l1_input(cache)?;
 
-                    let serialized_program_input =
-                        rkyv::to_bytes::<rkyv::rancor::Error>(&program_input)?;
-
                     let input_output_path =
                         output_dir.join(format!("ethrex_{network}_{block}_input.bin"));
 
-                    std::fs::write(input_output_path, serialized_program_input.as_slice())?;
+                    write_program_input(&input_output_path, &program_input).wrap_err_with(|| {
+                        format!("failed to write ProgramInput for block {block} on {network}")
+                    })?;
                 }
 
                 if blocks_to_process.len() == 1 {
@@ -886,8 +885,19 @@ fn write_program_input(output_path: &PathBuf, program_input: &ProgramInput) -> e
         std::fs::create_dir_all(parent)?;
     }
 
-    let serialized_program_input = rkyv::to_bytes::<rkyv::rancor::Error>(program_input)?;
-    std::fs::write(output_path, serialized_program_input.as_slice())?;
+    let blocks_len = program_input.blocks.len();
+    let fee_configs_len = program_input
+        .fee_configs
+        .as_ref()
+        .map(|configs| configs.len());
+    let serialized_program_input = rkyv::to_bytes::<rkyv::rancor::Error>(program_input)
+        .wrap_err_with(|| {
+            format!(
+                "failed to serialize ProgramInput (blocks_len={blocks_len}, fee_configs_len={fee_configs_len:?})"
+            )
+        })?;
+    std::fs::write(output_path, serialized_program_input.as_slice())
+        .wrap_err_with(|| format!("failed to write ProgramInput to {}", output_path.display()))?;
     Ok(())
 }
 
