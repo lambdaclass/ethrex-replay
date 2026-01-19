@@ -204,12 +204,13 @@ pub fn get_l2_input(cache: Cache) -> eyre::Result<ProgramInput> {
         execution_witness_from_rpc_chain_config(db, chain_config, first_block_number)
             .wrap_err("Failed to convert execution witness")?;
 
+    let block_len = blocks.len();
     Ok(ProgramInput {
-        blocks: blocks.clone(),
+        blocks,
         execution_witness,
         elasticity_multiplier: ELASTICITY_MULTIPLIER,
         blob_commitment: l2_fields.blob_commitment,
         blob_proof: l2_fields.blob_proof,
-        fee_configs: Some(vec![FeeConfig::default(); blocks.len()]),
+        fee_configs: Some(vec![FeeConfig::default(); block_len]),
     })
 }
