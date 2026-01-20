@@ -1,0 +1,86 @@
+name: Elixir CI
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches: ["**"]
+    paths:
+      - "ethrex_replay_web/**"
+      - ".github/workflows/pr-elixir.yaml"
+  push:
+    branches: ["main"]
+    paths:
+      - "ethrex_replay_web/**"
+      - ".github/workflows/pr-elixir.yaml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: ethrex_replay_web
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Setup Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: "1.15"
+          otp-version: "26"
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ethrex_replay_web/deps
+            ethrex_replay_web/_build
+          key: ${{ runner.os }}-mix-${{ hashFiles('ethrex_replay_web/mix.lock') }}
+          restore-keys: ${{ runner.os }}-mix-
+
+      - name: Install dependencies
+        run: mix deps.get
+
+      - name: Check formatting
+        run: mix format --check-formatted
+
+      - name: Compile with warnings as errors
+        run: mix compile --warnings-as-errors
+
+      - name: Check unused dependencies
+        run: mix deps.unlock --check-unused
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Setup Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: "1.15"
+          otp-version: "26"
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ethrex_replay_web/deps
+            ethrex_replay_web/_build
+          key: ${{ runner.os }}-mix-${{ hashFiles('ethrex_replay_web/mix.lock') }}
+          restore-keys: ${{ runner.os }}-mix-
+
+      - name: Install dependencies
+        run: mix deps.get
+
+      - name: Run tests
+        run: mix test
