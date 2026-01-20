@@ -7,12 +7,12 @@ on:
     branches: ["**"]
     paths:
       - "ethrex_replay_web/**"
-      - ".github/workflows/pr-elixir.yaml"
+      - ".github/workflows/pr-front.yaml"
   push:
     branches: ["main"]
     paths:
       - "ethrex_replay_web/**"
-      - ".github/workflows/pr-elixir.yaml"
+      - ".github/workflows/pr-front.yaml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
