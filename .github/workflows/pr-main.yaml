@@ -3,8 +3,10 @@ permissions:
   contents: read
 
 on:
+  pull_request:
+    branches: ["main"]
   push:
-    branches: ["**"]
+    branches: ["main"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -21,8 +23,6 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Free Disk Space
         uses: ./.github/actions/free-disk
@@ -30,11 +30,8 @@ jobs:
       - name: Setup Rust Environment
         uses: ./.github/actions/setup-rust
 
-      - name: Install rustfmt
-        run: rustup component add rustfmt
-
-      - name: Install clippy
-        run: rustup component add clippy
+      - name: Install rustfmt and clippy
+        run: rustup component add rustfmt clippy
 
       - name: Install Risc0
         if: contains(matrix.features, 'risc0')
