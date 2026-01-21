@@ -67,6 +67,11 @@ use ethrex_config::networks::{
 };
 
 pub const VERSION_STRING: &str = env!("CARGO_PKG_VERSION");
+// 0x941e103320615d394a55708be13e45994c7d93b932b064dbcb2b511fe3254e2e is the
+// private key for address 0x4417092b70a3e5f10dc504d0947dd256b965fc62, a
+// pre-funded account in the local devnet genesis.
+const LOCAL_DEVNET_PREFUNDED_PRIVATE_KEY: &str =
+    "941e103320615d394a55708be13e45994c7d93b932b064dbcb2b511fe3254e2e";
 
 #[derive(Parser)]
 #[command(name="ethrex-replay", author, version=VERSION_STRING, about, long_about = None)]
@@ -1262,11 +1267,8 @@ pub async fn replay_custom_l1_blocks(
         ethrex_blockchain::BlockchainOptions::default(),
     ));
 
-    // 0x941e103320615d394a55708be13e45994c7d93b932b064dbcb2b511fe3254e2e is the
-    // private key for address 0x4417092b70a3e5f10dc504d0947dd256b965fc62, a
-    // pre-funded account in the local devnet genesis.
     let signer = Signer::Local(LocalSigner::new(
-        "941e103320615d394a55708be13e45994c7d93b932b064dbcb2b511fe3254e2e"
+        LOCAL_DEVNET_PREFUNDED_PRIVATE_KEY
             .parse()
             .expect("invalid private key"),
     ));
@@ -1467,7 +1469,7 @@ pub async fn replay_custom_l2_blocks(
     let save_program_input = block_opts.save_program_input.clone();
 
     let signer = Signer::Local(LocalSigner::new(
-        "941e103320615d394a55708be13e45994c7d93b932b064dbcb2b511fe3254e2e"
+        LOCAL_DEVNET_PREFUNDED_PRIVATE_KEY
             .parse()
             .expect("invalid private key"),
     ));
@@ -1577,15 +1579,10 @@ pub async fn replay_custom_l2_blocks(
         }
     };
 
-    let report_block = if cache.blocks.len() > 1 {
+    let report_block =
         cache.blocks.last().cloned().ok_or_else(|| {
             eyre::Error::msg("no block found in the cache, this should never happen")
-        })?
-    } else {
-        cache.blocks.first().cloned().ok_or_else(|| {
-            eyre::Error::msg("no block found in the cache, this should never happen")
-        })?
-    };
+        })?;
 
     let report = Report::new_for(
         opts.common.zkvm,
