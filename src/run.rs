@@ -203,8 +203,6 @@ pub fn get_l1_input(cache: Cache) -> eyre::Result<ProgramInput> {
         execution_witness,
         elasticity_multiplier: ELASTICITY_MULTIPLIER,
         fee_configs: None,
-        blob_commitment: [0; 48],
-        blob_proof: [0; 48],
     })
 }
 
