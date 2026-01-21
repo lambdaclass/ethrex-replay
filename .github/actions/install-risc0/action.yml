@@ -1,6 +1,10 @@
 name: "Install RISC0"
 description: "Install RISC0 Toolchain"
 
+# When updating the RISC0 version, update BOTH:
+#   1. The cache key (line 12)
+#   2. The rzup install versions (lines 19, 23)
+
 runs:
   using: "composite"
   steps:

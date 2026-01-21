@@ -1,6 +1,10 @@
 name: "Install SP1"
 description: "Install SP1 Toolchain"
 
+# When updating the SP1 version, update BOTH:
+#   1. The cache key (line 12)
+#   2. The sp1up --version argument (line 19)
+
 runs:
   using: "composite"
   steps:

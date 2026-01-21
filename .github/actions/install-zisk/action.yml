@@ -1,6 +1,10 @@
 name: "Install ZisK"
 description: "Install ZisK Toolchain"
 
+# When updating the ZisK version, update BOTH:
+#   1. The cache key (line 18)
+#   2. The version in the curl URL (line 26)
+
 runs:
   using: "composite"
   steps:
