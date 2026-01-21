@@ -8,7 +8,15 @@ use ethrex_common::{
     },
 };
 use ethrex_levm::{db::gen_db::GeneralizedDatabase, vm::VMType};
-use ethrex_prover::backend::Backend;
+use ethrex_prover::{BackendType, ExecBackend, ProverBackend};
+#[cfg(feature = "sp1")]
+use ethrex_prover::Sp1Backend;
+#[cfg(feature = "risc0")]
+use ethrex_prover::Risc0Backend;
+#[cfg(feature = "zisk")]
+use ethrex_prover::ZiskBackend;
+#[cfg(feature = "openvm")]
+use ethrex_prover::OpenVmBackend;
 use ethrex_rpc::debug::execution_witness::execution_witness_from_rpc_chain_config;
 use ethrex_vm::{DynVmDatabase, Evm, GuestProgramStateWrapper, backends::levm::LEVM};
 use eyre::Context;
@@ -19,7 +27,7 @@ use std::{
     time::Duration,
 };
 
-pub async fn exec(backend: Backend, cache: Cache) -> eyre::Result<Duration> {
+pub async fn exec(backend: BackendType, cache: Cache) -> eyre::Result<Duration> {
     #[cfg(feature = "l2")]
     let input = get_l2_input(cache)?;
     #[cfg(not(feature = "l2"))]
@@ -27,7 +35,17 @@ pub async fn exec(backend: Backend, cache: Cache) -> eyre::Result<Duration> {
 
     // Use catch_unwind to capture panics
     let result = catch_unwind(AssertUnwindSafe(|| {
-        ethrex_prover::execute_timed(backend, input)
+        match backend {
+            BackendType::Exec => ExecBackend::new().execute_timed(input),
+            #[cfg(feature = "sp1")]
+            BackendType::SP1 => Sp1Backend::new().execute_timed(input),
+            #[cfg(feature = "risc0")]
+            BackendType::RISC0 => Risc0Backend::new().execute_timed(input),
+            #[cfg(feature = "zisk")]
+            BackendType::ZisK => ZiskBackend::new().execute_timed(input),
+            #[cfg(feature = "openvm")]
+            BackendType::OpenVM => OpenVmBackend::new().execute_timed(input),
+        }
     }));
 
     match result {
@@ -49,7 +67,7 @@ pub async fn exec(backend: Backend, cache: Cache) -> eyre::Result<Duration> {
 }
 
 pub async fn prove(
-    backend: Backend,
+    backend: BackendType,
     proof_type: ProofType,
     cache: Cache,
 ) -> eyre::Result<Duration> {
@@ -60,12 +78,32 @@ pub async fn prove(
 
     // Use catch_unwind to capture panics
     let result = catch_unwind(AssertUnwindSafe(|| {
-        ethrex_prover::prove_timed(backend, input, proof_type.into())
+        match backend {
+            BackendType::Exec => ExecBackend::new()
+                .prove_timed(input, proof_type.into())
+                .map(|(_, duration)| duration),
+            #[cfg(feature = "sp1")]
+            BackendType::SP1 => Sp1Backend::new()
+                .prove_timed(input, proof_type.into())
+                .map(|(_, duration)| duration),
+            #[cfg(feature = "risc0")]
+            BackendType::RISC0 => Risc0Backend::new()
+                .prove_timed(input, proof_type.into())
+                .map(|(_, duration)| duration),
+            #[cfg(feature = "zisk")]
+            BackendType::ZisK => ZiskBackend::new()
+                .prove_timed(input, proof_type.into())
+                .map(|(_, duration)| duration),
+            #[cfg(feature = "openvm")]
+            BackendType::OpenVM => OpenVmBackend::new()
+                .prove_timed(input, proof_type.into())
+                .map(|(_, duration)| duration),
+        }
     }));
 
     match result {
         Ok(prove_result) => {
-            let (_, elapsed) =
+            let elapsed =
                 prove_result.map_err(|e| eyre::Error::msg(format!("Proving failed: {}", e)))?;
             Ok(elapsed)
         }
