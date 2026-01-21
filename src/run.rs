@@ -184,7 +184,7 @@ fn extract_panic_message(panic_info: &Box<dyn std::any::Any + Send>) -> String {
 }
 
 #[cfg(feature = "l2")]
-fn get_l2_input(cache: Cache) -> eyre::Result<ProgramInput> {
+pub fn get_l2_input(cache: Cache) -> eyre::Result<ProgramInput> {
     use ethrex_common::types::fee_config::FeeConfig;
 
     let first_block_number = cache.get_first_block_number()?;
@@ -204,12 +204,13 @@ fn get_l2_input(cache: Cache) -> eyre::Result<ProgramInput> {
         execution_witness_from_rpc_chain_config(db, chain_config, first_block_number)
             .wrap_err("Failed to convert execution witness")?;
 
+    let block_len = blocks.len();
     Ok(ProgramInput {
         blocks,
         execution_witness,
         elasticity_multiplier: ELASTICITY_MULTIPLIER,
         blob_commitment: l2_fields.blob_commitment,
         blob_proof: l2_fields.blob_proof,
-        fee_configs: Some(vec![FeeConfig::default()]),
+        fee_configs: Some(vec![FeeConfig::default(); block_len]),
     })
 }

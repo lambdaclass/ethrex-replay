@@ -12,7 +12,7 @@ pub enum TxBuilder {
 }
 
 impl TxBuilder {
-    pub async fn build_tx(&self, nonce: u64, signer: &Signer) -> Transaction {
+    pub async fn build_tx(&self, nonce: u64, signer: &Signer, chain_id: u64) -> Transaction {
         match self {
             TxBuilder::ERC20Transfer(address) => {
                 let calldata = encode_calldata(
@@ -21,11 +21,18 @@ impl TxBuilder {
                 )
                 .expect("failed to encode ERC20 transfer calldata");
 
-                Self::build_signed_transaction(nonce, 0, calldata, *address, signer).await
+                Self::build_signed_transaction(nonce, 0, calldata, *address, signer, chain_id).await
             }
             TxBuilder::ETHTransfer => {
-                Self::build_signed_transaction(nonce, 1, Vec::default(), Address::random(), signer)
-                    .await
+                Self::build_signed_transaction(
+                    nonce,
+                    1,
+                    Vec::default(),
+                    Address::random(),
+                    signer,
+                    chain_id,
+                )
+                .await
             }
         }
     }
@@ -36,6 +43,7 @@ impl TxBuilder {
         calldata: Vec<u8>,
         to: Address,
         signer: &Signer,
+        chain_id: u64,
     ) -> Transaction {
         Transaction::EIP1559Transaction(EIP1559Transaction {
             nonce,
@@ -43,7 +51,7 @@ impl TxBuilder {
             gas_limit: 250000,
             max_fee_per_gas: u64::MAX,
             max_priority_fee_per_gas: 10,
-            chain_id: 9,
+            chain_id,
             data: calldata.into(),
             to: TxKind::Call(to),
             ..Default::default()

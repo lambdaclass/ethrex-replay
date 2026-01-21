@@ -6,7 +6,8 @@ use ethrex_l2_common::prover::ProofFormat;
 use ethrex_l2_rpc::signer::{LocalSigner, Signer};
 use ethrex_rlp::decode::RLPDecode;
 use ethrex_trie::{EMPTY_TRIE_HASH, InMemoryTrieDB, Node};
-use eyre::OptionExt;
+use eyre::{Context, OptionExt};
+use guest_program::input::ProgramInput;
 use std::{
     cmp::max,
     collections::BTreeMap,
@@ -30,6 +31,8 @@ use ethrex_common::{
     },
     utils::keccak,
 };
+#[cfg(feature = "l2")]
+use ethrex_common::{U256, types::GenesisAccount};
 use ethrex_prover::backend::Backend;
 #[cfg(not(feature = "l2"))]
 use ethrex_rpc::types::block_identifier::BlockIdentifier;
@@ -64,6 +67,11 @@ use ethrex_config::networks::{
 };
 
 pub const VERSION_STRING: &str = env!("CARGO_PKG_VERSION");
+// 0x941e103320615d394a55708be13e45994c7d93b932b064dbcb2b511fe3254e2e is the
+// private key for address 0x4417092b70a3e5f10dc504d0947dd256b965fc62, a
+// pre-funded account in the local devnet genesis.
+const LOCAL_DEVNET_PREFUNDED_PRIVATE_KEY: &str =
+    "941e103320615d394a55708be13e45994c7d93b932b064dbcb2b511fe3254e2e";
 
 #[derive(Parser)]
 #[command(name="ethrex-replay", author, version=VERSION_STRING, about, long_about = None)]
@@ -418,6 +426,12 @@ pub struct CustomBlockOptions {
         requires = "n_txs"
     )]
     pub tx: Option<TxVariant>,
+    #[arg(
+        long,
+        help = "Save the serialized ProgramInput to this file.",
+        help_heading = "Command Options"
+    )]
+    pub save_program_input: Option<PathBuf>,
 }
 
 #[derive(Parser)]
@@ -743,13 +757,12 @@ impl EthrexReplayCommand {
 
                     let program_input = crate::run::get_l1_input(cache)?;
 
-                    let serialized_program_input =
-                        rkyv::to_bytes::<rkyv::rancor::Error>(&program_input)?;
-
                     let input_output_path =
                         output_dir.join(format!("ethrex_{network}_{block}_input.bin"));
 
-                    std::fs::write(input_output_path, serialized_program_input.as_slice())?;
+                    write_program_input(&input_output_path, &program_input).wrap_err_with(
+                        || format!("failed to write ProgramInput for block {block} on {network}"),
+                    )?;
                 }
 
                 if blocks_to_process.len() == 1 {
@@ -850,7 +863,7 @@ impl EthrexReplayCommand {
                     notification_level: NotificationLevel::default(),
                 };
 
-                replay_custom_l2_blocks(max(1, n_blocks), opts).await?;
+                replay_custom_l2_blocks(max(1, n_blocks), block_opts, opts).await?;
             }
         }
 
@@ -863,6 +876,34 @@ pub async fn setup_rpc(opts: &EthrexReplayOptions) -> eyre::Result<(EthClient, N
     let chain_id = eth_client.get_chain_id().await?.as_u64();
     let network = network_from_chain_id(chain_id);
     Ok((eth_client, network))
+}
+
+fn write_program_input(output_path: &PathBuf, program_input: &ProgramInput) -> eyre::Result<()> {
+    if output_path.exists() && output_path.is_dir() {
+        return Err(eyre::eyre!(
+            "program input path is a directory: {}",
+            output_path.display()
+        ));
+    }
+
+    if let Some(parent) = output_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+
+    let blocks_len = program_input.blocks.len();
+    let fee_configs_len = program_input
+        .fee_configs
+        .as_ref()
+        .map(|configs| configs.len());
+    let serialized_program_input = rkyv::to_bytes::<rkyv::rancor::Error>(program_input)
+        .wrap_err_with(|| {
+            format!(
+                "failed to serialize ProgramInput (blocks_len={blocks_len}, fee_configs_len={fee_configs_len:?})"
+            )
+        })?;
+    std::fs::write(output_path, serialized_program_input.as_slice())
+        .wrap_err_with(|| format!("failed to write ProgramInput to {}", output_path.display()))?;
+    Ok(())
 }
 
 async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Result<Duration> {
@@ -1212,6 +1253,8 @@ pub async fn replay_custom_l1_blocks(
     let network = Network::LocalDevnet;
 
     let genesis = network.get_genesis()?;
+    #[cfg(not(feature = "l2"))]
+    let save_program_input = block_opts.save_program_input.clone();
 
     let mut store = {
         let mut store_inner = Store::new("./", EngineType::InMemory)?;
@@ -1224,11 +1267,8 @@ pub async fn replay_custom_l1_blocks(
         ethrex_blockchain::BlockchainOptions::default(),
     ));
 
-    // 0x941e103320615d394a55708be13e45994c7d93b932b064dbcb2b511fe3254e2e is the
-    // private key for address 0x4417092b70a3e5f10dc504d0947dd256b965fc62, a
-    // pre-funded account in the local devnet genesis.
     let signer = Signer::Local(LocalSigner::new(
-        "941e103320615d394a55708be13e45994c7d93b932b064dbcb2b511fe3254e2e"
+        LOCAL_DEVNET_PREFUNDED_PRIVATE_KEY
             .parse()
             .expect("invalid private key"),
     ));
@@ -1253,6 +1293,13 @@ pub async fn replay_custom_l1_blocks(
         chain_config,
         opts.cache_dir,
     );
+
+    #[cfg(not(feature = "l2"))]
+    if let Some(output_path) = save_program_input {
+        let program_input = crate::run::get_l1_input(cache.clone())?;
+        write_program_input(&output_path, &program_input)?;
+        info!("Saved program input to {}", output_path.display());
+    }
 
     let backend = backend(&opts.common.zkvm)?;
 
@@ -1338,6 +1385,7 @@ pub async fn produce_l1_block(
     timestamp: u64,
     signer: &Signer,
 ) -> eyre::Result<(Block, H256)> {
+    let chain_id = store.get_chain_config().chain_id;
     let build_payload_args = BuildPayloadArgs {
         parent: head_block_hash,
         timestamp,
@@ -1364,7 +1412,7 @@ pub async fn produce_l1_block(
             TxVariant::ERC20Transfer => unimplemented!(),
         };
 
-        let tx = tx_builder.build_tx(n, signer).await;
+        let tx = tx_builder.build_tx(n, signer, chain_id).await;
 
         blockchain.add_transaction_to_pool(tx).await?;
     }
@@ -1407,13 +1455,39 @@ use ethrex_storage_rollup::StoreRollup;
 use ethrex_vm::BlockExecutionResult;
 
 #[cfg(feature = "l2")]
-pub async fn replay_custom_l2_blocks(n_blocks: u64, opts: EthrexReplayOptions) -> eyre::Result<()> {
+pub async fn replay_custom_l2_blocks(
+    n_blocks: u64,
+    block_opts: CustomBlockOptions,
+    opts: EthrexReplayOptions,
+) -> eyre::Result<()> {
     use ethrex_blockchain::{BlockchainOptions, BlockchainType, L2Config};
     use ethrex_common::types::fee_config::FeeConfig;
 
     let network = Network::LocalDevnetL2;
 
-    let genesis = network.get_genesis()?;
+    let mut genesis = network.get_genesis()?;
+    let save_program_input = block_opts.save_program_input.clone();
+
+    let signer = Signer::Local(LocalSigner::new(
+        LOCAL_DEVNET_PREFUNDED_PRIVATE_KEY
+            .parse()
+            .expect("invalid private key"),
+    ));
+
+    let txs_per_block = block_opts.n_txs.unwrap_or_default();
+    if txs_per_block > 0 {
+        let signer_address = signer.address();
+        // Ensure the signer is funded in the in-memory L2 genesis.
+        genesis
+            .alloc
+            .entry(signer_address)
+            .or_insert_with(|| GenesisAccount {
+                code: Bytes::new(),
+                storage: HashMap::new(),
+                balance: U256::from(10u128.pow(30)),
+                nonce: 0,
+            });
+    }
 
     let mut store = {
         let mut store_inner = Store::new("./", EngineType::InMemory)?;
@@ -1446,8 +1520,20 @@ pub async fn replay_custom_l2_blocks(n_blocks: u64, opts: EthrexReplayOptions) -
         genesis_hash,
         genesis.timestamp + 1,
         n_blocks,
+        &block_opts,
+        &signer,
     )
     .await?;
+    if let (Some(first), Some(last)) = (blocks.first(), blocks.last())
+        && blocks.len() > 1
+    {
+        info!(
+            "Built {} L2 blocks ({}..={})",
+            blocks.len(),
+            first.header.number,
+            last.header.number
+        );
+    }
 
     let execution_witness = blockchain
         .generate_witness_for_blocks_with_fee_configs(
@@ -1462,6 +1548,12 @@ pub async fn replay_custom_l2_blocks(n_blocks: u64, opts: EthrexReplayOptions) -
         genesis.config,
         opts.cache_dir.clone(),
     );
+
+    if let Some(output_path) = save_program_input {
+        let program_input = crate::run::get_l2_input(cache.clone())?;
+        write_program_input(&output_path, &program_input)?;
+        info!("Saved program input to {}", output_path.display());
+    }
 
     let backend = backend(&opts.common.zkvm)?;
 
@@ -1487,13 +1579,16 @@ pub async fn replay_custom_l2_blocks(n_blocks: u64, opts: EthrexReplayOptions) -
         }
     };
 
+    let report_block =
+        cache.blocks.last().cloned().ok_or_else(|| {
+            eyre::Error::msg("no block found in the cache, this should never happen")
+        })?;
+
     let report = Report::new_for(
         opts.common.zkvm,
         opts.common.resource,
         opts.common.action,
-        cache.blocks.first().cloned().ok_or_else(|| {
-            eyre::Error::msg("no block found in the cache, this should never happen")
-        })?,
+        report_block,
         network,
         execution_result,
         proving_result,
@@ -1509,6 +1604,7 @@ pub async fn replay_custom_l2_blocks(n_blocks: u64, opts: EthrexReplayOptions) -
 }
 
 #[cfg(feature = "l2")]
+#[expect(clippy::too_many_arguments)]
 pub async fn produce_custom_l2_blocks(
     blockchain: Arc<Blockchain>,
     store: &mut Store,
@@ -1516,11 +1612,22 @@ pub async fn produce_custom_l2_blocks(
     head_block_hash: H256,
     initial_timestamp: u64,
     n_blocks: u64,
+    block_opts: &CustomBlockOptions,
+    signer: &Signer,
 ) -> eyre::Result<Vec<Block>> {
     let mut blocks = Vec::new();
     let mut current_parent_hash = head_block_hash;
     let mut current_timestamp = initial_timestamp;
     let mut last_privilege_nonce = HashMap::new();
+    let mut next_nonce = 0u64;
+
+    if block_opts.n_txs.unwrap_or_default() > 0 {
+        let latest_block_number = store.get_latest_block_number().await?;
+        next_nonce = store
+            .get_nonce_by_account_address(latest_block_number, signer.address())
+            .await?
+            .unwrap_or(0);
+    }
 
     for _ in 0..n_blocks {
         let block = produce_custom_l2_block(
@@ -1529,6 +1636,9 @@ pub async fn produce_custom_l2_blocks(
             rollup_store,
             current_parent_hash,
             current_timestamp,
+            block_opts,
+            signer,
+            &mut next_nonce,
             &mut last_privilege_nonce,
         )
         .await?;
@@ -1541,12 +1651,16 @@ pub async fn produce_custom_l2_blocks(
 }
 
 #[cfg(feature = "l2")]
+#[expect(clippy::too_many_arguments)]
 pub async fn produce_custom_l2_block(
     blockchain: Arc<Blockchain>,
     store: &mut Store,
     rollup_store: &StoreRollup,
     head_block_hash: H256,
     timestamp: u64,
+    block_opts: &CustomBlockOptions,
+    signer: &Signer,
+    next_nonce: &mut u64,
     last_privilege_nonce: &mut HashMap<u64, Option<u64>>,
 ) -> eyre::Result<Block> {
     let build_payload_args = BuildPayloadArgs {
@@ -1562,6 +1676,26 @@ pub async fn produce_custom_l2_block(
     };
 
     let payload = create_payload(&build_payload_args, store, Bytes::new())?;
+
+    let tx_count = block_opts.n_txs.unwrap_or_default();
+    if tx_count > 0 {
+        let tx_builder = match block_opts
+            .tx
+            .as_ref()
+            .ok_or_eyre("--tx needs to be passed")?
+        {
+            TxVariant::ETHTransfer => TxBuilder::ETHTransfer,
+            TxVariant::ERC20Transfer => unimplemented!(),
+        };
+
+        let chain_id = store.get_chain_config().chain_id;
+
+        for _ in 0..tx_count {
+            let tx = tx_builder.build_tx(*next_nonce, signer, chain_id).await;
+            blockchain.add_transaction_to_pool(tx).await?;
+            *next_nonce += 1;
+        }
+    }
 
     let payload_build_result = build_payload(
         blockchain.clone(),
