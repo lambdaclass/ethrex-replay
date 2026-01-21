@@ -1483,7 +1483,7 @@ pub async fn replay_custom_l2_blocks(
             .entry(signer_address)
             .or_insert_with(|| GenesisAccount {
                 code: Bytes::new(),
-                storage: HashMap::new(),
+                storage: BTreeMap::new(),
                 balance: U256::from(10u128.pow(30)),
                 nonce: 0,
             });
