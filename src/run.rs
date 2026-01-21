@@ -8,15 +8,15 @@ use ethrex_common::{
     },
 };
 use ethrex_levm::{db::gen_db::GeneralizedDatabase, vm::VMType};
-use ethrex_prover::{BackendType, ExecBackend, ProverBackend};
-#[cfg(feature = "sp1")]
-use ethrex_prover::Sp1Backend;
-#[cfg(feature = "risc0")]
-use ethrex_prover::Risc0Backend;
-#[cfg(feature = "zisk")]
-use ethrex_prover::ZiskBackend;
 #[cfg(feature = "openvm")]
 use ethrex_prover::OpenVmBackend;
+#[cfg(feature = "risc0")]
+use ethrex_prover::Risc0Backend;
+#[cfg(feature = "sp1")]
+use ethrex_prover::Sp1Backend;
+#[cfg(feature = "zisk")]
+use ethrex_prover::ZiskBackend;
+use ethrex_prover::{BackendType, ExecBackend, ProverBackend};
 use ethrex_rpc::debug::execution_witness::execution_witness_from_rpc_chain_config;
 use ethrex_vm::{DynVmDatabase, Evm, GuestProgramStateWrapper, backends::levm::LEVM};
 use eyre::Context;
@@ -34,18 +34,16 @@ pub async fn exec(backend: BackendType, cache: Cache) -> eyre::Result<Duration> 
     let input = get_l1_input(cache)?;
 
     // Use catch_unwind to capture panics
-    let result = catch_unwind(AssertUnwindSafe(|| {
-        match backend {
-            BackendType::Exec => ExecBackend::new().execute_timed(input),
-            #[cfg(feature = "sp1")]
-            BackendType::SP1 => Sp1Backend::new().execute_timed(input),
-            #[cfg(feature = "risc0")]
-            BackendType::RISC0 => Risc0Backend::new().execute_timed(input),
-            #[cfg(feature = "zisk")]
-            BackendType::ZisK => ZiskBackend::new().execute_timed(input),
-            #[cfg(feature = "openvm")]
-            BackendType::OpenVM => OpenVmBackend::new().execute_timed(input),
-        }
+    let result = catch_unwind(AssertUnwindSafe(|| match backend {
+        BackendType::Exec => ExecBackend::new().execute_timed(input),
+        #[cfg(feature = "sp1")]
+        BackendType::SP1 => Sp1Backend::new().execute_timed(input),
+        #[cfg(feature = "risc0")]
+        BackendType::RISC0 => Risc0Backend::new().execute_timed(input),
+        #[cfg(feature = "zisk")]
+        BackendType::ZisK => ZiskBackend::new().execute_timed(input),
+        #[cfg(feature = "openvm")]
+        BackendType::OpenVM => OpenVmBackend::new().execute_timed(input),
     }));
 
     match result {
@@ -77,28 +75,26 @@ pub async fn prove(
     let input = get_l1_input(cache)?;
 
     // Use catch_unwind to capture panics
-    let result = catch_unwind(AssertUnwindSafe(|| {
-        match backend {
-            BackendType::Exec => ExecBackend::new()
-                .prove_timed(input, proof_type.into())
-                .map(|(_, duration)| duration),
-            #[cfg(feature = "sp1")]
-            BackendType::SP1 => Sp1Backend::new()
-                .prove_timed(input, proof_type.into())
-                .map(|(_, duration)| duration),
-            #[cfg(feature = "risc0")]
-            BackendType::RISC0 => Risc0Backend::new()
-                .prove_timed(input, proof_type.into())
-                .map(|(_, duration)| duration),
-            #[cfg(feature = "zisk")]
-            BackendType::ZisK => ZiskBackend::new()
-                .prove_timed(input, proof_type.into())
-                .map(|(_, duration)| duration),
-            #[cfg(feature = "openvm")]
-            BackendType::OpenVM => OpenVmBackend::new()
-                .prove_timed(input, proof_type.into())
-                .map(|(_, duration)| duration),
-        }
+    let result = catch_unwind(AssertUnwindSafe(|| match backend {
+        BackendType::Exec => ExecBackend::new()
+            .prove_timed(input, proof_type.into())
+            .map(|(_, duration)| duration),
+        #[cfg(feature = "sp1")]
+        BackendType::SP1 => Sp1Backend::new()
+            .prove_timed(input, proof_type.into())
+            .map(|(_, duration)| duration),
+        #[cfg(feature = "risc0")]
+        BackendType::RISC0 => Risc0Backend::new()
+            .prove_timed(input, proof_type.into())
+            .map(|(_, duration)| duration),
+        #[cfg(feature = "zisk")]
+        BackendType::ZisK => ZiskBackend::new()
+            .prove_timed(input, proof_type.into())
+            .map(|(_, duration)| duration),
+        #[cfg(feature = "openvm")]
+        BackendType::OpenVM => OpenVmBackend::new()
+            .prove_timed(input, proof_type.into())
+            .map(|(_, duration)| duration),
     }));
 
     match result {
