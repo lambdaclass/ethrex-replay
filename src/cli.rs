@@ -892,7 +892,11 @@ fn write_program_input(output_path: &PathBuf, program_input: &ProgramInput) -> e
 
     let blocks_len = program_input.blocks.len();
     #[cfg(feature = "l2")]
-    let fee_configs_len = program_input.fee_configs.as_ref().map(|v| v.len()).unwrap_or(0);
+    let fee_configs_len = program_input
+        .fee_configs
+        .as_ref()
+        .map(|v| v.len())
+        .unwrap_or(0);
     let serialized_program_input = rkyv::to_bytes::<rkyv::rancor::Error>(program_input)
         .wrap_err_with(|| {
             #[cfg(feature = "l2")]
