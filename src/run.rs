@@ -3,10 +3,10 @@ use crate::{cache::Cache, cli::ProofType};
 use ethrex_common::types::fee_config::FeeConfig;
 use ethrex_common::{
     H256,
-    types::{
-        AccountUpdate, ELASTICITY_MULTIPLIER, Receipt, block_execution_witness::GuestProgramState,
-    },
+    types::{AccountUpdate, Receipt, block_execution_witness::GuestProgramState},
 };
+#[cfg(feature = "l2")]
+use ethrex_common::types::ELASTICITY_MULTIPLIER;
 use ethrex_levm::{db::gen_db::GeneralizedDatabase, vm::VMType};
 #[cfg(feature = "openvm")]
 use ethrex_prover::OpenVmBackend;
@@ -201,8 +201,6 @@ pub fn get_l1_input(cache: Cache) -> eyre::Result<ProgramInput> {
     Ok(ProgramInput {
         blocks,
         execution_witness,
-        elasticity_multiplier: ELASTICITY_MULTIPLIER,
-        fee_configs: None,
     })
 }
 
@@ -245,6 +243,6 @@ pub fn get_l2_input(cache: Cache) -> eyre::Result<ProgramInput> {
         elasticity_multiplier: ELASTICITY_MULTIPLIER,
         blob_commitment: l2_fields.blob_commitment,
         blob_proof: l2_fields.blob_proof,
-        fee_configs: Some(vec![FeeConfig::default(); block_len]),
+        fee_configs: vec![FeeConfig::default(); block_len],
     })
 }

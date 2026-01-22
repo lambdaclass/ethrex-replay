@@ -891,14 +891,17 @@ fn write_program_input(output_path: &PathBuf, program_input: &ProgramInput) -> e
     }
 
     let blocks_len = program_input.blocks.len();
-    let fee_configs_len = program_input
-        .fee_configs
-        .as_ref()
-        .map(|configs| configs.len());
+    #[cfg(feature = "l2")]
+    let fee_configs_len = program_input.fee_configs.len();
     let serialized_program_input = rkyv::to_bytes::<rkyv::rancor::Error>(program_input)
         .wrap_err_with(|| {
+            #[cfg(feature = "l2")]
+            return format!(
+                "failed to serialize ProgramInput (blocks_len={blocks_len}, fee_configs_len={fee_configs_len})"
+            );
+            #[cfg(not(feature = "l2"))]
             format!(
-                "failed to serialize ProgramInput (blocks_len={blocks_len}, fee_configs_len={fee_configs_len:?})"
+                "failed to serialize ProgramInput (blocks_len={blocks_len})"
             )
         })?;
     std::fs::write(output_path, serialized_program_input.as_slice())

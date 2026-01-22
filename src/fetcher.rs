@@ -2,7 +2,7 @@ use ethrex_config::networks::Network;
 use ethrex_levm::vm::VMType;
 use ethrex_rpc::{
     EthClient,
-    clients::{EthClientError, eth::errors::GetWitnessError},
+    clients::EthClientError,
     types::block_identifier::{BlockIdentifier, BlockTag},
 };
 use eyre::{OptionExt, WrapErr};
@@ -144,7 +144,7 @@ async fn get_blockdata_rpc(
         .await
     {
         Ok(witness) => witness,
-        Err(EthClientError::GetWitnessError(GetWitnessError::RPCError(_))) => {
+        Err(EthClientError::RpcRequestError(_)) => {
             warn!("debug_executionWitness endpoint not implemented, using fallback eth_getProof");
 
             #[cfg(feature = "l2")]
