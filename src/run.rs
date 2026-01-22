@@ -1,12 +1,12 @@
 use crate::{cache::Cache, cli::ProofType};
 #[cfg(feature = "l2")]
+use ethrex_common::types::ELASTICITY_MULTIPLIER;
+#[cfg(feature = "l2")]
 use ethrex_common::types::fee_config::FeeConfig;
 use ethrex_common::{
     H256,
     types::{AccountUpdate, Receipt, block_execution_witness::GuestProgramState},
 };
-#[cfg(feature = "l2")]
-use ethrex_common::types::ELASTICITY_MULTIPLIER;
 use ethrex_levm::{db::gen_db::GeneralizedDatabase, vm::VMType};
 #[cfg(feature = "openvm")]
 use ethrex_prover::OpenVmBackend;
