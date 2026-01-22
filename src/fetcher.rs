@@ -144,7 +144,7 @@ async fn get_blockdata_rpc(
         .await
     {
         Ok(witness) => witness,
-        Err(EthClientError::RpcRequestError(_)) => {
+        Err(EthClientError::RequestError(_)) => {
             warn!("debug_executionWitness endpoint not implemented, using fallback eth_getProof");
 
             #[cfg(feature = "l2")]

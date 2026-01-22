@@ -1,7 +1,5 @@
 use crate::{cache::Cache, cli::ProofType};
-#[cfg(feature = "l2")]
 use ethrex_common::types::ELASTICITY_MULTIPLIER;
-#[cfg(feature = "l2")]
 use ethrex_common::types::fee_config::FeeConfig;
 use ethrex_common::{
     H256,
@@ -198,9 +196,12 @@ pub fn get_l1_input(cache: Cache) -> eyre::Result<ProgramInput> {
     let execution_witness =
         execution_witness_from_rpc_chain_config(db, chain_config, first_block_number)?;
 
+    let block_len = blocks.len();
     Ok(ProgramInput {
         blocks,
         execution_witness,
+        elasticity_multiplier: ELASTICITY_MULTIPLIER,
+        fee_configs: Some(vec![FeeConfig::default(); block_len]),
     })
 }
 
@@ -243,6 +244,6 @@ pub fn get_l2_input(cache: Cache) -> eyre::Result<ProgramInput> {
         elasticity_multiplier: ELASTICITY_MULTIPLIER,
         blob_commitment: l2_fields.blob_commitment,
         blob_proof: l2_fields.blob_proof,
-        fee_configs: vec![FeeConfig::default(); block_len],
+        fee_configs: Some(vec![FeeConfig::default(); block_len]),
     })
 }
