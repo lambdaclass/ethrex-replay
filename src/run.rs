@@ -1,14 +1,20 @@
 use crate::{cache::Cache, cli::ProofType};
-#[cfg(feature = "l2")]
+use ethrex_common::types::ELASTICITY_MULTIPLIER;
 use ethrex_common::types::fee_config::FeeConfig;
 use ethrex_common::{
     H256,
-    types::{
-        AccountUpdate, ELASTICITY_MULTIPLIER, Receipt, block_execution_witness::GuestProgramState,
-    },
+    types::{AccountUpdate, Receipt, block_execution_witness::GuestProgramState},
 };
 use ethrex_levm::{db::gen_db::GeneralizedDatabase, vm::VMType};
-use ethrex_prover::backend::Backend;
+#[cfg(feature = "openvm")]
+use ethrex_prover::OpenVmBackend;
+#[cfg(feature = "risc0")]
+use ethrex_prover::Risc0Backend;
+#[cfg(feature = "sp1")]
+use ethrex_prover::Sp1Backend;
+#[cfg(feature = "zisk")]
+use ethrex_prover::ZiskBackend;
+use ethrex_prover::{BackendType, ExecBackend, ProverBackend};
 use ethrex_rpc::debug::execution_witness::execution_witness_from_rpc_chain_config;
 use ethrex_vm::{DynVmDatabase, Evm, GuestProgramStateWrapper, backends::levm::LEVM};
 use eyre::Context;
@@ -19,15 +25,23 @@ use std::{
     time::Duration,
 };
 
-pub async fn exec(backend: Backend, cache: Cache) -> eyre::Result<Duration> {
+pub async fn exec(backend: BackendType, cache: Cache) -> eyre::Result<Duration> {
     #[cfg(feature = "l2")]
     let input = get_l2_input(cache)?;
     #[cfg(not(feature = "l2"))]
     let input = get_l1_input(cache)?;
 
     // Use catch_unwind to capture panics
-    let result = catch_unwind(AssertUnwindSafe(|| {
-        ethrex_prover::execute_timed(backend, input)
+    let result = catch_unwind(AssertUnwindSafe(|| match backend {
+        BackendType::Exec => ExecBackend::new().execute_timed(input),
+        #[cfg(feature = "sp1")]
+        BackendType::SP1 => Sp1Backend::new().execute_timed(input),
+        #[cfg(feature = "risc0")]
+        BackendType::RISC0 => Risc0Backend::new().execute_timed(input),
+        #[cfg(feature = "zisk")]
+        BackendType::ZisK => ZiskBackend::new().execute_timed(input),
+        #[cfg(feature = "openvm")]
+        BackendType::OpenVM => OpenVmBackend::new().execute_timed(input),
     }));
 
     match result {
@@ -49,7 +63,7 @@ pub async fn exec(backend: Backend, cache: Cache) -> eyre::Result<Duration> {
 }
 
 pub async fn prove(
-    backend: Backend,
+    backend: BackendType,
     proof_type: ProofType,
     cache: Cache,
 ) -> eyre::Result<Duration> {
@@ -59,13 +73,31 @@ pub async fn prove(
     let input = get_l1_input(cache)?;
 
     // Use catch_unwind to capture panics
-    let result = catch_unwind(AssertUnwindSafe(|| {
-        ethrex_prover::prove_timed(backend, input, proof_type.into())
+    let result = catch_unwind(AssertUnwindSafe(|| match backend {
+        BackendType::Exec => ExecBackend::new()
+            .prove_timed(input, proof_type.into())
+            .map(|(_, duration)| duration),
+        #[cfg(feature = "sp1")]
+        BackendType::SP1 => Sp1Backend::new()
+            .prove_timed(input, proof_type.into())
+            .map(|(_, duration)| duration),
+        #[cfg(feature = "risc0")]
+        BackendType::RISC0 => Risc0Backend::new()
+            .prove_timed(input, proof_type.into())
+            .map(|(_, duration)| duration),
+        #[cfg(feature = "zisk")]
+        BackendType::ZisK => ZiskBackend::new()
+            .prove_timed(input, proof_type.into())
+            .map(|(_, duration)| duration),
+        #[cfg(feature = "openvm")]
+        BackendType::OpenVM => OpenVmBackend::new()
+            .prove_timed(input, proof_type.into())
+            .map(|(_, duration)| duration),
     }));
 
     match result {
         Ok(prove_result) => {
-            let (_, elapsed) =
+            let elapsed =
                 prove_result.map_err(|e| eyre::Error::msg(format!("Proving failed: {}", e)))?;
             Ok(elapsed)
         }
@@ -164,11 +196,12 @@ pub fn get_l1_input(cache: Cache) -> eyre::Result<ProgramInput> {
     let execution_witness =
         execution_witness_from_rpc_chain_config(db, chain_config, first_block_number)?;
 
+    let block_len = blocks.len();
     Ok(ProgramInput {
         blocks,
         execution_witness,
         elasticity_multiplier: ELASTICITY_MULTIPLIER,
-        fee_configs: None,
+        fee_configs: Some(vec![FeeConfig::default(); block_len]),
     })
 }
 

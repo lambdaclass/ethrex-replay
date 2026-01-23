@@ -33,7 +33,7 @@ use ethrex_common::{
 };
 #[cfg(feature = "l2")]
 use ethrex_common::{U256, types::GenesisAccount};
-use ethrex_prover::backend::Backend;
+use ethrex_prover::BackendType;
 #[cfg(not(feature = "l2"))]
 use ethrex_rpc::types::block_identifier::BlockIdentifier;
 use ethrex_rpc::{
@@ -891,14 +891,21 @@ fn write_program_input(output_path: &PathBuf, program_input: &ProgramInput) -> e
     }
 
     let blocks_len = program_input.blocks.len();
+    #[cfg(feature = "l2")]
     let fee_configs_len = program_input
         .fee_configs
         .as_ref()
-        .map(|configs| configs.len());
+        .map(|v| v.len())
+        .unwrap_or(0);
     let serialized_program_input = rkyv::to_bytes::<rkyv::rancor::Error>(program_input)
         .wrap_err_with(|| {
+            #[cfg(feature = "l2")]
+            return format!(
+                "failed to serialize ProgramInput (blocks_len={blocks_len}, fee_configs_len={fee_configs_len})"
+            );
+            #[cfg(not(feature = "l2"))]
             format!(
-                "failed to serialize ProgramInput (blocks_len={blocks_len}, fee_configs_len={fee_configs_len:?})"
+                "failed to serialize ProgramInput (blocks_len={blocks_len})"
             )
         })?;
     std::fs::write(output_path, serialized_program_input.as_slice())
@@ -908,7 +915,7 @@ fn write_program_input(output_path: &PathBuf, program_input: &ProgramInput) -> e
 
 async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Result<Duration> {
     let b = backend(&opts.common.zkvm)?;
-    if !matches!(b, Backend::Exec) {
+    if !matches!(b, BackendType::Exec) {
         eyre::bail!("Tried to execute without zkVM but backend was set to {b:?}");
     }
     if opts.common.action == Action::Prove {
@@ -1152,36 +1159,36 @@ async fn replay_block(block_opts: BlockOptions) -> eyre::Result<()> {
     Ok(())
 }
 
-pub fn backend(zkvm: &Option<ZKVM>) -> eyre::Result<Backend> {
+pub fn backend(zkvm: &Option<ZKVM>) -> eyre::Result<BackendType> {
     match zkvm {
         Some(ZKVM::SP1) => {
             #[cfg(feature = "sp1")]
-            return Ok(Backend::SP1);
+            return Ok(BackendType::SP1);
             #[cfg(not(feature = "sp1"))]
             return Err(eyre::Error::msg("sp1 feature not enabled"));
         }
         Some(ZKVM::Risc0) => {
             #[cfg(feature = "risc0")]
-            return Ok(Backend::RISC0);
+            return Ok(BackendType::RISC0);
             #[cfg(not(feature = "risc0"))]
             return Err(eyre::Error::msg("risc0 feature not enabled"));
         }
         Some(ZKVM::OpenVM) => {
             #[cfg(feature = "openvm")]
-            return Ok(Backend::OpenVM);
+            return Ok(BackendType::OpenVM);
             #[cfg(not(feature = "openvm"))]
             return Err(eyre::Error::msg("openvm feature not enabled"));
         }
         Some(ZKVM::Zisk) => {
             #[cfg(feature = "zisk")]
-            return Ok(Backend::ZisK);
+            return Ok(BackendType::ZisK);
             #[cfg(not(feature = "zisk"))]
             return Err(eyre::Error::msg("zisk feature not enabled"));
         }
         Some(_other) => Err(eyre::Error::msg(
             "Only SP1, Risc0, ZisK, and OpenVM backends are supported currently",
         )),
-        None => Ok(Backend::Exec),
+        None => Ok(BackendType::Exec),
     }
 }
 
@@ -1483,7 +1490,7 @@ pub async fn replay_custom_l2_blocks(
             .entry(signer_address)
             .or_insert_with(|| GenesisAccount {
                 code: Bytes::new(),
-                storage: HashMap::new(),
+                storage: BTreeMap::new(),
                 balance: U256::from(10u128.pow(30)),
                 nonce: 0,
             });
