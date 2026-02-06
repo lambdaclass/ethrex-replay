@@ -733,16 +733,14 @@ impl EthrexReplayCommand {
             Self::Transaction(opts) => replay_transaction(opts).await?,
             #[cfg(not(feature = "l2"))]
             Self::BlockComposition(opts) => {
-                // Determine (start, end) from either single block or range
-                let (start, end) = if let Some(block) = opts.block {
-                    (block, block)
-                } else if let Some(from) = opts.from {
-                    let to = opts.to.unwrap_or(from);
-                    (from, to)
-                } else {
-                    return Err(eyre::Error::msg(
-                        "Either a block number or --from must be specified.",
-                    ));
+                let (start, end) = match (opts.block, opts.from) {
+                    (Some(block), _) => (block, block),
+                    (_, Some(from)) => (from, opts.to.unwrap_or(from)),
+                    _ => {
+                        return Err(eyre::Error::msg(
+                            "Either a block number or --from must be specified.",
+                        ))
+                    }
                 };
 
                 if start > end {

@@ -127,18 +127,19 @@ fn format_number(n: u64) -> String {
     result.chars().rev().collect()
 }
 
-fn format_destination(addr: &str) -> String {
-    if let Some(name) = known_contract_name(addr) {
-        let short = if addr.len() > 12 {
-            format!("{}...{}", &addr[..6], &addr[addr.len() - 4..])
-        } else {
-            addr.to_string()
-        };
-        format!("{name} ({short})")
-    } else if addr.len() > 12 {
+fn shorten_address(addr: &str) -> String {
+    if addr.len() > 12 {
         format!("{}...{}", &addr[..6], &addr[addr.len() - 4..])
     } else {
         addr.to_string()
+    }
+}
+
+fn format_destination(addr: &str) -> String {
+    let short = shorten_address(addr);
+    match known_contract_name(addr) {
+        Some(name) => format!("{name} ({short})"),
+        None => short,
     }
 }
 
@@ -168,14 +169,12 @@ impl BlockCompositionStats {
     }
 
     fn process_tx(&mut self, tx: &Transaction) {
-        // Transaction type
         let label = tx_type_label(tx.tx_type());
         *self.tx_type_count.entry(label).or_insert(0) += 1;
 
-        // Call category
         let category = match tx.to() {
             TxKind::Create => "Contract Creation",
-            TxKind::Call(_addr) => {
+            TxKind::Call(_) => {
                 if tx.data().len() >= 4 {
                     "Contract Call"
                 } else if tx.value() > U256::zero() {
@@ -190,7 +189,6 @@ impl BlockCompositionStats {
             .entry(category.to_string())
             .or_insert(0) += 1;
 
-        // Destinations and selectors (only for Call transactions)
         if let TxKind::Call(addr) = tx.to() {
             let addr_str = format!("0x{addr:x}");
             let display_name = format_destination(&addr_str);
@@ -198,7 +196,7 @@ impl BlockCompositionStats {
 
             if tx.data().len() >= 4 {
                 let mut selector = [0u8; 4];
-                selector.clone_from_slice(&tx.data()[0..4]);
+                selector.copy_from_slice(&tx.data()[0..4]);
                 let sel_name = categorize_selector(selector);
                 *self.selector_count.entry(sel_name.clone()).or_insert(0) += 1;
                 *self.selector_by_gas.entry(sel_name).or_insert(0) += tx.gas_limit();
@@ -207,7 +205,6 @@ impl BlockCompositionStats {
     }
 
     fn print_summary(&self, first_block: u64, last_block: u64) {
-        // Header
         if first_block == last_block {
             println!(
                 "\n=== Block Composition: #{} — {} transactions ===\n",
@@ -224,7 +221,6 @@ impl BlockCompositionStats {
             );
         }
 
-        // Gas summary
         println!("--- Gas Summary ---");
         println!(
             "  Total Gas Used     {:>16}",
@@ -241,60 +237,44 @@ impl BlockCompositionStats {
         }
         println!();
 
-        // Transaction types
-        print_section(
+        print_ranked_section(
             "Transaction Types",
             &self.tx_type_count,
             self.total_tx_count,
+            None,
         );
-
-        // Call categories
-        print_section(
+        print_ranked_section(
             "Call Categories",
             &self.call_category_count,
             self.total_tx_count,
+            None,
         );
-
-        // Top method selectors by count
-        print_top_section(
+        print_ranked_section(
             "Top Method Selectors (by count)",
             &self.selector_count,
             self.total_tx_count,
-            TOP_N_SELECTORS,
+            Some(TOP_N_SELECTORS),
         );
-
-        // Top method selectors by gas
-        print_top_section(
+        print_ranked_section(
             "Top Method Selectors (by gas)",
             &self.selector_by_gas,
             self.total_gas_used,
-            TOP_N_SELECTORS,
+            Some(TOP_N_SELECTORS),
         );
-
-        // Top destinations
-        print_top_section(
+        print_ranked_section(
             "Top Destinations",
             &self.destinations,
             self.total_tx_count,
-            TOP_N_DESTINATIONS,
+            Some(TOP_N_DESTINATIONS),
         );
     }
 
     fn charts(&self) -> Vec<(String, Chart)> {
-        let mut destinations: Vec<_> = self.destinations.iter().collect();
-        destinations.sort_by(|(_, a), (_, b)| b.cmp(a));
-
-        let mut selectors: Vec<_> = self.selector_count.iter().collect();
-        selectors.sort_by(|(_, a), (_, b)| b.cmp(a));
-
-        let mut selectors_by_gas: Vec<_> = self.selector_by_gas.iter().collect();
-        selectors_by_gas.sort_by(|(_, a), (_, b)| b.cmp(a));
-
-        let mut tx_types: Vec<_> = self.tx_type_count.iter().collect();
-        tx_types.sort_by(|(_, a), (_, b)| b.cmp(a));
-
-        let mut call_categories: Vec<_> = self.call_category_count.iter().collect();
-        call_categories.sort_by(|(_, a), (_, b)| b.cmp(a));
+        let selectors = sorted_desc(&self.selector_count);
+        let selectors_by_gas = sorted_desc(&self.selector_by_gas);
+        let destinations = sorted_desc(&self.destinations);
+        let tx_types = sorted_desc(&self.tx_type_count);
+        let call_categories = sorted_desc(&self.call_category_count);
 
         vec![
             (
@@ -320,43 +300,41 @@ impl BlockCompositionStats {
             ),
             (
                 "tx_types".to_string(),
-                make_pie_chart("Transaction Types", &to_chart_data(&tx_types)),
+                make_pie_chart(
+                    "Transaction Types",
+                    &truncate_to(&tx_types, tx_types.len()),
+                ),
             ),
             (
                 "call_categories".to_string(),
-                make_pie_chart("Call Categories", &to_chart_data(&call_categories)),
+                make_pie_chart(
+                    "Call Categories",
+                    &truncate_to(&call_categories, call_categories.len()),
+                ),
             ),
         ]
     }
 }
 
-fn print_section(title: &str, data: &HashMap<String, u64>, total: u64) {
-    println!("--- {title} ---");
-    let mut entries: Vec<_> = data.iter().collect();
-    entries.sort_by(|(_, a), (_, b)| b.cmp(a));
-
-    for (name, count) in &entries {
-        let pct = if total > 0 {
-            (**count as f64 / total as f64) * 100.0
-        } else {
-            0.0
-        };
-        println!(
-            "  {:<30} {:>8}  {:>5.1}%",
-            name,
-            format_number(**count),
-            pct
-        );
-    }
-    println!();
+fn sorted_desc(map: &HashMap<String, u64>) -> Vec<(&String, &u64)> {
+    let mut v: Vec<_> = map.iter().collect();
+    v.sort_by(|(_, a), (_, b)| b.cmp(a));
+    v
 }
 
-fn print_top_section(title: &str, data: &HashMap<String, u64>, total: u64, top_n: usize) {
+fn print_ranked_section(
+    title: &str,
+    data: &HashMap<String, u64>,
+    total: u64,
+    top_n: Option<usize>,
+) {
     println!("--- {title} ---");
     let mut entries: Vec<_> = data.iter().collect();
     entries.sort_by(|(_, a), (_, b)| b.cmp(a));
 
-    for (name, count) in entries.iter().take(top_n) {
+    let limit = top_n.unwrap_or(entries.len());
+
+    for (name, count) in entries.iter().take(limit) {
         let pct = if total > 0 {
             (**count as f64 / total as f64) * 100.0
         } else {
@@ -369,8 +347,9 @@ fn print_top_section(title: &str, data: &HashMap<String, u64>, total: u64, top_n
             pct
         );
     }
-    if entries.len() > top_n {
-        let shown: u64 = entries.iter().take(top_n).map(|(_, c)| **c).sum();
+
+    if entries.len() > limit {
+        let shown: u64 = entries.iter().take(limit).map(|(_, c)| **c).sum();
         let rest = total.saturating_sub(shown);
         if rest > 0 {
             let pct = (rest as f64 / total as f64) * 100.0;
@@ -382,6 +361,7 @@ fn print_top_section(title: &str, data: &HashMap<String, u64>, total: u64, top_n
             );
         }
     }
+
     println!();
 }
 
@@ -399,13 +379,6 @@ fn make_pie_chart(name: &str, data: &[(String, u64)]) -> Chart {
                         .collect(),
                 ),
         )
-}
-
-fn to_chart_data(entries: &[(&String, &u64)]) -> Vec<(String, u64)> {
-    entries
-        .iter()
-        .map(|(name, count)| (name.to_string(), **count))
-        .collect()
 }
 
 fn truncate_to(vec: &[(&String, &u64)], size: usize) -> Vec<(String, u64)> {
