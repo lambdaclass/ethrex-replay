@@ -45,3 +45,37 @@ update_ethrex:
 	-p ethrex\
 	-prover \
 	-p guest_program
+
+# --- Profiling targets ---
+PROFILE_BLOCK ?= 24443168
+PROFILE_REPEAT ?= 10
+PROFILE_RPC ?= http://157.180.1.98:8545
+
+.PHONY: profile profile-debug profile-stacks profile-hwcounters profile-samply
+
+## Profile a block with repeat runs
+profile:
+	cargo run --release -- block $(PROFILE_BLOCK) --no-zkvm --repeat $(PROFILE_REPEAT) --rpc-url $(PROFILE_RPC)
+
+## Profile with debug symbols (for samply/perf)
+profile-debug:
+	cargo build --profile release-with-debug
+	./target/release-with-debug/ethrex-replay block $(PROFILE_BLOCK) --no-zkvm --rpc-url $(PROFILE_RPC)
+
+## Capture folded stacks with perf (Linux only)
+profile-stacks:
+	cargo build --profile release-with-debug
+	perf record -g --call-graph dwarf -F 997 -- ./target/release-with-debug/ethrex-replay block $(PROFILE_BLOCK) --no-zkvm --rpc-url $(PROFILE_RPC)
+	perf script | stackcollapse-perf.pl > stacks.folded
+	@echo "Folded stacks written to stacks.folded"
+	@sort -rn -k2 -t' ' stacks.folded | head -20
+
+## Hardware counters with perf stat (Linux only)
+profile-hwcounters:
+	cargo build --release
+	perf stat -e cycles,instructions,cache-misses,cache-references,branch-misses,L1-dcache-load-misses -- ./target/release/ethrex-replay block $(PROFILE_BLOCK) --no-zkvm --rpc-url $(PROFILE_RPC)
+
+## Profile with samply (macOS, opens browser)
+profile-samply:
+	cargo build --profile release-with-debug
+	samply record ./target/release-with-debug/ethrex-replay block $(PROFILE_BLOCK) --no-zkvm --rpc-url $(PROFILE_RPC)
