@@ -19,7 +19,7 @@ use std::{
 
 use clap::{ArgGroup, Parser, Subcommand, ValueEnum};
 use ethrex_blockchain::{
-    Blockchain,
+    Blockchain, BlockchainOptions,
     fork_choice::apply_fork_choice,
     payload::{BuildPayloadArgs, PayloadBuildResult, create_payload},
 };
@@ -1024,15 +1024,21 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
         store.add_block_header(header.hash(), header).await?;
     }
 
-    let blockchain = Blockchain::default_with_store(store);
+    let blockchain = Blockchain::new(
+        store,
+        BlockchainOptions {
+            perf_logs_enabled: true,
+            ..BlockchainOptions::default()
+        },
+    );
 
     info!("Storage preparation finished in {:.2?}", start.elapsed());
 
     info!("Executing block {} on {}", block.header.number, network);
     let start_time = Instant::now();
-    blockchain.add_block(block)?;
+    blockchain.add_block_pipeline(block)?;
     let duration = start_time.elapsed();
-    info!("add_block execution time: {:.2?}", duration);
+    info!("add_block_pipeline execution time: {:.2?}", duration);
 
     Ok(duration)
 }
