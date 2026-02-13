@@ -19,10 +19,6 @@ pub async fn run_profile(opts: SnapSyncProfileOptions) -> eyre::Result<()> {
     info!("Repeat: {} | Warmup: {}", opts.repeat, opts.warmup);
     info!("");
 
-    // Parse phases
-    let run_accounts = opts.phases.contains("insert-accounts");
-    let run_storages = opts.phases.contains("insert-storages");
-
     let mut insert_accounts_durations = Vec::new();
     let mut insert_storages_durations = Vec::new();
     let mut total_durations = Vec::new();
@@ -64,36 +60,34 @@ pub async fn run_profile(opts: SnapSyncProfileOptions) -> eyre::Result<()> {
         );
 
         if !is_warmup {
-            if run_accounts {
-                insert_accounts_durations.push(result.insert_accounts_duration);
-            }
-            if run_storages {
-                insert_storages_durations.push(result.insert_storages_duration);
-            }
+            insert_accounts_durations.push(result.insert_accounts_duration);
+            insert_storages_durations.push(result.insert_storages_duration);
             total_durations.push(result.total_duration);
         }
     }
 
-    // Print stats
+    // Validate computed state root against expected
     info!("");
     info!("=== Results ({} measured runs) ===", opts.repeat);
     if let Some(root) = last_state_root {
         info!("Computed state root: {:?}", root);
         let expected = manifest.post_accounts_insert_state_root;
-        let status = if root == expected {
-            "MATCH"
-        } else {
-            "MISMATCH"
-        };
-        info!("Expected state root: {:?} [{status}]", expected);
+        if root != expected {
+            return Err(eyre::eyre!(
+                "State root mismatch! Computed {:?} but manifest expects {:?}",
+                root,
+                expected
+            ));
+        }
+        info!("Expected state root: {:?} [MATCH]", expected);
     }
 
     info!("");
-    if run_accounts && !insert_accounts_durations.is_empty() {
+    if !insert_accounts_durations.is_empty() {
         let stats = RunStats::new(insert_accounts_durations);
         info!("InsertAccounts ({} runs):\n{stats}", stats.len());
     }
-    if run_storages && !insert_storages_durations.is_empty() {
+    if !insert_storages_durations.is_empty() {
         let stats = RunStats::new(insert_storages_durations);
         info!("InsertStorages ({} runs):\n{stats}", stats.len());
     }

@@ -141,18 +141,16 @@ pub struct SnapSyncProfileOptions {
     #[arg(long, required = true, help = "Path to captured snapsync dataset directory")]
     pub dataset: std::path::PathBuf,
 
-    #[arg(long, default_value = "10", help = "Number of measured runs")]
+    #[arg(
+        long,
+        default_value = "10",
+        value_parser = clap::value_parser!(usize).range(1..),
+        help = "Number of measured runs (must be >= 1)"
+    )]
     pub repeat: usize,
 
     #[arg(long, default_value = "1", help = "Number of warmup runs (not measured)")]
     pub warmup: usize,
-
-    #[arg(
-        long,
-        default_value = "insert-accounts,insert-storages",
-        help = "Comma-separated phases: insert-accounts, insert-storages"
-    )]
-    pub phases: String,
 }
 
 #[cfg(not(feature = "l2"))]

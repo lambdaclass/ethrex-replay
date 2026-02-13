@@ -59,6 +59,23 @@ impl RunStats {
     fn max(&self) -> Duration {
         self.durations.last().copied().unwrap_or(Duration::ZERO)
     }
+
+    fn percentile(&self, p: f64) -> Duration {
+        let n = self.durations.len();
+        if n == 0 {
+            return Duration::ZERO;
+        }
+        let idx = ((p / 100.0) * (n - 1) as f64).round() as usize;
+        self.durations[idx.min(n - 1)]
+    }
+
+    fn p95(&self) -> Duration {
+        self.percentile(95.0)
+    }
+
+    fn p99(&self) -> Duration {
+        self.percentile(99.0)
+    }
 }
 
 impl fmt::Display for RunStats {
@@ -66,6 +83,8 @@ impl fmt::Display for RunStats {
         writeln!(f, "  median: {:.2?}", self.median())?;
         writeln!(f, "  mean:   {:.2?}", self.mean())?;
         writeln!(f, "  stddev: {:.2?}", self.stddev())?;
+        writeln!(f, "  p95:    {:.2?}", self.p95())?;
+        writeln!(f, "  p99:    {:.2?}", self.p99())?;
         writeln!(f, "  min:    {:.2?}", self.min())?;
         write!(f, "  max:    {:.2?}", self.max())
     }
