@@ -107,6 +107,9 @@ pub enum EthrexReplayCommand {
     #[cfg(not(feature = "l2"))]
     #[command(about = "Replay a single transaction")]
     Transaction(TransactionOpts),
+    #[cfg(not(feature = "l2"))]
+    #[command(subcommand, about = "SnapSync offline profiling tools")]
+    SnapSync(SnapSyncSubcommand),
     #[cfg(feature = "l2")]
     #[command(subcommand, about = "L2 specific commands")]
     L2(L2Subcommand),
@@ -123,6 +126,33 @@ pub enum L2Subcommand {
     Custom(CustomSubcommand),
     #[command(about = "Replay an L2 transaction")]
     Transaction(TransactionOpts),
+}
+
+#[cfg(not(feature = "l2"))]
+#[derive(Subcommand)]
+pub enum SnapSyncSubcommand {
+    #[command(about = "Profile snapsync compute phases offline using a captured dataset")]
+    Profile(SnapSyncProfileOptions),
+}
+
+#[cfg(not(feature = "l2"))]
+#[derive(Parser, Clone)]
+pub struct SnapSyncProfileOptions {
+    #[arg(long, required = true, help = "Path to captured snapsync dataset directory")]
+    pub dataset: std::path::PathBuf,
+
+    #[arg(long, default_value = "10", help = "Number of measured runs")]
+    pub repeat: usize,
+
+    #[arg(long, default_value = "1", help = "Number of warmup runs (not measured)")]
+    pub warmup: usize,
+
+    #[arg(
+        long,
+        default_value = "insert-accounts,insert-storages",
+        help = "Comma-separated phases: insert-accounts, insert-storages"
+    )]
+    pub phases: String,
 }
 
 #[cfg(not(feature = "l2"))]
@@ -779,6 +809,12 @@ impl EthrexReplayCommand {
                     );
                 }
             }
+            #[cfg(not(feature = "l2"))]
+            EthrexReplayCommand::SnapSync(subcmd) => match subcmd {
+                SnapSyncSubcommand::Profile(opts) => {
+                    crate::snapsync::run_profile(opts).await?;
+                }
+            },
             #[cfg(feature = "l2")]
             Self::L2(L2Subcommand::Transaction(TransactionOpts {
                 tx_hash,
