@@ -20,6 +20,24 @@ fn parse_backend(name: &str) -> eyre::Result<ProfileBackend> {
     }
 }
 
+/// Create an isolated DB directory for a single run.
+/// Returns (db_dir, guard) where guard is a TempDir that auto-cleans on drop.
+#[cfg(feature = "rocksdb")]
+fn create_run_db_dir(
+    explicit_dir: &Option<PathBuf>,
+    run_index: usize,
+) -> eyre::Result<(PathBuf, Option<tempfile::TempDir>)> {
+    if let Some(base) = explicit_dir {
+        let run_dir = base.join(format!("run-{run_index}"));
+        std::fs::create_dir_all(&run_dir)?;
+        Ok((run_dir, None))
+    } else {
+        let tmp = tempfile::TempDir::new()?;
+        let path = tmp.path().to_path_buf();
+        Ok((path, Some(tmp)))
+    }
+}
+
 pub async fn run_profile(opts: SnapSyncProfileOptions) -> eyre::Result<()> {
     let dataset_path = &opts.dataset;
     let backend = parse_backend(&opts.backend)?;
@@ -38,27 +56,6 @@ pub async fn run_profile(opts: SnapSyncProfileOptions) -> eyre::Result<()> {
     info!("Repeat: {} | Warmup: {}", opts.repeat, opts.warmup);
     info!("");
 
-    // Determine the working directory for the store.
-    let (db_dir, _temp_dir) = match backend {
-        ProfileBackend::InMemory => (PathBuf::from("."), None::<tempfile::TempDir>),
-        #[cfg(feature = "rocksdb")]
-        ProfileBackend::RocksDb => {
-            if let Some(ref dir) = opts.db_dir {
-                std::fs::create_dir_all(dir)?;
-                (dir.clone(), None)
-            } else {
-                let tmp = tempfile::TempDir::new()?;
-                let path = tmp.path().to_path_buf();
-                (path, Some(tmp))
-            }
-        }
-    };
-
-    if !matches!(backend, ProfileBackend::InMemory) {
-        info!("DB dir: {}", db_dir.display());
-    }
-    info!("");
-
     let mut insert_accounts_durations = Vec::new();
     let mut insert_storages_durations = Vec::new();
     let mut total_durations = Vec::new();
@@ -75,6 +72,16 @@ pub async fn run_profile(opts: SnapSyncProfileOptions) -> eyre::Result<()> {
             i - opts.warmup + 1
         };
 
+        // Create a fresh DB directory for each run so timing stats are independent.
+        let (db_dir, _temp_dir) = match backend {
+            ProfileBackend::InMemory => (PathBuf::from("."), None::<tempfile::TempDir>),
+            #[cfg(feature = "rocksdb")]
+            ProfileBackend::RocksDb => create_run_db_dir(&opts.db_dir, i)?,
+        };
+
+        if !matches!(backend, ProfileBackend::InMemory) {
+            info!("[{label} {run_num}] DB dir: {}", db_dir.display());
+        }
         info!("[{label} {run_num}] Starting...");
 
         let result = run_once_with_opts(dataset_path, backend, &db_dir)
@@ -104,6 +111,26 @@ pub async fn run_profile(opts: SnapSyncProfileOptions) -> eyre::Result<()> {
             insert_storages_durations.push(result.insert_storages_duration);
             total_durations.push(result.total_duration);
         }
+
+        // Clean up this run's DB unless it's the last measured run and --keep-db is set.
+        let is_last_measured = !is_warmup && run_num == opts.repeat;
+        #[cfg(feature = "rocksdb")]
+        if matches!(backend, ProfileBackend::RocksDb) {
+            if is_last_measured && opts.keep_db {
+                if let Some(tmp) = _temp_dir {
+                    let kept = tmp.keep();
+                    info!("DB kept at: {}", kept.display());
+                } else {
+                    info!("DB kept at: {}", db_dir.display());
+                }
+            } else if _temp_dir.is_none() && opts.db_dir.is_some() {
+                // Explicit --db-dir without --keep-db (or not last run): clean up.
+                let _ = std::fs::remove_dir_all(&db_dir);
+            }
+            // TempDir drops automatically otherwise.
+        }
+        // Suppress unused variable warning when rocksdb feature is off.
+        let _ = is_last_measured;
     }
 
     // Validate computed state root against expected
@@ -135,22 +162,6 @@ pub async fn run_profile(opts: SnapSyncProfileOptions) -> eyre::Result<()> {
     if !total_durations.is_empty() {
         let stats = RunStats::new(total_durations);
         info!("Total ({} runs):\n{stats}", stats.len());
-    }
-
-    // Handle cleanup for rocksdb backend.
-    #[cfg(feature = "rocksdb")]
-    if matches!(backend, ProfileBackend::RocksDb) {
-        if opts.keep_db {
-            if let Some(tmp) = _temp_dir {
-                let kept = tmp.keep();
-                info!("DB kept at: {}", kept.display());
-            } else {
-                info!("DB kept at: {}", db_dir.display());
-            }
-        } else if _temp_dir.is_none() && opts.db_dir.is_some() {
-            let _ = std::fs::remove_dir_all(&db_dir);
-            info!("DB cleaned up: {}", db_dir.display());
-        }
     }
 
     Ok(())

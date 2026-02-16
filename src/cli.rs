@@ -146,7 +146,7 @@ pub struct SnapSyncProfileOptions {
     #[arg(long, default_value = "1", help = "Number of warmup runs (not measured)")]
     pub warmup: usize,
 
-    #[arg(long, default_value = "inmemory", help = "Storage backend: \"rocksdb\" or \"inmemory\"")]
+    #[arg(long, default_value_t = default_backend_name(), help = "Storage backend: \"rocksdb\" or \"inmemory\"")]
     pub backend: String,
 
     #[arg(long, help = "Directory for RocksDB data (rocksdb backend only). If omitted, a temp dir is used.")]
@@ -162,6 +162,14 @@ fn parse_positive_usize(s: &str) -> Result<usize, String> {
         return Err("value must be >= 1".to_string());
     }
     Ok(val)
+}
+
+fn default_backend_name() -> String {
+    if cfg!(feature = "rocksdb") {
+        "rocksdb".to_string()
+    } else {
+        "inmemory".to_string()
+    }
 }
 
 #[cfg(not(feature = "l2"))]
