@@ -48,6 +48,7 @@ bytes = { version = "1.6.0", features = ["serde"] }
 again = "0.1.2"
 futures-util = "0.3.31"
 futures = "0.3.31"
+sha2 = "0.10"
 sha3 = "0.10.8"
 tikv-jemallocator = { version = "0.6.0", optional = true }
 rkyv = { version = "0.8.10", features = ["std", "unaligned"] }

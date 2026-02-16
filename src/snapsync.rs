@@ -2,6 +2,10 @@ use std::path::PathBuf;
 
 use crate::cli::SnapSyncProfileOptions;
 use crate::profiling::RunStats;
+use crate::snapsync_report::{
+    DatasetInfo, PhaseStats, PhaseSummary, RootValidation, RunConfig, RunEntry,
+    SnapProfileReportV1, ToolInfo, compute_manifest_sha256,
+};
 use ethrex_p2p::sync::profile::{ProfileBackend, load_manifest, run_once_with_opts};
 use tracing::info;
 
@@ -60,6 +64,7 @@ pub async fn run_profile(opts: SnapSyncProfileOptions) -> eyre::Result<()> {
     let mut insert_storages_durations = Vec::new();
     let mut total_durations = Vec::new();
     let mut last_state_root = None;
+    let mut run_entries = Vec::new();
 
     let total_runs = opts.warmup + opts.repeat;
 
@@ -106,6 +111,15 @@ pub async fn run_profile(opts: SnapSyncProfileOptions) -> eyre::Result<()> {
             result.insert_accounts_duration, result.insert_storages_duration, result.total_duration,
         );
 
+        run_entries.push(RunEntry {
+            index: i,
+            is_warmup,
+            insert_accounts_secs: result.insert_accounts_duration.as_secs_f64(),
+            insert_storages_secs: result.insert_storages_duration.as_secs_f64(),
+            total_secs: result.total_duration.as_secs_f64(),
+            state_root: format!("{:?}", result.computed_state_root),
+        });
+
         if !is_warmup {
             insert_accounts_durations.push(result.insert_accounts_duration);
             insert_storages_durations.push(result.insert_storages_duration);
@@ -137,31 +151,96 @@ pub async fn run_profile(opts: SnapSyncProfileOptions) -> eyre::Result<()> {
     info!("");
     info!("=== Results ({} measured runs) ===", opts.repeat);
     info!("Backend: {backend}");
+
+    let computed_root_str;
+    let expected_root_str;
+    let root_matches;
+
     if let Some(root) = last_state_root {
-        info!("Computed state root: {:?}", root);
+        computed_root_str = format!("{root:?}");
         let expected = manifest.post_accounts_insert_state_root;
-        if root != expected {
-            return Err(eyre::eyre!(
-                "State root mismatch! Computed {:?} but manifest expects {:?}",
-                root,
-                expected
-            ));
+        expected_root_str = format!("{expected:?}");
+        root_matches = root == expected;
+
+        info!("Computed state root: {computed_root_str}");
+        if root_matches {
+            info!("Expected state root: {expected_root_str} [MATCH]");
+        } else {
+            info!("Expected state root: {expected_root_str} [MISMATCH]");
         }
-        info!("Expected state root: {:?} [MATCH]", expected);
+    } else {
+        computed_root_str = "none".to_string();
+        expected_root_str = format!("{:?}", manifest.post_accounts_insert_state_root);
+        root_matches = false;
     }
 
     info!("");
     if !insert_accounts_durations.is_empty() {
-        let stats = RunStats::new(insert_accounts_durations);
+        let stats = RunStats::new(insert_accounts_durations.iter().copied().collect());
         info!("InsertAccounts ({} runs):\n{stats}", stats.len());
     }
     if !insert_storages_durations.is_empty() {
-        let stats = RunStats::new(insert_storages_durations);
+        let stats = RunStats::new(insert_storages_durations.iter().copied().collect());
         info!("InsertStorages ({} runs):\n{stats}", stats.len());
     }
     if !total_durations.is_empty() {
-        let stats = RunStats::new(total_durations);
+        let stats = RunStats::new(total_durations.iter().copied().collect());
         info!("Total ({} runs):\n{stats}", stats.len());
+    }
+
+    // Build JSON report if requested
+    if opts.json_out.is_some() || opts.json_stdout {
+        let manifest_sha256 = compute_manifest_sha256(&dataset_path.join("manifest.json"))
+            .unwrap_or_else(|_| "unknown".to_string());
+
+        let report = SnapProfileReportV1 {
+            schema_version: 1,
+            tool: ToolInfo {
+                name: "ethrex-replay".to_string(),
+                version: env!("CARGO_PKG_VERSION").to_string(),
+                git_sha: option_env!("GIT_SHA").unwrap_or("unknown").to_string(),
+            },
+            dataset: DatasetInfo {
+                path: dataset_path.display().to_string(),
+                manifest_sha256,
+                chain_id: manifest.chain_id,
+                pivot_block: manifest.pivot.number,
+            },
+            config: RunConfig {
+                backend: opts.backend.clone(),
+                repeat: opts.repeat,
+                warmup: opts.warmup,
+            },
+            runs: run_entries,
+            summary: PhaseSummary {
+                insert_accounts: PhaseStats::from_durations(&insert_accounts_durations),
+                insert_storages: PhaseStats::from_durations(&insert_storages_durations),
+                total: PhaseStats::from_durations(&total_durations),
+            },
+            root_validation: RootValidation {
+                computed: computed_root_str,
+                expected: expected_root_str,
+                matches: root_matches,
+            },
+        };
+
+        if let Some(json_path) = &opts.json_out {
+            report.write_to_file(json_path)?;
+            info!("JSON report written to: {}", json_path.display());
+        }
+        if opts.json_stdout {
+            let json = serde_json::to_string_pretty(&report)
+                .map_err(|e| eyre::eyre!("Failed to serialize report: {e}"))?;
+            println!("{json}");
+        }
+    }
+
+    if !root_matches && last_state_root.is_some() {
+        return Err(eyre::eyre!(
+            "State root mismatch! Computed {} but manifest expects {}",
+            last_state_root.map(|r| format!("{r:?}")).unwrap_or_default(),
+            manifest.post_accounts_insert_state_root
+        ));
     }
 
     Ok(())

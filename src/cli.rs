@@ -132,6 +132,10 @@ pub enum L2Subcommand {
 pub enum SnapSyncSubcommand {
     #[command(about = "Profile snapsync compute phases offline using a captured dataset")]
     Profile(SnapSyncProfileOptions),
+    #[command(about = "Verify a captured snapsync dataset for integrity and correctness")]
+    VerifyDataset(VerifyDatasetCliOptions),
+    #[command(about = "Compare two snapsync profile JSON reports")]
+    Compare(CompareCliOptions),
 }
 
 #[cfg(not(feature = "l2"))]
@@ -154,6 +158,50 @@ pub struct SnapSyncProfileOptions {
 
     #[arg(long, help = "Don't clean up the RocksDB directory after the run")]
     pub keep_db: bool,
+
+    #[arg(long, help = "Write JSON report to this file")]
+    pub json_out: Option<std::path::PathBuf>,
+
+    #[arg(long, help = "Print JSON report to stdout")]
+    pub json_stdout: bool,
+}
+
+#[cfg(not(feature = "l2"))]
+#[derive(Parser, Clone)]
+pub struct VerifyDatasetCliOptions {
+    #[arg(long, required = true, help = "Path to captured snapsync dataset directory")]
+    pub dataset: std::path::PathBuf,
+
+    #[arg(long, help = "Enable strict mode: decode all RLP chunks")]
+    pub strict: bool,
+
+    #[arg(long, help = "Write JSON verification report to this file")]
+    pub json_out: Option<std::path::PathBuf>,
+
+    #[arg(long, help = "Print JSON verification report to stdout")]
+    pub json_stdout: bool,
+}
+
+#[cfg(not(feature = "l2"))]
+#[derive(Parser, Clone)]
+pub struct CompareCliOptions {
+    #[arg(long, required = true, help = "Path to baseline JSON report")]
+    pub baseline: std::path::PathBuf,
+
+    #[arg(long, required = true, help = "Path to candidate JSON report")]
+    pub candidate: std::path::PathBuf,
+
+    #[arg(long, help = "Regression threshold as percentage (e.g. 5.0 means +5%% is a regression)")]
+    pub regression_threshold_pct: Option<f64>,
+
+    #[arg(long, help = "Return non-zero exit code if regression exceeds threshold")]
+    pub fail_on_regression: bool,
+
+    #[arg(long, help = "Write JSON comparison report to this file")]
+    pub json_out: Option<std::path::PathBuf>,
+
+    #[arg(long, help = "Print JSON comparison report to stdout")]
+    pub json_stdout: bool,
 }
 
 fn parse_positive_usize(s: &str) -> Result<usize, String> {
@@ -830,6 +878,28 @@ impl EthrexReplayCommand {
             EthrexReplayCommand::SnapSync(subcmd) => match subcmd {
                 SnapSyncSubcommand::Profile(opts) => {
                     crate::snapsync::run_profile(opts).await?;
+                }
+                SnapSyncSubcommand::VerifyDataset(opts) => {
+                    crate::snapsync_verify::run_verify(
+                        crate::snapsync_verify::VerifyDatasetOptions {
+                            dataset: opts.dataset,
+                            strict: opts.strict,
+                            json_out: opts.json_out,
+                            json_stdout: opts.json_stdout,
+                        },
+                    )?;
+                }
+                SnapSyncSubcommand::Compare(opts) => {
+                    crate::snapsync_compare::run_compare(
+                        crate::snapsync_compare::CompareOptions {
+                            baseline: opts.baseline,
+                            candidate: opts.candidate,
+                            regression_threshold_pct: opts.regression_threshold_pct,
+                            fail_on_regression: opts.fail_on_regression,
+                            json_out: opts.json_out,
+                            json_stdout: opts.json_stdout,
+                        },
+                    )?;
                 }
             },
             #[cfg(feature = "l2")]
