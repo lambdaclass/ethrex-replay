@@ -31,6 +31,7 @@ ethrex-sdk = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-
 ethrex-l2-rpc = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2-rpc", branch = "feat/snap-profile" }
 ethrex-prover = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-prover", branch = "feat/snap-profile", default-features = false }
 ethrex-guest-program = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-guest-program", branch = "feat/snap-profile", default-features = false }
+snapsync_profile = { git = "https://github.com/lambdaclass/ethrex", package = "snapsync_profile", branch = "feat/snap-profile" }
 
 serde = { version = "1.0.203", features = ["derive"] }
 hex = "0.4.3"
@@ -68,4 +69,4 @@ l2 = [
 ci = ["ethrex-prover/ci"]
 profiling = ["ethrex-prover/profiling"]
 jemalloc = ["dep:tikv-jemallocator"]
-rocksdb = ["ethrex-p2p/rocksdb", "ethrex-storage/rocksdb"]
+rocksdb = ["ethrex-p2p/rocksdb", "ethrex-storage/rocksdb", "snapsync_profile/rocksdb"]

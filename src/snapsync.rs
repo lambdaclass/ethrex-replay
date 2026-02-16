@@ -6,7 +6,8 @@ use crate::snapsync_report::{
     DatasetInfo, PhaseStats, PhaseSummary, RootValidation, RunConfig, RunEntry,
     SnapProfileReportV1, ToolInfo, compute_manifest_sha256,
 };
-use ethrex_p2p::sync::profile::{ProfileBackend, load_manifest, run_once_with_opts};
+use ethrex_p2p::sync::profile::load_manifest;
+use snapsync_profile::{ProfileBackend, run_once_with_opts};
 use tracing::info;
 
 fn parse_backend(name: &str) -> eyre::Result<ProfileBackend> {
