@@ -30,7 +30,7 @@ ethrex-storage-rollup = { git = "https://github.com/lambdaclass/ethrex", package
 ethrex-sdk = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-sdk", branch = "feat/snap-profile" }
 ethrex-l2-rpc = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2-rpc", branch = "feat/snap-profile" }
 ethrex-prover = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-prover", branch = "feat/snap-profile", default-features = false }
-guest_program = { git = "https://github.com/lambdaclass/ethrex", package = "guest_program", branch = "feat/snap-profile", default-features = false }
+ethrex-guest-program = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-guest-program", branch = "feat/snap-profile", default-features = false }
 
 serde = { version = "1.0.203", features = ["derive"] }
 hex = "0.4.3"
@@ -51,19 +51,20 @@ futures = "0.3.31"
 sha3 = "0.10.8"
 tikv-jemallocator = { version = "0.6.0", optional = true }
 rkyv = { version = "0.8.10", features = ["std", "unaligned"] }
+tempfile = "3"
 
 [features]
-risc0 = ["guest_program/risc0", "ethrex-prover/risc0"]
-sp1 = ["guest_program/sp1", "ethrex-prover/sp1"]
-openvm = ["guest_program/openvm", "ethrex-prover/openvm"]
-zisk = ["guest_program/zisk", "ethrex-prover/zisk"]
+risc0 = ["ethrex-prover/risc0"]
+sp1 = ["ethrex-prover/sp1"]
+openvm = ["ethrex-prover/openvm"]
+zisk = ["ethrex-prover/zisk"]
 gpu = ["ethrex-prover/gpu"]
 l2 = [
-    "guest_program/l2",
     "ethrex-prover/l2",
     "ethrex-l2/l2",
     "ethrex-storage-rollup/l2",
 ]
-ci = ["guest_program/ci", "ethrex-prover/ci"]
+ci = ["ethrex-prover/ci"]
 profiling = ["ethrex-prover/profiling"]
 jemalloc = ["dep:tikv-jemallocator"]
+rocksdb = ["ethrex-p2p/rocksdb", "ethrex-storage/rocksdb"]

@@ -1,6 +1,4 @@
 use crate::{cache::Cache, cli::ProofType};
-use ethrex_common::types::ELASTICITY_MULTIPLIER;
-use ethrex_common::types::fee_config::FeeConfig;
 use ethrex_common::{
     H256,
     types::{AccountUpdate, Receipt, block_execution_witness::GuestProgramState},
@@ -18,7 +16,7 @@ use ethrex_prover::{BackendType, ExecBackend, ProverBackend};
 use ethrex_rpc::debug::execution_witness::execution_witness_from_rpc_chain_config;
 use ethrex_vm::{DynVmDatabase, Evm, GuestProgramStateWrapper, backends::levm::LEVM};
 use eyre::Context;
-use guest_program::input::ProgramInput;
+use ethrex_guest_program::input::ProgramInput;
 use std::{
     panic::{AssertUnwindSafe, catch_unwind},
     sync::Arc,
@@ -196,12 +194,9 @@ pub fn get_l1_input(cache: Cache) -> eyre::Result<ProgramInput> {
     let execution_witness =
         execution_witness_from_rpc_chain_config(db, chain_config, first_block_number)?;
 
-    let block_len = blocks.len();
     Ok(ProgramInput {
         blocks,
         execution_witness,
-        elasticity_multiplier: ELASTICITY_MULTIPLIER,
-        fee_configs: Some(vec![FeeConfig::default(); block_len]),
     })
 }
 
@@ -218,6 +213,7 @@ fn extract_panic_message(panic_info: &Box<dyn std::any::Any + Send>) -> String {
 
 #[cfg(feature = "l2")]
 pub fn get_l2_input(cache: Cache) -> eyre::Result<ProgramInput> {
+    use ethrex_common::types::ELASTICITY_MULTIPLIER;
     use ethrex_common::types::fee_config::FeeConfig;
 
     let first_block_number = cache.get_first_block_number()?;

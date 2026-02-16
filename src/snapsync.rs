@@ -1,10 +1,28 @@
+use std::path::PathBuf;
+
 use crate::cli::SnapSyncProfileOptions;
 use crate::profiling::RunStats;
-use ethrex_p2p::sync::profile::{load_manifest, run_once};
+use ethrex_p2p::sync::profile::{ProfileBackend, load_manifest, run_once_with_opts};
 use tracing::info;
+
+fn parse_backend(name: &str) -> eyre::Result<ProfileBackend> {
+    match name {
+        "inmemory" => Ok(ProfileBackend::InMemory),
+        #[cfg(feature = "rocksdb")]
+        "rocksdb" => Ok(ProfileBackend::RocksDb),
+        #[cfg(not(feature = "rocksdb"))]
+        "rocksdb" => Err(eyre::eyre!(
+            "rocksdb backend requested but ethrex-replay was compiled without the rocksdb feature"
+        )),
+        other => Err(eyre::eyre!(
+            "unknown backend: {other} (expected: inmemory, rocksdb)"
+        )),
+    }
+}
 
 pub async fn run_profile(opts: SnapSyncProfileOptions) -> eyre::Result<()> {
     let dataset_path = &opts.dataset;
+    let backend = parse_backend(&opts.backend)?;
 
     // Load and validate manifest
     let manifest =
@@ -16,7 +34,29 @@ pub async fn run_profile(opts: SnapSyncProfileOptions) -> eyre::Result<()> {
         "Pivot block: #{} (hash: {:?})",
         manifest.pivot.number, manifest.pivot.hash
     );
+    info!("Backend: {backend}");
     info!("Repeat: {} | Warmup: {}", opts.repeat, opts.warmup);
+    info!("");
+
+    // Determine the working directory for the store.
+    let (db_dir, _temp_dir) = match backend {
+        ProfileBackend::InMemory => (PathBuf::from("."), None::<tempfile::TempDir>),
+        #[cfg(feature = "rocksdb")]
+        ProfileBackend::RocksDb => {
+            if let Some(ref dir) = opts.db_dir {
+                std::fs::create_dir_all(dir)?;
+                (dir.clone(), None)
+            } else {
+                let tmp = tempfile::TempDir::new()?;
+                let path = tmp.path().to_path_buf();
+                (path, Some(tmp))
+            }
+        }
+    };
+
+    if !matches!(backend, ProfileBackend::InMemory) {
+        info!("DB dir: {}", db_dir.display());
+    }
     info!("");
 
     let mut insert_accounts_durations = Vec::new();
@@ -37,7 +77,7 @@ pub async fn run_profile(opts: SnapSyncProfileOptions) -> eyre::Result<()> {
 
         info!("[{label} {run_num}] Starting...");
 
-        let result = run_once(dataset_path)
+        let result = run_once_with_opts(dataset_path, backend, &db_dir)
             .await
             .map_err(|e| eyre::eyre!("Run failed: {e}"))?;
 
@@ -69,6 +109,7 @@ pub async fn run_profile(opts: SnapSyncProfileOptions) -> eyre::Result<()> {
     // Validate computed state root against expected
     info!("");
     info!("=== Results ({} measured runs) ===", opts.repeat);
+    info!("Backend: {backend}");
     if let Some(root) = last_state_root {
         info!("Computed state root: {:?}", root);
         let expected = manifest.post_accounts_insert_state_root;
@@ -94,6 +135,22 @@ pub async fn run_profile(opts: SnapSyncProfileOptions) -> eyre::Result<()> {
     if !total_durations.is_empty() {
         let stats = RunStats::new(total_durations);
         info!("Total ({} runs):\n{stats}", stats.len());
+    }
+
+    // Handle cleanup for rocksdb backend.
+    #[cfg(feature = "rocksdb")]
+    if matches!(backend, ProfileBackend::RocksDb) {
+        if opts.keep_db {
+            if let Some(tmp) = _temp_dir {
+                let kept = tmp.keep();
+                info!("DB kept at: {}", kept.display());
+            } else {
+                info!("DB kept at: {}", db_dir.display());
+            }
+        } else if _temp_dir.is_none() && opts.db_dir.is_some() {
+            let _ = std::fs::remove_dir_all(&db_dir);
+            info!("DB cleaned up: {}", db_dir.display());
+        }
     }
 
     Ok(())

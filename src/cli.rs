@@ -7,7 +7,9 @@ use ethrex_l2_rpc::signer::{LocalSigner, Signer};
 use ethrex_rlp::decode::RLPDecode;
 use ethrex_trie::{EMPTY_TRIE_HASH, InMemoryTrieDB, Node};
 use eyre::{Context, OptionExt};
-use guest_program::input::ProgramInput;
+use ethrex_common::types::block_execution_witness::RpcExecutionWitness;
+use ethrex_guest_program::input::ProgramInput;
+use ethrex_rpc::debug::execution_witness::execution_witness_from_rpc_chain_config;
 use std::{
     cmp::max,
     collections::BTreeMap,
@@ -36,10 +38,7 @@ use ethrex_common::{U256, types::GenesisAccount};
 use ethrex_prover::BackendType;
 #[cfg(not(feature = "l2"))]
 use ethrex_rpc::types::block_identifier::BlockIdentifier;
-use ethrex_rpc::{
-    EthClient,
-    debug::execution_witness::{RpcExecutionWitness, execution_witness_from_rpc_chain_config},
-};
+use ethrex_rpc::EthClient;
 use ethrex_storage::hash_address;
 use ethrex_storage::{EngineType, Store};
 #[cfg(feature = "l2")]
@@ -141,16 +140,28 @@ pub struct SnapSyncProfileOptions {
     #[arg(long, required = true, help = "Path to captured snapsync dataset directory")]
     pub dataset: std::path::PathBuf,
 
-    #[arg(
-        long,
-        default_value = "10",
-        value_parser = clap::value_parser!(usize).range(1..),
-        help = "Number of measured runs (must be >= 1)"
-    )]
+    #[arg(long, default_value = "10", value_parser = parse_positive_usize, help = "Number of measured runs (must be >= 1)")]
     pub repeat: usize,
 
     #[arg(long, default_value = "1", help = "Number of warmup runs (not measured)")]
     pub warmup: usize,
+
+    #[arg(long, default_value = "inmemory", help = "Storage backend: \"rocksdb\" or \"inmemory\"")]
+    pub backend: String,
+
+    #[arg(long, help = "Directory for RocksDB data (rocksdb backend only). If omitted, a temp dir is used.")]
+    pub db_dir: Option<std::path::PathBuf>,
+
+    #[arg(long, help = "Don't clean up the RocksDB directory after the run")]
+    pub keep_db: bool,
+}
+
+fn parse_positive_usize(s: &str) -> Result<usize, String> {
+    let val: usize = s.parse().map_err(|e| format!("{e}"))?;
+    if val == 0 {
+        return Err("value must be >= 1".to_string());
+    }
+    Ok(val)
 }
 
 #[cfg(not(feature = "l2"))]
@@ -1434,6 +1445,7 @@ pub async fn produce_l1_block(
         random: H256::zero(),
         withdrawals: Some(Vec::new()),
         beacon_root: Some(H256::zero()),
+        slot_number: None,
         version: 3,
         elasticity_multiplier: ELASTICITY_MULTIPLIER,
         gas_ceil: DEFAULT_BUILDER_GAS_CEIL,
@@ -1711,6 +1723,7 @@ pub async fn produce_custom_l2_block(
         random: H256::zero(),
         withdrawals: Some(Vec::new()),
         beacon_root: Some(H256::zero()),
+        slot_number: None,
         version: 3,
         elasticity_multiplier: ELASTICITY_MULTIPLIER,
         gas_ceil: DEFAULT_BUILDER_GAS_CEIL,
