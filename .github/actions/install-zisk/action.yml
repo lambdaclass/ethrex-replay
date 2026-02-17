@@ -18,8 +18,10 @@ runs:
       uses: actions/cache@v4
       id: zisk-cache
       with:
-        path: ~/.zisk
-        key: zisk-toolchain-0.14.0
+        path: |
+          ~/.zisk
+          ~/.rustup/toolchains/zisk
+        key: zisk-toolchain-0.14.0-v2
 
     - name: Install ZisK
       if: steps.zisk-cache.outputs.cache-hit != 'true'

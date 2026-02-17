@@ -56,7 +56,7 @@ use tracing::info;
 #[cfg(feature = "l2")]
 use crate::fetcher::get_batchdata;
 #[cfg(not(feature = "l2"))]
-use crate::plot_composition::plot;
+use crate::plot_composition::analyze_and_display;
 use crate::{cache::Cache, fetcher::get_blockdata, report::Report, tx_builder::TxBuilder};
 use crate::{
     run::{exec, prove, run_tx},
@@ -89,15 +89,8 @@ pub enum EthrexReplayCommand {
     #[command(about = "Replay multiple blocks")]
     Blocks(BlocksOptions),
     #[cfg(not(feature = "l2"))]
-    #[command(about = "Plots the composition of a range of blocks.")]
-    BlockComposition {
-        #[arg(help = "Starting block. (Inclusive)")]
-        start: u64,
-        #[arg(help = "Ending block. (Inclusive)")]
-        end: u64,
-        #[arg(long, env = "RPC_URL", required = true)]
-        rpc_url: Url,
-    },
+    #[command(about = "Analyze and display the composition of one or more blocks.")]
+    BlockComposition(BlockCompositionOptions),
     #[cfg(not(feature = "l2"))]
     #[command(subcommand, about = "Replay a custom block or batch")]
     Custom(CustomSubcommand),
@@ -496,6 +489,67 @@ pub struct GenerateInputOptions {
     rpc_url: Url,
 }
 
+#[cfg(not(feature = "l2"))]
+#[derive(Parser)]
+#[command(
+    group(ArgGroup::new("block_mode").args(["block", "from"])),
+    group(ArgGroup::new("data_source").required(true).args(["rpc_url", "cached"])),
+)]
+pub struct BlockCompositionOptions {
+    #[arg(
+        help = "Single block number to analyze.",
+        conflicts_with_all = ["from", "to"],
+        help_heading = "Command Options"
+    )]
+    pub block: Option<u64>,
+    #[arg(
+        long,
+        help = "Starting block for range analysis. (Inclusive)",
+        conflicts_with = "block",
+        help_heading = "Command Options"
+    )]
+    pub from: Option<u64>,
+    #[arg(
+        long,
+        help = "Ending block for range analysis. (Inclusive)",
+        requires = "from",
+        conflicts_with = "block",
+        help_heading = "Command Options"
+    )]
+    pub to: Option<u64>,
+    #[arg(long, group = "data_source", help_heading = "Data Source")]
+    pub rpc_url: Option<Url>,
+    #[arg(
+        long,
+        group = "data_source",
+        help = "Use cache as input instead of fetching from RPC.",
+        requires = "network",
+        help_heading = "Data Source"
+    )]
+    pub cached: bool,
+    #[arg(
+        long,
+        help = "Network to use (required with --cached).",
+        value_enum,
+        help_heading = "Data Source"
+    )]
+    pub network: Option<Network>,
+    #[arg(
+        long,
+        help = "Directory to load cache files from.",
+        default_value = "./replay_cache",
+        help_heading = "Data Source"
+    )]
+    pub cache_dir: PathBuf,
+    #[arg(
+        long,
+        help = "Directory where SVG charts are saved.",
+        default_value = ".",
+        help_heading = "Output Options"
+    )]
+    pub output_dir: PathBuf,
+}
+
 impl EthrexReplayCommand {
     pub async fn run(self) -> eyre::Result<()> {
         match self {
@@ -678,38 +732,57 @@ impl EthrexReplayCommand {
             #[cfg(not(feature = "l2"))]
             Self::Transaction(opts) => replay_transaction(opts).await?,
             #[cfg(not(feature = "l2"))]
-            Self::BlockComposition {
-                start,
-                end,
-                rpc_url,
-            } => {
-                if start >= end {
+            Self::BlockComposition(opts) => {
+                let (start, end) = match (opts.block, opts.from) {
+                    (Some(block), _) => (block, block),
+                    (_, Some(from)) => (from, opts.to.unwrap_or(from)),
+                    _ => {
+                        return Err(eyre::Error::msg(
+                            "Either a block number or --from must be specified.",
+                        ));
+                    }
+                };
+
+                if start > end {
                     return Err(eyre::Error::msg(
-                        "starting point can't be greater than ending point",
+                        "starting block can't be greater than ending block",
                     ));
                 }
 
-                let eth_client = EthClient::new(rpc_url)?;
+                let blocks = if opts.cached {
+                    let network = opts.network.as_ref().unwrap(); // enforced by clap
+                    let mut blocks = vec![];
+                    for block_number in start..=end {
+                        let file_name =
+                            crate::cache::get_block_cache_file_name(network, block_number, None);
+                        let cache = Cache::load(&opts.cache_dir, &file_name)?;
+                        blocks.extend(cache.blocks);
+                    }
+                    blocks
+                } else {
+                    let rpc_url = opts.rpc_url.as_ref().unwrap(); // enforced by clap
+                    let eth_client = EthClient::new(rpc_url.clone())?;
+                    info!(
+                        "Fetching blocks from RPC: {start} to {end} ({} blocks)",
+                        end - start + 1
+                    );
+                    let mut blocks = vec![];
+                    for block_number in start..=end {
+                        debug!("Fetching block {block_number}");
+                        let rpc_block = eth_client
+                            .get_block_by_number(BlockIdentifier::Number(block_number), true)
+                            .await?;
 
-                info!(
-                    "Fetching blocks from RPC: {start} to {end} ({} blocks)",
-                    end - start + 1
-                );
-                let mut blocks = vec![];
-                for block_number in start..=end {
-                    debug!("Fetching block {block_number}");
-                    let rpc_block = eth_client
-                        .get_block_by_number(BlockIdentifier::Number(block_number), true)
-                        .await?;
+                        let block = rpc_block.try_into().map_err(|e| {
+                            eyre::eyre!("Failed to convert rpc block to block: {}", e)
+                        })?;
 
-                    let block = rpc_block
-                        .try_into()
-                        .map_err(|e| eyre::eyre!("Failed to convert rpc block to block: {}", e))?;
+                        blocks.push(block);
+                    }
+                    blocks
+                };
 
-                    blocks.push(block);
-                }
-
-                plot(&blocks).await?;
+                analyze_and_display(&blocks, &opts.output_dir)?;
             }
             #[cfg(not(feature = "l2"))]
             Self::GenerateInput(GenerateInputOptions {

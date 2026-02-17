@@ -3,7 +3,7 @@ description: "Install SP1 Toolchain"
 
 # When updating the SP1 version, update BOTH:
 #   1. The cache key (line 12)
-#   2. The sp1up --version argument (line 19)
+#   2. The sp1up --version argument (line 21)
 
 runs:
   using: "composite"
@@ -12,8 +12,10 @@ runs:
       uses: actions/cache@v4
       id: sp1-cache
       with:
-        path: ~/.sp1
-        key: sp1-toolchain-5.0.8
+        path: |
+          ~/.sp1
+          ~/.rustup/toolchains/succinct
+        key: sp1-toolchain-5.0.8-v2
 
     - name: Install SP1
       if: steps.sp1-cache.outputs.cache-hit != 'true'
