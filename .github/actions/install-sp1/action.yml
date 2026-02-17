@@ -1,10 +1,22 @@
 name: "Install SP1"
 description: "Install SP1 Toolchain"
 
+# When updating the SP1 version, update BOTH:
+#   1. The cache key (line 12)
+#   2. The sp1up --version argument (line 19)
+
 runs:
   using: "composite"
   steps:
+    - name: Cache SP1 toolchain
+      uses: actions/cache@v4
+      id: sp1-cache
+      with:
+        path: ~/.sp1
+        key: sp1-toolchain-5.0.8
+
     - name: Install SP1
+      if: steps.sp1-cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
         curl -L https://sp1up.succinct.xyz | bash

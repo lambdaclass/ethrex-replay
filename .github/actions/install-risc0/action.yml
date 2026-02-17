@@ -1,10 +1,22 @@
 name: "Install RISC0"
 description: "Install RISC0 Toolchain"
 
+# When updating the RISC0 version, update BOTH:
+#   1. The cache key (line 12)
+#   2. The rzup install versions (lines 19, 23)
+
 runs:
   using: "composite"
   steps:
+    - name: Cache RISC0 toolchain
+      uses: actions/cache@v4
+      id: risc0-cache
+      with:
+        path: ~/.risc0
+        key: risc0-toolchain-3.0.3
+
     - name: Install RISC0
+      if: steps.risc0-cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
         curl -L https://risczero.com/install | bash
