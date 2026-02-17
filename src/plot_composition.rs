@@ -1,5 +1,5 @@
-use ethrex_common::types::{Block, Transaction, TxKind, TxType};
 use ethrex_common::U256;
+use ethrex_common::types::{Block, Transaction, TxKind, TxType};
 use std::collections::HashMap;
 use std::path::Path;
 use tracing::info;
@@ -231,8 +231,7 @@ impl BlockCompositionStats {
             format_number(self.total_gas_limit)
         );
         if self.total_gas_limit > 0 {
-            let utilization =
-                (self.total_gas_used as f64 / self.total_gas_limit as f64) * 100.0;
+            let utilization = (self.total_gas_used as f64 / self.total_gas_limit as f64) * 100.0;
             println!("  Utilization        {:>15.1}%", utilization);
         }
         println!();
@@ -300,10 +299,7 @@ impl BlockCompositionStats {
             ),
             (
                 "tx_types".to_string(),
-                make_pie_chart(
-                    "Transaction Types",
-                    &truncate_to(&tx_types, tx_types.len()),
-                ),
+                make_pie_chart("Transaction Types", &truncate_to(&tx_types, tx_types.len())),
             ),
             (
                 "call_categories".to_string(),
@@ -370,14 +366,11 @@ fn make_pie_chart(name: &str, data: &[(String, u64)]) -> Chart {
         .tooltip(Tooltip::new().trigger(Trigger::Item))
         .legend(Legend::new())
         .series(
-            Pie::new()
-                .name(name)
-                .radius(vec!["40%", "55%"])
-                .data(
-                    data.iter()
-                        .map(|(label, count)| (*count as f64, label.as_str()))
-                        .collect(),
-                ),
+            Pie::new().name(name).radius(vec!["40%", "55%"]).data(
+                data.iter()
+                    .map(|(label, count)| (*count as f64, label.as_str()))
+                    .collect(),
+            ),
         )
 }
 

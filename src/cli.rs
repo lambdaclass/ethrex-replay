@@ -739,7 +739,7 @@ impl EthrexReplayCommand {
                     _ => {
                         return Err(eyre::Error::msg(
                             "Either a block number or --from must be specified.",
-                        ))
+                        ));
                     }
                 };
 
