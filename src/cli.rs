@@ -865,6 +865,7 @@ impl EthrexReplayCommand {
                     rpc_url: Some(Url::parse("http://localhost:8545")?),
                     cached: false,
                     no_zkvm: false,
+                    repeat: 1,
                     cache_level: CacheLevel::default(),
                     slack_webhook_url: None,
                     bench: false,

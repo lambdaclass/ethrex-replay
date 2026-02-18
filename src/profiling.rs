@@ -26,7 +26,7 @@ impl RunStats {
 
     pub fn median(&self) -> Duration {
         let len = self.sorted.len();
-        if len % 2 == 0 {
+        if len.is_multiple_of(2) {
             (self.sorted[len / 2 - 1] + self.sorted[len / 2]) / 2
         } else {
             self.sorted[len / 2]
@@ -54,6 +54,10 @@ impl RunStats {
 
     pub fn len(&self) -> usize {
         self.sorted.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.sorted.is_empty()
     }
 }
 
