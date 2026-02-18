@@ -1,25 +1,23 @@
 name: "Install SP1"
 description: "Install SP1 Toolchain"
 
-# When updating the SP1 version, update BOTH:
-#   1. The cache key (line 12)
-#   2. The sp1up --version argument (line 21)
+inputs:
+  token:
+    description: "GitHub token to avoid API rate limiting when downloading SP1 toolchain"
+    required: false
+    default: ""
 
 runs:
   using: "composite"
   steps:
-    - name: Cache SP1 toolchain
-      uses: actions/cache@v4
-      id: sp1-cache
-      with:
-        path: |
-          ~/.sp1
-          ~/.rustup/toolchains/succinct
-        key: sp1-toolchain-5.0.8-v2
-
     - name: Install SP1
-      if: steps.sp1-cache.outputs.cache-hit != 'true'
       shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
       run: |
         curl -L https://sp1up.succinct.xyz | bash
-        ~/.sp1/bin/sp1up --version 5.0.8
+        SP1UP_ARGS="--version 5.0.8"
+        if [ -n "${GITHUB_TOKEN}" ]; then
+          SP1UP_ARGS="${SP1UP_ARGS} --token ${GITHUB_TOKEN}"
+        fi
+        ~/.sp1/bin/sp1up ${SP1UP_ARGS}

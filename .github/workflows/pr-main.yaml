@@ -3,10 +3,8 @@ permissions:
   contents: read
 
 on:
-  pull_request:
-    branches: ["main"]
   push:
-    branches: ["main"]
+    branches: ["**"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -23,6 +21,8 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Free Disk Space
         uses: ./.github/actions/free-disk
@@ -30,8 +30,11 @@ jobs:
       - name: Setup Rust Environment
         uses: ./.github/actions/setup-rust
 
-      - name: Install rustfmt and clippy
-        run: rustup component add rustfmt clippy
+      - name: Install rustfmt
+        run: rustup component add rustfmt
+
+      - name: Install clippy
+        run: rustup component add clippy
 
       - name: Install Risc0
         if: contains(matrix.features, 'risc0')
@@ -40,6 +43,8 @@ jobs:
       - name: Install SP1
         if: contains(matrix.features, 'sp1')
         uses: ./.github/actions/install-sp1
+        with:
+          token: ${{ github.token }}
 
       - name: Install ZisK
         if: contains(matrix.features, 'zisk')
@@ -112,6 +117,8 @@ jobs:
       - name: Install SP1
         if: matrix.backend == 'sp1'
         uses: ./.github/actions/install-sp1
+        with:
+          token: ${{ github.token }}
 
       - name: Build Risc0
         if: matrix.backend == 'risc0'

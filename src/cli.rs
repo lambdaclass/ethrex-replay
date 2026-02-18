@@ -19,7 +19,7 @@ use std::{
 
 use clap::{ArgGroup, Parser, Subcommand, ValueEnum};
 use ethrex_blockchain::{
-    Blockchain,
+    Blockchain, BlockchainOptions,
     fork_choice::apply_fork_choice,
     payload::{BuildPayloadArgs, PayloadBuildResult, create_payload},
 };
@@ -203,6 +203,14 @@ pub struct EthrexReplayOptions {
         conflicts_with_all = ["zkvm", "proof_type"]
     )]
     pub no_zkvm: bool,
+    #[arg(
+        long,
+        default_value_t = 1,
+        help = "Number of times to repeat execution for profiling",
+        help_heading = "Replay Options",
+        requires = "no_zkvm"
+    )]
+    pub repeat: u32,
     // CAUTION
     // This flag is used to create a benchmark file that is used by our CI for
     // updating benchmarks from https://docs.ethrex.xyz/benchmarks/.
@@ -718,6 +726,7 @@ impl EthrexReplayCommand {
                     rpc_url: Some(Url::parse("http://localhost:8545")?),
                     cached: false,
                     no_zkvm: false,
+                    repeat: 1,
                     cache_level: CacheLevel::default(),
                     common: block_opts.common.clone(),
                     slack_webhook_url: None,
@@ -802,6 +811,7 @@ impl EthrexReplayCommand {
                     cache_level: CacheLevel::Off,
                     slack_webhook_url: None,
                     no_zkvm: false,
+                    repeat: 1,
                     bench: false,
                     notification_level: NotificationLevel::Off,
                 };
@@ -928,6 +938,7 @@ impl EthrexReplayCommand {
                     rpc_url: Some(Url::parse("http://localhost:8545")?),
                     cached: false,
                     no_zkvm: false,
+                    repeat: 1,
                     cache_level: CacheLevel::default(),
                     slack_webhook_url: None,
                     bench: false,
@@ -986,19 +997,11 @@ fn write_program_input(output_path: &PathBuf, program_input: &ProgramInput) -> e
     Ok(())
 }
 
-async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Result<Duration> {
-    let b = backend(&opts.common.zkvm)?;
-    if !matches!(b, BackendType::Exec) {
-        eyre::bail!("Tried to execute without zkVM but backend was set to {b:?}");
-    }
-    if opts.common.action == Action::Prove {
-        eyre::bail!("Proving not enabled without backend");
-    }
+async fn prepare_no_zkvm_state(cache: &Cache) -> eyre::Result<(Store, Block, String)> {
     if cache.blocks.len() > 1 {
         eyre::bail!("Cache for L1 witness should contain only one block.");
     }
 
-    let start = Instant::now();
     info!("Preparing Storage for execution without zkVM");
 
     let chain_config = cache.get_chain_config()?;
@@ -1009,7 +1012,6 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
         chain_config,
         cache.get_first_block_number()?,
     )?;
-    let network = &cache.network;
 
     let guest_program = GuestProgramState::try_from(witness.clone())?;
 
@@ -1097,17 +1099,65 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
         store.add_block_header(header.hash(), header).await?;
     }
 
-    let blockchain = Blockchain::default_with_store(store);
+    Ok((store, block, cache.network.to_string()))
+}
 
-    info!("Storage preparation finished in {:.2?}", start.elapsed());
+async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Result<Duration> {
+    let b = backend(&opts.common.zkvm)?;
+    if !matches!(b, BackendType::Exec) {
+        eyre::bail!("Tried to execute without zkVM but backend was set to {b:?}");
+    }
+    if opts.common.action == Action::Prove {
+        eyre::bail!("Proving not enabled without backend");
+    }
 
-    info!("Executing block {} on {}", block.header.number, network);
-    let start_time = Instant::now();
-    blockchain.add_block(block)?;
-    let duration = start_time.elapsed();
-    info!("add_block execution time: {:.2?}", duration);
+    let repeat = opts.repeat;
+    let mut prep_durations = Vec::with_capacity(repeat as usize);
+    let mut exec_durations = Vec::with_capacity(repeat as usize);
 
-    Ok(duration)
+    for i in 0..repeat {
+        if repeat > 1 {
+            info!("--- Run {}/{} ---", i + 1, repeat);
+        }
+
+        let prep_start = Instant::now();
+        let (store, block, network) = prepare_no_zkvm_state(&cache).await?;
+        let blockchain = Blockchain::new(
+            store,
+            BlockchainOptions {
+                perf_logs_enabled: true,
+                ..BlockchainOptions::default()
+            },
+        );
+        let prep_duration = prep_start.elapsed();
+        prep_durations.push(prep_duration);
+
+        info!("Storage preparation finished in {:.2?}", prep_duration);
+        info!("Executing block {} on {}", block.header.number, network);
+
+        let exec_start = Instant::now();
+        blockchain.add_block_pipeline(block)?;
+        let exec_duration = exec_start.elapsed();
+        exec_durations.push(exec_duration);
+
+        if repeat == 1 {
+            info!("add_block_pipeline execution time: {:.2?}", exec_duration);
+        }
+    }
+
+    if repeat > 1 {
+        use crate::profiling::{RunStats, print_individual_runs};
+        let prep_stats = RunStats::new(prep_durations.clone());
+        let exec_stats = RunStats::new(exec_durations.clone());
+        info!("=== Profiling Results ({repeat} runs) ===");
+        info!("Preparation:\n{prep_stats}");
+        info!("Execution (add_block_pipeline):\n{exec_stats}");
+        info!("Individual runs:");
+        print_individual_runs(&prep_durations, &exec_durations);
+        Ok(exec_stats.median())
+    } else {
+        Ok(exec_durations[0])
+    }
 }
 
 async fn replay_transaction(tx_opts: TransactionOpts) -> eyre::Result<()> {
