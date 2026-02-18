@@ -11,18 +11,8 @@ use snapsync_profile::{ProfileBackend, run_once_with_opts};
 use tracing::info;
 
 fn parse_backend(name: &str) -> eyre::Result<ProfileBackend> {
-    match name {
-        "inmemory" => Ok(ProfileBackend::InMemory),
-        #[cfg(feature = "rocksdb")]
-        "rocksdb" => Ok(ProfileBackend::RocksDb),
-        #[cfg(not(feature = "rocksdb"))]
-        "rocksdb" => Err(eyre::eyre!(
-            "rocksdb backend requested but ethrex-replay was compiled without the rocksdb feature"
-        )),
-        other => Err(eyre::eyre!(
-            "unknown backend: {other} (expected: inmemory, rocksdb)"
-        )),
-    }
+    name.parse::<ProfileBackend>()
+        .map_err(|e| eyre::eyre!("{e}"))
 }
 
 /// Create an isolated DB directory for a single run.
