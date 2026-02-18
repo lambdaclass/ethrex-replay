@@ -43,6 +43,8 @@ jobs:
       - name: Install SP1
         if: contains(matrix.features, 'sp1')
         uses: ./.github/actions/install-sp1
+        with:
+          token: ${{ github.token }}
 
       - name: Install ZisK
         if: contains(matrix.features, 'zisk')
@@ -115,6 +117,8 @@ jobs:
       - name: Install SP1
         if: matrix.backend == 'sp1'
         uses: ./.github/actions/install-sp1
+        with:
+          token: ${{ github.token }}
 
       - name: Build Risc0
         if: matrix.backend == 'risc0'

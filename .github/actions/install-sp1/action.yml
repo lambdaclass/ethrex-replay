@@ -1,11 +1,23 @@
 name: "Install SP1"
 description: "Install SP1 Toolchain"
 
+inputs:
+  token:
+    description: "GitHub token to avoid API rate limiting when downloading SP1 toolchain"
+    required: false
+    default: ""
+
 runs:
   using: "composite"
   steps:
     - name: Install SP1
       shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
       run: |
         curl -L https://sp1up.succinct.xyz | bash
-        ~/.sp1/bin/sp1up --version 5.0.8
+        SP1UP_ARGS="--version 5.0.8"
+        if [ -n "${GITHUB_TOKEN}" ]; then
+          SP1UP_ARGS="${SP1UP_ARGS} --token ${GITHUB_TOKEN}"
+        fi
+        ~/.sp1/bin/sp1up ${SP1UP_ARGS}

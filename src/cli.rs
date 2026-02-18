@@ -21,7 +21,7 @@ use std::{
 
 use clap::{ArgGroup, Parser, Subcommand, ValueEnum};
 use ethrex_blockchain::{
-    Blockchain,
+    Blockchain, BlockchainOptions,
     fork_choice::apply_fork_choice,
     payload::{BuildPayloadArgs, PayloadBuildResult, create_payload},
 };
@@ -55,7 +55,7 @@ use tracing::info;
 #[cfg(feature = "l2")]
 use crate::fetcher::get_batchdata;
 #[cfg(not(feature = "l2"))]
-use crate::plot_composition::plot;
+use crate::plot_composition::analyze_and_display;
 use crate::{cache::Cache, fetcher::get_blockdata, report::Report, tx_builder::TxBuilder};
 use crate::{
     run::{exec, prove, run_tx},
@@ -88,15 +88,8 @@ pub enum EthrexReplayCommand {
     #[command(about = "Replay multiple blocks")]
     Blocks(BlocksOptions),
     #[cfg(not(feature = "l2"))]
-    #[command(about = "Plots the composition of a range of blocks.")]
-    BlockComposition {
-        #[arg(help = "Starting block. (Inclusive)")]
-        start: u64,
-        #[arg(help = "Ending block. (Inclusive)")]
-        end: u64,
-        #[arg(long, env = "RPC_URL", required = true)]
-        rpc_url: Url,
-    },
+    #[command(about = "Analyze and display the composition of one or more blocks.")]
+    BlockComposition(BlockCompositionOptions),
     #[cfg(not(feature = "l2"))]
     #[command(subcommand, about = "Replay a custom block or batch")]
     Custom(CustomSubcommand),
@@ -305,6 +298,14 @@ pub struct EthrexReplayOptions {
         conflicts_with_all = ["zkvm", "proof_type"]
     )]
     pub no_zkvm: bool,
+    #[arg(
+        long,
+        default_value_t = 1,
+        help = "Number of times to repeat execution for profiling",
+        help_heading = "Replay Options",
+        requires = "no_zkvm"
+    )]
+    pub repeat: u32,
     // CAUTION
     // This flag is used to create a benchmark file that is used by our CI for
     // updating benchmarks from https://docs.ethrex.xyz/benchmarks/.
@@ -591,6 +592,67 @@ pub struct GenerateInputOptions {
     rpc_url: Url,
 }
 
+#[cfg(not(feature = "l2"))]
+#[derive(Parser)]
+#[command(
+    group(ArgGroup::new("block_mode").args(["block", "from"])),
+    group(ArgGroup::new("data_source").required(true).args(["rpc_url", "cached"])),
+)]
+pub struct BlockCompositionOptions {
+    #[arg(
+        help = "Single block number to analyze.",
+        conflicts_with_all = ["from", "to"],
+        help_heading = "Command Options"
+    )]
+    pub block: Option<u64>,
+    #[arg(
+        long,
+        help = "Starting block for range analysis. (Inclusive)",
+        conflicts_with = "block",
+        help_heading = "Command Options"
+    )]
+    pub from: Option<u64>,
+    #[arg(
+        long,
+        help = "Ending block for range analysis. (Inclusive)",
+        requires = "from",
+        conflicts_with = "block",
+        help_heading = "Command Options"
+    )]
+    pub to: Option<u64>,
+    #[arg(long, group = "data_source", help_heading = "Data Source")]
+    pub rpc_url: Option<Url>,
+    #[arg(
+        long,
+        group = "data_source",
+        help = "Use cache as input instead of fetching from RPC.",
+        requires = "network",
+        help_heading = "Data Source"
+    )]
+    pub cached: bool,
+    #[arg(
+        long,
+        help = "Network to use (required with --cached).",
+        value_enum,
+        help_heading = "Data Source"
+    )]
+    pub network: Option<Network>,
+    #[arg(
+        long,
+        help = "Directory to load cache files from.",
+        default_value = "./replay_cache",
+        help_heading = "Data Source"
+    )]
+    pub cache_dir: PathBuf,
+    #[arg(
+        long,
+        help = "Directory where SVG charts are saved.",
+        default_value = ".",
+        help_heading = "Output Options"
+    )]
+    pub output_dir: PathBuf,
+}
+
 impl EthrexReplayCommand {
     pub async fn run(self) -> eyre::Result<()> {
         match self {
@@ -759,6 +821,7 @@ impl EthrexReplayCommand {
                     rpc_url: Some(Url::parse("http://localhost:8545")?),
                     cached: false,
                     no_zkvm: false,
+                    repeat: 1,
                     cache_level: CacheLevel::default(),
                     common: block_opts.common.clone(),
                     slack_webhook_url: None,
@@ -773,38 +836,57 @@ impl EthrexReplayCommand {
             #[cfg(not(feature = "l2"))]
             Self::Transaction(opts) => replay_transaction(opts).await?,
             #[cfg(not(feature = "l2"))]
-            Self::BlockComposition {
-                start,
-                end,
-                rpc_url,
-            } => {
-                if start >= end {
+            Self::BlockComposition(opts) => {
+                let (start, end) = match (opts.block, opts.from) {
+                    (Some(block), _) => (block, block),
+                    (_, Some(from)) => (from, opts.to.unwrap_or(from)),
+                    _ => {
+                        return Err(eyre::Error::msg(
+                            "Either a block number or --from must be specified.",
+                        ));
+                    }
+                };
+
+                if start > end {
                     return Err(eyre::Error::msg(
-                        "starting point can't be greater than ending point",
+                        "starting block can't be greater than ending block",
                     ));
                 }
 
-                let eth_client = EthClient::new(rpc_url)?;
+                let blocks = if opts.cached {
+                    let network = opts.network.as_ref().unwrap(); // enforced by clap
+                    let mut blocks = vec![];
+                    for block_number in start..=end {
+                        let file_name =
+                            crate::cache::get_block_cache_file_name(network, block_number, None);
+                        let cache = Cache::load(&opts.cache_dir, &file_name)?;
+                        blocks.extend(cache.blocks);
+                    }
+                    blocks
+                } else {
+                    let rpc_url = opts.rpc_url.as_ref().unwrap(); // enforced by clap
+                    let eth_client = EthClient::new(rpc_url.clone())?;
+                    info!(
+                        "Fetching blocks from RPC: {start} to {end} ({} blocks)",
+                        end - start + 1
+                    );
+                    let mut blocks = vec![];
+                    for block_number in start..=end {
+                        debug!("Fetching block {block_number}");
+                        let rpc_block = eth_client
+                            .get_block_by_number(BlockIdentifier::Number(block_number), true)
+                            .await?;
 
-                info!(
-                    "Fetching blocks from RPC: {start} to {end} ({} blocks)",
-                    end - start + 1
-                );
-                let mut blocks = vec![];
-                for block_number in start..=end {
-                    debug!("Fetching block {block_number}");
-                    let rpc_block = eth_client
-                        .get_block_by_number(BlockIdentifier::Number(block_number), true)
-                        .await?;
+                        let block = rpc_block.try_into().map_err(|e| {
+                            eyre::eyre!("Failed to convert rpc block to block: {}", e)
+                        })?;
 
-                    let block = rpc_block
-                        .try_into()
-                        .map_err(|e| eyre::eyre!("Failed to convert rpc block to block: {}", e))?;
+                        blocks.push(block);
+                    }
+                    blocks
+                };
 
-                    blocks.push(block);
-                }
-
-                plot(&blocks).await?;
+                analyze_and_display(&blocks, &opts.output_dir)?;
             }
             #[cfg(not(feature = "l2"))]
             Self::GenerateInput(GenerateInputOptions {
@@ -824,6 +906,7 @@ impl EthrexReplayCommand {
                     cache_level: CacheLevel::Off,
                     slack_webhook_url: None,
                     no_zkvm: false,
+                    repeat: 1,
                     bench: false,
                     notification_level: NotificationLevel::Off,
                 };
@@ -978,6 +1061,7 @@ impl EthrexReplayCommand {
                     rpc_url: Some(Url::parse("http://localhost:8545")?),
                     cached: false,
                     no_zkvm: false,
+                    repeat: 1,
                     cache_level: CacheLevel::default(),
                     slack_webhook_url: None,
                     bench: false,
@@ -1036,19 +1120,11 @@ fn write_program_input(output_path: &PathBuf, program_input: &ProgramInput) -> e
     Ok(())
 }
 
-async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Result<Duration> {
-    let b = backend(&opts.common.zkvm)?;
-    if !matches!(b, BackendType::Exec) {
-        eyre::bail!("Tried to execute without zkVM but backend was set to {b:?}");
-    }
-    if opts.common.action == Action::Prove {
-        eyre::bail!("Proving not enabled without backend");
-    }
+async fn prepare_no_zkvm_state(cache: &Cache) -> eyre::Result<(Store, Block, String)> {
     if cache.blocks.len() > 1 {
         eyre::bail!("Cache for L1 witness should contain only one block.");
     }
 
-    let start = Instant::now();
     info!("Preparing Storage for execution without zkVM");
 
     let chain_config = cache.get_chain_config()?;
@@ -1059,7 +1135,6 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
         chain_config,
         cache.get_first_block_number()?,
     )?;
-    let network = &cache.network;
 
     let guest_program = GuestProgramState::try_from(witness.clone())?;
 
@@ -1147,17 +1222,65 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
         store.add_block_header(header.hash(), header).await?;
     }
 
-    let blockchain = Blockchain::default_with_store(store);
+    Ok((store, block, cache.network.to_string()))
+}
 
-    info!("Storage preparation finished in {:.2?}", start.elapsed());
+async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Result<Duration> {
+    let b = backend(&opts.common.zkvm)?;
+    if !matches!(b, BackendType::Exec) {
+        eyre::bail!("Tried to execute without zkVM but backend was set to {b:?}");
+    }
+    if opts.common.action == Action::Prove {
+        eyre::bail!("Proving not enabled without backend");
+    }
 
-    info!("Executing block {} on {}", block.header.number, network);
-    let start_time = Instant::now();
-    blockchain.add_block(block)?;
-    let duration = start_time.elapsed();
-    info!("add_block execution time: {:.2?}", duration);
+    let repeat = opts.repeat;
+    let mut prep_durations = Vec::with_capacity(repeat as usize);
+    let mut exec_durations = Vec::with_capacity(repeat as usize);
 
-    Ok(duration)
+    for i in 0..repeat {
+        if repeat > 1 {
+            info!("--- Run {}/{} ---", i + 1, repeat);
+        }
+
+        let prep_start = Instant::now();
+        let (store, block, network) = prepare_no_zkvm_state(&cache).await?;
+        let blockchain = Blockchain::new(
+            store,
+            BlockchainOptions {
+                perf_logs_enabled: true,
+                ..BlockchainOptions::default()
+            },
+        );
+        let prep_duration = prep_start.elapsed();
+        prep_durations.push(prep_duration);
+
+        info!("Storage preparation finished in {:.2?}", prep_duration);
+        info!("Executing block {} on {}", block.header.number, network);
+
+        let exec_start = Instant::now();
+        blockchain.add_block_pipeline(block)?;
+        let exec_duration = exec_start.elapsed();
+        exec_durations.push(exec_duration);
+
+        if repeat == 1 {
+            info!("add_block_pipeline execution time: {:.2?}", exec_duration);
+        }
+    }
+
+    if repeat > 1 {
+        use crate::profiling::{RunStats, print_individual_runs};
+        let prep_stats = RunStats::new(prep_durations.clone());
+        let exec_stats = RunStats::new(exec_durations.clone());
+        info!("=== Profiling Results ({repeat} runs) ===");
+        info!("Preparation:\n{prep_stats}");
+        info!("Execution (add_block_pipeline):\n{exec_stats}");
+        info!("Individual runs:");
+        print_individual_runs(&prep_durations, &exec_durations);
+        Ok(exec_stats.median())
+    } else {
+        Ok(exec_durations[0])
+    }
 }
 
 async fn replay_transaction(tx_opts: TransactionOpts) -> eyre::Result<()> {
