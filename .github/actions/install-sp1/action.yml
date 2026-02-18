@@ -21,7 +21,7 @@ runs:
         path: |
           ~/.sp1
           ~/.rustup/toolchains/succinct
-        key: sp1-toolchain-5.0.8-v2
+        key: sp1-toolchain-5.0.8-v3
 
     - name: Install SP1
       if: steps.sp1-cache.outputs.cache-hit != 'true'
