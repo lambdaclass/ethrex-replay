@@ -78,7 +78,10 @@ pub fn print_individual_runs(prep: &[Duration], exec: &[Duration]) {
         let total = *p + *e;
         tracing::info!(
             "  #{:>2}: prep={:>8.2?} exec={:>8.2?} total={:>8.2?}",
-            i + 1, p, e, total
+            i + 1,
+            p,
+            e,
+            total
         );
     }
 }
