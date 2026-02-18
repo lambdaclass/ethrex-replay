@@ -14,7 +14,7 @@ impl RunStats {
         self.durations.len()
     }
 
-    fn median(&self) -> Duration {
+    pub fn median(&self) -> Duration {
         let n = self.durations.len();
         if n == 0 {
             return Duration::ZERO;
@@ -75,6 +75,12 @@ impl RunStats {
 
     fn p99(&self) -> Duration {
         self.percentile(99.0)
+    }
+}
+
+pub fn print_individual_runs(prep_durations: &[Duration], exec_durations: &[Duration]) {
+    for (i, (prep, exec)) in prep_durations.iter().zip(exec_durations).enumerate() {
+        tracing::info!("  run {}: prep={prep:.2?} exec={exec:.2?}", i + 1);
     }
 }
 
