@@ -11,12 +11,4 @@ mod run;
 pub mod slack;
 #[cfg(not(feature = "l2"))]
 pub mod snapsync;
-#[cfg(not(feature = "l2"))]
-pub mod snapsync_compare;
-#[cfg(not(feature = "l2"))]
-pub mod snapsync_fixtures;
-#[cfg(not(feature = "l2"))]
-pub mod snapsync_report;
-#[cfg(not(feature = "l2"))]
-pub mod snapsync_verify;
 pub mod tx_builder;

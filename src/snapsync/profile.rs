@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crate::cli::SnapSyncProfileOptions;
 use crate::profiling::RunStats;
-use crate::snapsync_report::{
+use super::report::{
     DatasetInfo, PhaseStats, PhaseSummary, RootValidation, RunConfig, RunEntry,
     SnapProfileReportV1, ToolInfo, compute_manifest_sha256,
 };

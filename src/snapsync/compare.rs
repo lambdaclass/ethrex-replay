@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-use crate::snapsync_report::SnapProfileReportV1;
+use super::report::SnapProfileReportV1;
 
 pub struct CompareOptions {
     pub baseline: PathBuf,
@@ -174,7 +174,7 @@ fn print_phase_row(name: &str, delta: &PhaseDelta) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::snapsync_report::*;
+    use crate::snapsync::report::*;
     use std::time::Duration;
 
     fn make_report(

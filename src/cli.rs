@@ -960,11 +960,11 @@ impl EthrexReplayCommand {
             #[cfg(not(feature = "l2"))]
             EthrexReplayCommand::SnapSync(subcmd) => match subcmd {
                 SnapSyncSubcommand::Profile(opts) => {
-                    crate::snapsync::run_profile(opts).await?;
+                    crate::snapsync::profile::run_profile(opts).await?;
                 }
                 SnapSyncSubcommand::VerifyDataset(opts) => {
-                    crate::snapsync_verify::run_verify(
-                        crate::snapsync_verify::VerifyDatasetOptions {
+                    crate::snapsync::verify::run_verify(
+                        crate::snapsync::verify::VerifyDatasetOptions {
                             dataset: opts.dataset,
                             strict: opts.strict,
                             json_out: opts.json_out,
@@ -973,8 +973,8 @@ impl EthrexReplayCommand {
                     )?;
                 }
                 SnapSyncSubcommand::Compare(opts) => {
-                    crate::snapsync_compare::run_compare(
-                        crate::snapsync_compare::CompareOptions {
+                    crate::snapsync::compare::run_compare(
+                        crate::snapsync::compare::CompareOptions {
                             baseline: opts.baseline,
                             candidate: opts.candidate,
                             regression_threshold_pct: opts.regression_threshold_pct,

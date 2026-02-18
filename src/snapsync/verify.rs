@@ -366,7 +366,7 @@ fn check_chunk_indices(chunks: &[PathBuf], dir_name: &str, errors: &mut Vec<Veri
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::snapsync_fixtures::*;
+    use crate::snapsync::fixtures::*;
 
     fn verify(dir: &std::path::Path, strict: bool) -> VerifyResult {
         verify_dataset(&VerifyDatasetOptions {
