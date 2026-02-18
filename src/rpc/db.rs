@@ -17,7 +17,7 @@ use ethrex_levm::errors::DatabaseError;
 use ethrex_levm::vm::VMType;
 use ethrex_rlp::decode::RLPDecode;
 use ethrex_rlp::encode::RLPEncode;
-use ethrex_rpc::debug::execution_witness::RpcExecutionWitness;
+use ethrex_common::types::block_execution_witness::RpcExecutionWitness;
 use ethrex_storage::{hash_address, hash_key};
 use ethrex_trie::{Node, PathRLP, Trie};
 use ethrex_vm::backends::levm::LEVM;
@@ -572,6 +572,22 @@ impl LevmDatabase for RpcDB {
 
     fn get_chain_config(&self) -> Result<ethrex_common::types::ChainConfig, DatabaseError> {
         Ok(self.chain_config)
+    }
+
+    fn get_code_metadata(
+        &self,
+        code_hash: H256,
+    ) -> Result<ethrex_common::types::CodeMetadata, DatabaseError> {
+        if code_hash == *EMPTY_KECCACK_HASH {
+            return Ok(ethrex_common::types::CodeMetadata { length: 0 });
+        }
+        let codes = self.codes.lock().unwrap();
+        let bytecode = codes.get(&code_hash).cloned().ok_or_else(|| {
+            DatabaseError::Custom("Code not found for code_hash in get_code_metadata".to_string())
+        })?;
+        Ok(ethrex_common::types::CodeMetadata {
+            length: bytecode.len() as u64,
+        })
     }
 }
 

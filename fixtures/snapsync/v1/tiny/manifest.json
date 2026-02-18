@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "chain_id": 1,
+  "rocksdb_enabled": false,
+  "pivot": {
+    "number": 100,
+    "hash": "0x00000000000000000000000000000000000000000000000000000000000003e7",
+    "state_root": "0x0000000000000000000000000000000000000000000000000000000000000378",
+    "timestamp": 1700000000
+  },
+  "post_accounts_insert_state_root": "0x0000000000000000000000000000000000000000000000000000000000000309",
+  "paths": {
+    "account_state_snapshots_dir": "account_state_snapshots",
+    "account_storages_snapshots_dir": "account_storages_snapshots"
+  }
+}

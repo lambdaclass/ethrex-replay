@@ -30,6 +30,9 @@ generated_inputs/
 !caches/*.json
 !caches/**/*.json
 
+# Test fixtures
+!fixtures/**/*.json
+
 # Temporary backup files
 *~
 .*~

@@ -1,87 +1,97 @@
-use std::fmt;
-use std::time::Duration;
+use std::{fmt, time::Duration};
 
 pub struct RunStats {
-    sorted: Vec<Duration>,
+    durations: Vec<Duration>,
 }
 
 impl RunStats {
     pub fn new(mut durations: Vec<Duration>) -> Self {
         durations.sort();
-        Self { sorted: durations }
-    }
-
-    pub fn min(&self) -> Duration {
-        self.sorted[0]
-    }
-
-    pub fn max(&self) -> Duration {
-        *self.sorted.last().unwrap()
-    }
-
-    pub fn mean(&self) -> Duration {
-        let total: Duration = self.sorted.iter().sum();
-        total / self.sorted.len() as u32
-    }
-
-    pub fn median(&self) -> Duration {
-        let len = self.sorted.len();
-        if len.is_multiple_of(2) {
-            (self.sorted[len / 2 - 1] + self.sorted[len / 2]) / 2
-        } else {
-            self.sorted[len / 2]
-        }
-    }
-
-    pub fn stddev_ms(&self) -> f64 {
-        let mean_ms = self.mean().as_secs_f64() * 1000.0;
-        let variance = self
-            .sorted
-            .iter()
-            .map(|d| {
-                let diff = d.as_secs_f64() * 1000.0 - mean_ms;
-                diff * diff
-            })
-            .sum::<f64>()
-            / self.sorted.len() as f64;
-        variance.sqrt()
-    }
-
-    pub fn percentile(&self, p: f64) -> Duration {
-        let idx = ((p / 100.0) * (self.sorted.len() - 1) as f64).round() as usize;
-        self.sorted[idx.min(self.sorted.len() - 1)]
+        Self { durations }
     }
 
     pub fn len(&self) -> usize {
-        self.sorted.len()
+        self.durations.len()
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.sorted.is_empty()
+    pub fn median(&self) -> Duration {
+        let n = self.durations.len();
+        if n == 0 {
+            return Duration::ZERO;
+        }
+        if n % 2 == 1 {
+            self.durations[n / 2]
+        } else {
+            (self.durations[n / 2 - 1] + self.durations[n / 2]) / 2
+        }
+    }
+
+    fn mean(&self) -> Duration {
+        if self.durations.is_empty() {
+            return Duration::ZERO;
+        }
+        let total: Duration = self.durations.iter().sum();
+        total / self.durations.len() as u32
+    }
+
+    fn stddev(&self) -> Duration {
+        let n = self.durations.len();
+        if n < 2 {
+            return Duration::ZERO;
+        }
+        let mean_nanos = self.mean().as_nanos() as f64;
+        let variance = self
+            .durations
+            .iter()
+            .map(|d| {
+                let diff = d.as_nanos() as f64 - mean_nanos;
+                diff * diff
+            })
+            .sum::<f64>()
+            / (n - 1) as f64;
+        Duration::from_nanos(variance.sqrt() as u64)
+    }
+
+    fn min(&self) -> Duration {
+        self.durations.first().copied().unwrap_or(Duration::ZERO)
+    }
+
+    fn max(&self) -> Duration {
+        self.durations.last().copied().unwrap_or(Duration::ZERO)
+    }
+
+    fn percentile(&self, p: f64) -> Duration {
+        let n = self.durations.len();
+        if n == 0 {
+            return Duration::ZERO;
+        }
+        let idx = ((p / 100.0) * (n - 1) as f64).round() as usize;
+        self.durations[idx.min(n - 1)]
+    }
+
+    fn p95(&self) -> Duration {
+        self.percentile(95.0)
+    }
+
+    fn p99(&self) -> Duration {
+        self.percentile(99.0)
+    }
+}
+
+pub fn print_individual_runs(prep_durations: &[Duration], exec_durations: &[Duration]) {
+    for (i, (prep, exec)) in prep_durations.iter().zip(exec_durations).enumerate() {
+        tracing::info!("  run {}: prep={prep:.2?} exec={exec:.2?}", i + 1);
     }
 }
 
 impl fmt::Display for RunStats {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "  min:    {:>8.2?}", self.min())?;
-        writeln!(f, "  max:    {:>8.2?}", self.max())?;
-        writeln!(f, "  mean:   {:>8.2?}", self.mean())?;
-        writeln!(f, "  median: {:>8.2?}", self.median())?;
-        writeln!(f, "  stddev: {:>8.2}ms", self.stddev_ms())?;
-        writeln!(f, "  p95:    {:>8.2?}", self.percentile(95.0))?;
-        write!(f, "  p99:    {:>8.2?}", self.percentile(99.0))
-    }
-}
-
-pub fn print_individual_runs(prep: &[Duration], exec: &[Duration]) {
-    for (i, (p, e)) in prep.iter().zip(exec.iter()).enumerate() {
-        let total = *p + *e;
-        tracing::info!(
-            "  #{:>2}: prep={:>8.2?} exec={:>8.2?} total={:>8.2?}",
-            i + 1,
-            p,
-            e,
-            total
-        );
+        writeln!(f, "  median: {:.2?}", self.median())?;
+        writeln!(f, "  mean:   {:.2?}", self.mean())?;
+        writeln!(f, "  stddev: {:.2?}", self.stddev())?;
+        writeln!(f, "  p95:    {:.2?}", self.p95())?;
+        writeln!(f, "  p99:    {:.2?}", self.p99())?;
+        writeln!(f, "  min:    {:.2?}", self.min())?;
+        write!(f, "  max:    {:.2?}", self.max())
     }
 }

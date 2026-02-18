@@ -7,7 +7,9 @@ use ethrex_l2_rpc::signer::{LocalSigner, Signer};
 use ethrex_rlp::decode::RLPDecode;
 use ethrex_trie::{EMPTY_TRIE_HASH, InMemoryTrieDB, Node};
 use eyre::{Context, OptionExt};
-use guest_program::input::ProgramInput;
+use ethrex_common::types::block_execution_witness::RpcExecutionWitness;
+use ethrex_guest_program::input::ProgramInput;
+use ethrex_rpc::debug::execution_witness::execution_witness_from_rpc_chain_config;
 use std::{
     cmp::max,
     collections::BTreeMap,
@@ -36,10 +38,7 @@ use ethrex_common::{U256, types::GenesisAccount};
 use ethrex_prover::BackendType;
 #[cfg(not(feature = "l2"))]
 use ethrex_rpc::types::block_identifier::BlockIdentifier;
-use ethrex_rpc::{
-    EthClient,
-    debug::execution_witness::{RpcExecutionWitness, execution_witness_from_rpc_chain_config},
-};
+use ethrex_rpc::EthClient;
 use ethrex_storage::hash_address;
 use ethrex_storage::{EngineType, Store};
 #[cfg(feature = "l2")]
@@ -100,6 +99,9 @@ pub enum EthrexReplayCommand {
     #[cfg(not(feature = "l2"))]
     #[command(about = "Replay a single transaction")]
     Transaction(TransactionOpts),
+    #[cfg(not(feature = "l2"))]
+    #[command(subcommand, about = "SnapSync offline profiling tools")]
+    SnapSync(SnapSyncSubcommand),
     #[cfg(feature = "l2")]
     #[command(subcommand, about = "L2 specific commands")]
     L2(L2Subcommand),
@@ -116,6 +118,99 @@ pub enum L2Subcommand {
     Custom(CustomSubcommand),
     #[command(about = "Replay an L2 transaction")]
     Transaction(TransactionOpts),
+}
+
+#[cfg(not(feature = "l2"))]
+#[derive(Subcommand)]
+pub enum SnapSyncSubcommand {
+    #[command(about = "Profile snapsync compute phases offline using a captured dataset")]
+    Profile(SnapSyncProfileOptions),
+    #[command(about = "Verify a captured snapsync dataset for integrity and correctness")]
+    VerifyDataset(VerifyDatasetCliOptions),
+    #[command(about = "Compare two snapsync profile JSON reports")]
+    Compare(CompareCliOptions),
+}
+
+#[cfg(not(feature = "l2"))]
+#[derive(Parser, Clone)]
+pub struct SnapSyncProfileOptions {
+    #[arg(long, required = true, help = "Path to captured snapsync dataset directory")]
+    pub dataset: std::path::PathBuf,
+
+    #[arg(long, default_value = "10", value_parser = parse_positive_usize, help = "Number of measured runs (must be >= 1)")]
+    pub repeat: usize,
+
+    #[arg(long, default_value = "1", help = "Number of warmup runs (not measured)")]
+    pub warmup: usize,
+
+    #[arg(long, default_value_t = default_backend_name(), help = "Storage backend: \"rocksdb\" or \"inmemory\"")]
+    pub backend: String,
+
+    #[arg(long, help = "Directory for RocksDB data (rocksdb backend only). If omitted, a temp dir is used.")]
+    pub db_dir: Option<std::path::PathBuf>,
+
+    #[arg(long, help = "Don't clean up the RocksDB directory after the run")]
+    pub keep_db: bool,
+
+    #[arg(long, help = "Write JSON report to this file")]
+    pub json_out: Option<std::path::PathBuf>,
+
+    #[arg(long, help = "Print JSON report to stdout")]
+    pub json_stdout: bool,
+}
+
+#[cfg(not(feature = "l2"))]
+#[derive(Parser, Clone)]
+pub struct VerifyDatasetCliOptions {
+    #[arg(long, required = true, help = "Path to captured snapsync dataset directory")]
+    pub dataset: std::path::PathBuf,
+
+    #[arg(long, help = "Enable strict mode: decode all RLP chunks")]
+    pub strict: bool,
+
+    #[arg(long, help = "Write JSON verification report to this file")]
+    pub json_out: Option<std::path::PathBuf>,
+
+    #[arg(long, help = "Print JSON verification report to stdout")]
+    pub json_stdout: bool,
+}
+
+#[cfg(not(feature = "l2"))]
+#[derive(Parser, Clone)]
+pub struct CompareCliOptions {
+    #[arg(long, required = true, help = "Path to baseline JSON report")]
+    pub baseline: std::path::PathBuf,
+
+    #[arg(long, required = true, help = "Path to candidate JSON report")]
+    pub candidate: std::path::PathBuf,
+
+    #[arg(long, help = "Regression threshold as percentage (e.g. 5.0 means +5%% is a regression)")]
+    pub regression_threshold_pct: Option<f64>,
+
+    #[arg(long, help = "Return non-zero exit code if regression exceeds threshold")]
+    pub fail_on_regression: bool,
+
+    #[arg(long, help = "Write JSON comparison report to this file")]
+    pub json_out: Option<std::path::PathBuf>,
+
+    #[arg(long, help = "Print JSON comparison report to stdout")]
+    pub json_stdout: bool,
+}
+
+fn parse_positive_usize(s: &str) -> Result<usize, String> {
+    let val: usize = s.parse().map_err(|e| format!("{e}"))?;
+    if val == 0 {
+        return Err("value must be >= 1".to_string());
+    }
+    Ok(val)
+}
+
+fn default_backend_name() -> String {
+    if cfg!(feature = "rocksdb") {
+        "rocksdb".to_string()
+    } else {
+        "inmemory".to_string()
+    }
 }
 
 #[cfg(not(feature = "l2"))]
@@ -862,6 +957,34 @@ impl EthrexReplayCommand {
                     );
                 }
             }
+            #[cfg(not(feature = "l2"))]
+            EthrexReplayCommand::SnapSync(subcmd) => match subcmd {
+                SnapSyncSubcommand::Profile(opts) => {
+                    crate::snapsync::profile::run_profile(opts).await?;
+                }
+                SnapSyncSubcommand::VerifyDataset(opts) => {
+                    crate::snapsync::verify::run_verify(
+                        crate::snapsync::verify::VerifyDatasetOptions {
+                            dataset: opts.dataset,
+                            strict: opts.strict,
+                            json_out: opts.json_out,
+                            json_stdout: opts.json_stdout,
+                        },
+                    )?;
+                }
+                SnapSyncSubcommand::Compare(opts) => {
+                    crate::snapsync::compare::run_compare(
+                        crate::snapsync::compare::CompareOptions {
+                            baseline: opts.baseline,
+                            candidate: opts.candidate,
+                            regression_threshold_pct: opts.regression_threshold_pct,
+                            fail_on_regression: opts.fail_on_regression,
+                            json_out: opts.json_out,
+                            json_stdout: opts.json_stdout,
+                        },
+                    )?;
+                }
+            },
             #[cfg(feature = "l2")]
             Self::L2(L2Subcommand::Transaction(TransactionOpts {
                 tx_hash,
@@ -1523,6 +1646,7 @@ pub async fn produce_l1_block(
         random: H256::zero(),
         withdrawals: Some(Vec::new()),
         beacon_root: Some(H256::zero()),
+        slot_number: None,
         version: 3,
         elasticity_multiplier: ELASTICITY_MULTIPLIER,
         gas_ceil: DEFAULT_BUILDER_GAS_CEIL,
@@ -1800,6 +1924,7 @@ pub async fn produce_custom_l2_block(
         random: H256::zero(),
         withdrawals: Some(Vec::new()),
         beacon_root: Some(H256::zero()),
+        slot_number: None,
         version: 3,
         elasticity_multiplier: ELASTICITY_MULTIPLIER,
         gas_ceil: DEFAULT_BUILDER_GAS_CEIL,

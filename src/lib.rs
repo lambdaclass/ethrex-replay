@@ -9,4 +9,6 @@ pub mod report;
 pub mod rpc;
 mod run;
 pub mod slack;
+#[cfg(not(feature = "l2"))]
+pub mod snapsync;
 pub mod tx_builder;
