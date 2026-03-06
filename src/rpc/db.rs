@@ -6,6 +6,7 @@ use crate::rpc::{get_account, get_block, retry};
 
 use bytes::Bytes;
 use ethrex_common::constants::EMPTY_KECCACK_HASH;
+use ethrex_common::types::block_execution_witness::RpcExecutionWitness;
 use ethrex_common::types::{AccountState, ChainConfig, Code, CodeMetadata, code_hash};
 use ethrex_common::{
     Address, H256, U256,
@@ -17,7 +18,6 @@ use ethrex_levm::errors::DatabaseError;
 use ethrex_levm::vm::VMType;
 use ethrex_rlp::decode::RLPDecode;
 use ethrex_rlp::encode::RLPEncode;
-use ethrex_common::types::block_execution_witness::RpcExecutionWitness;
 use ethrex_storage::{hash_address, hash_key};
 use ethrex_trie::{Node, PathRLP, Trie};
 use ethrex_vm::backends::levm::LEVM;

@@ -2,12 +2,12 @@
 use crate::helpers::get_block_numbers_in_cache_dir;
 use crate::helpers::get_trie_nodes_with_dummies;
 use bytes::Bytes;
+use ethrex_guest_program::input::ProgramInput;
 use ethrex_l2_common::prover::ProofFormat;
 use ethrex_l2_rpc::signer::{LocalSigner, Signer};
 use ethrex_rlp::decode::RLPDecode;
 use ethrex_trie::{EMPTY_TRIE_HASH, InMemoryTrieDB, Node};
 use eyre::{Context, OptionExt};
-use ethrex_guest_program::input::ProgramInput;
 use std::{
     cmp::max,
     collections::BTreeMap,
@@ -37,10 +37,7 @@ use ethrex_common::{U256, types::GenesisAccount};
 use ethrex_prover::BackendType;
 #[cfg(not(feature = "l2"))]
 use ethrex_rpc::types::block_identifier::BlockIdentifier;
-use ethrex_rpc::{
-    EthClient,
-    debug::execution_witness::execution_witness_from_rpc_chain_config,
-};
+use ethrex_rpc::{EthClient, debug::execution_witness::execution_witness_from_rpc_chain_config};
 use ethrex_storage::hash_address;
 use ethrex_storage::{EngineType, Store};
 #[cfg(feature = "l2")]
