@@ -977,11 +977,7 @@ fn write_program_input(output_path: &PathBuf, program_input: &ProgramInput) -> e
 
     let blocks_len = program_input.blocks.len();
     #[cfg(feature = "l2")]
-    let fee_configs_len = program_input
-        .fee_configs
-        .as_ref()
-        .map(|v| v.len())
-        .unwrap_or(0);
+    let fee_configs_len = program_input.fee_configs.len();
     let serialized_program_input = rkyv::to_bytes::<rkyv::rancor::Error>(program_input)
         .wrap_err_with(|| {
             #[cfg(feature = "l2")]
@@ -1578,7 +1574,7 @@ pub async fn produce_l1_block(
 }
 
 #[cfg(feature = "l2")]
-use ethrex_blockchain::validate_block;
+use ethrex_common::validation::validate_block_pre_execution;
 #[cfg(feature = "l2")]
 use ethrex_l2::sequencer::block_producer::build_payload;
 #[cfg(feature = "l2")]
@@ -1844,7 +1840,7 @@ pub async fn produce_custom_l2_block(
 
     let chain_config = store.get_chain_config();
 
-    validate_block(
+    validate_block_pre_execution(
         &new_block,
         &store
             .get_block_header_by_hash(new_block.header.parent_hash)?
@@ -1858,6 +1854,7 @@ pub async fn produce_custom_l2_block(
     let execution_result = BlockExecutionResult {
         receipts: payload_build_result.receipts,
         requests: Vec::new(),
+        block_gas_used: new_block.header.gas_used,
     };
 
     let account_updates_list = store
