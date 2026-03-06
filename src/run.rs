@@ -1,10 +1,11 @@
 use crate::{cache::Cache, cli::ProofType};
-use ethrex_common::types::ELASTICITY_MULTIPLIER;
-use ethrex_common::types::fee_config::FeeConfig;
+#[cfg(feature = "l2")]
+use ethrex_common::types::{ELASTICITY_MULTIPLIER, fee_config::FeeConfig};
 use ethrex_common::{
     H256,
     types::{AccountUpdate, Receipt, block_execution_witness::GuestProgramState},
 };
+use ethrex_guest_program::input::ProgramInput;
 use ethrex_levm::{db::gen_db::GeneralizedDatabase, vm::VMType};
 #[cfg(feature = "openvm")]
 use ethrex_prover::OpenVmBackend;
@@ -18,7 +19,6 @@ use ethrex_prover::{BackendType, ExecBackend, ProverBackend};
 use ethrex_rpc::debug::execution_witness::execution_witness_from_rpc_chain_config;
 use ethrex_vm::{DynVmDatabase, Evm, GuestProgramStateWrapper, backends::levm::LEVM};
 use eyre::Context;
-use guest_program::input::ProgramInput;
 use std::{
     panic::{AssertUnwindSafe, catch_unwind},
     sync::Arc,
@@ -158,7 +158,14 @@ pub async fn run_tx(cache: Cache, tx_hash: H256) -> eyre::Result<(Receipt, Vec<A
         let mut vm = Evm::new_for_l2(wrapped_db.clone(), fee_config)?;
         #[cfg(not(feature = "l2"))]
         let mut vm = Evm::new_for_l1(wrapped_db.clone());
-        let (receipt, _) = vm.execute_tx(tx, &block.header, &mut remaining_gas, tx_sender)?;
+        let mut cumulative_gas_spent = 0;
+        let (receipt, _) = vm.execute_tx(
+            tx,
+            &block.header,
+            &mut remaining_gas,
+            &mut cumulative_gas_spent,
+            tx_sender,
+        )?;
         let account_updates = vm.get_state_transitions()?;
         wrapped_db.apply_account_updates(&account_updates)?;
         if tx.hash() == tx_hash {
@@ -196,12 +203,9 @@ pub fn get_l1_input(cache: Cache) -> eyre::Result<ProgramInput> {
     let execution_witness =
         execution_witness_from_rpc_chain_config(db, chain_config, first_block_number)?;
 
-    let block_len = blocks.len();
     Ok(ProgramInput {
         blocks,
         execution_witness,
-        elasticity_multiplier: ELASTICITY_MULTIPLIER,
-        fee_configs: Some(vec![FeeConfig::default(); block_len]),
     })
 }
 
@@ -244,6 +248,6 @@ pub fn get_l2_input(cache: Cache) -> eyre::Result<ProgramInput> {
         elasticity_multiplier: ELASTICITY_MULTIPLIER,
         blob_commitment: l2_fields.blob_commitment,
         blob_proof: l2_fields.blob_proof,
-        fee_configs: Some(vec![FeeConfig::default(); block_len]),
+        fee_configs: vec![FeeConfig::default(); block_len],
     })
 }

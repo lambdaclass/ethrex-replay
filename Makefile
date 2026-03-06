@@ -40,11 +40,12 @@ update_ethrex:
 	-p ethrex-rlp \
 	-p ethrex-blockchain \
 	-p ethrex-l2 \
+	-p ethrex-l2-common \
 	-p ethrex-storage-rollup \
 	-p ethrex-l2-rpc \
-	-p ethrex\
-	-prover \
-	-p guest_program
+	-p ethrex-sdk \
+	-p ethrex-prover \
+	-p ethrex-guest-program
 
 # --- Profiling targets ---
 PROFILE_BLOCK ?= 24443168

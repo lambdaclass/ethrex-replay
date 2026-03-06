@@ -2,12 +2,12 @@
 use crate::helpers::get_block_numbers_in_cache_dir;
 use crate::helpers::get_trie_nodes_with_dummies;
 use bytes::Bytes;
+use ethrex_guest_program::input::ProgramInput;
 use ethrex_l2_common::prover::ProofFormat;
 use ethrex_l2_rpc::signer::{LocalSigner, Signer};
 use ethrex_rlp::decode::RLPDecode;
 use ethrex_trie::{EMPTY_TRIE_HASH, InMemoryTrieDB, Node};
 use eyre::{Context, OptionExt};
-use guest_program::input::ProgramInput;
 use std::{
     cmp::max,
     collections::BTreeMap,
@@ -27,7 +27,8 @@ use ethrex_common::{
     Address, H256,
     types::{
         AccountState, AccountUpdate, Block, Code, DEFAULT_BUILDER_GAS_CEIL, ELASTICITY_MULTIPLIER,
-        Receipt, block_execution_witness::GuestProgramState,
+        Receipt,
+        block_execution_witness::{GuestProgramState, RpcExecutionWitness},
     },
     utils::keccak,
 };
@@ -36,10 +37,7 @@ use ethrex_common::{U256, types::GenesisAccount};
 use ethrex_prover::BackendType;
 #[cfg(not(feature = "l2"))]
 use ethrex_rpc::types::block_identifier::BlockIdentifier;
-use ethrex_rpc::{
-    EthClient,
-    debug::execution_witness::{RpcExecutionWitness, execution_witness_from_rpc_chain_config},
-};
+use ethrex_rpc::{EthClient, debug::execution_witness::execution_witness_from_rpc_chain_config};
 use ethrex_storage::hash_address;
 use ethrex_storage::{EngineType, Store};
 #[cfg(feature = "l2")]
@@ -976,11 +974,7 @@ fn write_program_input(output_path: &PathBuf, program_input: &ProgramInput) -> e
 
     let blocks_len = program_input.blocks.len();
     #[cfg(feature = "l2")]
-    let fee_configs_len = program_input
-        .fee_configs
-        .as_ref()
-        .map(|v| v.len())
-        .unwrap_or(0);
+    let fee_configs_len = program_input.fee_configs.len();
     let serialized_program_input = rkyv::to_bytes::<rkyv::rancor::Error>(program_input)
         .wrap_err_with(|| {
             #[cfg(feature = "l2")]
@@ -1136,7 +1130,7 @@ async fn replay_no_zkvm(cache: Cache, opts: &EthrexReplayOptions) -> eyre::Resul
         info!("Executing block {} on {}", block.header.number, network);
 
         let exec_start = Instant::now();
-        blockchain.add_block_pipeline(block)?;
+        blockchain.add_block_pipeline(block, None)?;
         let exec_duration = exec_start.elapsed();
         exec_durations.push(exec_duration);
 
@@ -1523,6 +1517,7 @@ pub async fn produce_l1_block(
         random: H256::zero(),
         withdrawals: Some(Vec::new()),
         beacon_root: Some(H256::zero()),
+        slot_number: None,
         version: 3,
         elasticity_multiplier: ELASTICITY_MULTIPLIER,
         gas_ceil: DEFAULT_BUILDER_GAS_CEIL,
@@ -1576,7 +1571,7 @@ pub async fn produce_l1_block(
 }
 
 #[cfg(feature = "l2")]
-use ethrex_blockchain::validate_block;
+use ethrex_common::validation::validate_block_pre_execution;
 #[cfg(feature = "l2")]
 use ethrex_l2::sequencer::block_producer::build_payload;
 #[cfg(feature = "l2")]
@@ -1800,6 +1795,7 @@ pub async fn produce_custom_l2_block(
         random: H256::zero(),
         withdrawals: Some(Vec::new()),
         beacon_root: Some(H256::zero()),
+        slot_number: None,
         version: 3,
         elasticity_multiplier: ELASTICITY_MULTIPLIER,
         gas_ceil: DEFAULT_BUILDER_GAS_CEIL,
@@ -1841,7 +1837,7 @@ pub async fn produce_custom_l2_block(
 
     let chain_config = store.get_chain_config();
 
-    validate_block(
+    validate_block_pre_execution(
         &new_block,
         &store
             .get_block_header_by_hash(new_block.header.parent_hash)?
@@ -1855,6 +1851,7 @@ pub async fn produce_custom_l2_block(
     let execution_result = BlockExecutionResult {
         receipts: payload_build_result.receipts,
         requests: Vec::new(),
+        block_gas_used: new_block.header.gas_used,
     };
 
     let account_updates_list = store
