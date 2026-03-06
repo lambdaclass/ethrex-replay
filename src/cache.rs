@@ -2,7 +2,7 @@ use ethrex_common::types::Block;
 use ethrex_common::types::ChainConfig;
 use ethrex_common::types::blobs_bundle;
 use ethrex_config::networks::Network;
-use ethrex_rpc::debug::execution_witness::RpcExecutionWitness;
+use ethrex_common::types::block_execution_witness::RpcExecutionWitness;
 use eyre::OptionExt;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;

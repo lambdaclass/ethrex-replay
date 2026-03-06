@@ -6,7 +6,7 @@ use crate::rpc::{get_account, get_block, retry};
 
 use bytes::Bytes;
 use ethrex_common::constants::EMPTY_KECCACK_HASH;
-use ethrex_common::types::{AccountState, ChainConfig, Code, code_hash};
+use ethrex_common::types::{AccountState, ChainConfig, Code, CodeMetadata, code_hash};
 use ethrex_common::{
     Address, H256, U256,
     types::{Block, TxKind},
@@ -17,7 +17,7 @@ use ethrex_levm::errors::DatabaseError;
 use ethrex_levm::vm::VMType;
 use ethrex_rlp::decode::RLPDecode;
 use ethrex_rlp::encode::RLPEncode;
-use ethrex_rpc::debug::execution_witness::RpcExecutionWitness;
+use ethrex_common::types::block_execution_witness::RpcExecutionWitness;
 use ethrex_storage::{hash_address, hash_key};
 use ethrex_trie::{Node, PathRLP, Trie};
 use ethrex_vm::backends::levm::LEVM;
@@ -492,6 +492,13 @@ impl LevmDatabase for RpcDB {
             DatabaseError::Custom("Code not found on already fetched accounts".to_string())
         })?;
         Ok(Code::from_bytecode(bytecode))
+    }
+
+    fn get_code_metadata(&self, code_hash: H256) -> Result<CodeMetadata, DatabaseError> {
+        let code = self.get_account_code(code_hash)?;
+        Ok(CodeMetadata {
+            length: code.bytecode.len() as u64,
+        })
     }
 
     fn get_account_state(&self, address: Address) -> Result<AccountState, DatabaseError> {
