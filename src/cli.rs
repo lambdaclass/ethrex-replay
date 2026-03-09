@@ -1041,8 +1041,6 @@ async fn prepare_no_zkvm_state(cache: &Cache) -> eyre::Result<(Store, Block, Str
     // Set up all storage tries by enumerating accounts directly from the state trie.
     // Leaf entries in the committed trie have paths of length 65: 64 nibbles for
     // keccak256(address) + 1 leaf flag (0x10). Their values are RLP-encoded AccountState.
-    // This avoids relying on the `keys` field which has been removed from the
-    // ExecutionWitness spec by the Ethereum Foundation.
     let account_state_trie = InMemoryTrieDB::from_nodes(state_root, &all_nodes)?;
     let account_entries: Vec<(Vec<u8>, Vec<u8>)> = {
         let inner = account_state_trie.inner();
@@ -1072,9 +1070,6 @@ async fn prepare_no_zkvm_state(cache: &Cache) -> eyre::Result<(Store, Block, Str
         };
 
         let storage_trie_nodes = get_trie_nodes_with_dummies(storage_trie);
-        if storage_trie_nodes.is_empty() {
-            continue;
-        }
 
         // Convert first 64 nibbles back to 32-byte hashed address (skip leaf flag at index 64)
         let hashed_address_bytes: Vec<u8> = nibble_path[..64]
