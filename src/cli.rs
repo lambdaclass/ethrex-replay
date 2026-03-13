@@ -38,7 +38,6 @@ use ethrex_prover::BackendType;
 #[cfg(not(feature = "l2"))]
 use ethrex_rpc::types::block_identifier::BlockIdentifier;
 use ethrex_rpc::{EthClient, debug::execution_witness::execution_witness_from_rpc_chain_config};
-use ethrex_storage::hash_address;
 use ethrex_storage::{EngineType, Store};
 #[cfg(feature = "l2")]
 use ethrex_storage_rollup::EngineTypeRollup;
@@ -1039,42 +1038,47 @@ async fn prepare_no_zkvm_state(cache: &Cache) -> eyre::Result<(Store, Block, Str
 
     trie.db().put_batch(state_trie_nodes)?;
 
-    // - Set up all storage tries for all addresses in the execution witness
-    let addresses: Vec<Address> = witness
-        .keys
-        .iter()
-        .filter(|k| k.len() == Address::len_bytes())
-        .map(|k| Address::from_slice(k))
-        .collect();
+    // Set up all storage tries by enumerating accounts directly from the state trie.
+    // Leaf entries in the committed trie have paths of length 65: 64 nibbles for
+    // keccak256(address) + 1 leaf flag (0x10). Their values are RLP-encoded AccountState.
+    let account_state_trie = InMemoryTrieDB::from_nodes(state_root, &all_nodes)?;
+    let account_entries: Vec<(Vec<u8>, Vec<u8>)> = {
+        let inner = account_state_trie.inner();
+        let guard = inner.lock().unwrap();
+        guard
+            .iter()
+            .filter(|(path, _)| path.len() == 65 && path[64] == 16)
+            .map(|(path, value)| (path.clone(), value.clone()))
+            .collect()
+    };
 
-    for address in &addresses {
-        let hashed_address = hash_address(address);
-
-        // Account state may not be in the state trie
-        let Some(account_state_rlp) = guest_program.state_trie.get(&hashed_address)? else {
+    for (nibble_path, account_state_rlp) in &account_entries {
+        let Ok(account_state) = AccountState::decode(account_state_rlp) else {
             continue;
         };
 
-        let account_state = AccountState::decode(&account_state_rlp)?;
-
-        // If code hash of account isn't present insert empty code so that if not found the execution doesn't break.
         let code_hash = account_state.code_hash;
         all_codes_hashed.entry(code_hash).or_insert(Code::default());
 
         let storage_root = account_state.storage_root;
+        if storage_root == *EMPTY_TRIE_HASH {
+            continue;
+        }
+
         let Ok(storage_trie) = InMemoryTrieDB::from_nodes(storage_root, &all_nodes) else {
             continue;
         };
 
         let storage_trie_nodes = get_trie_nodes_with_dummies(storage_trie);
 
-        // If there isn't any storage trie node we don't need to write anything
-        if storage_trie_nodes.is_empty() {
-            continue;
-        }
+        // Convert first 64 nibbles back to 32-byte hashed address (skip leaf flag at index 64)
+        let hashed_address_bytes: Vec<u8> = nibble_path[..64]
+            .chunks(2)
+            .map(|pair| (pair[0] << 4) | pair[1])
+            .collect();
+        let hashed_address = H256::from_slice(&hashed_address_bytes);
 
-        let storage_trie_nodes = vec![(H256::from_slice(&hashed_address), storage_trie_nodes)];
-
+        let storage_trie_nodes = vec![(hashed_address, storage_trie_nodes)];
         store
             .write_storage_trie_nodes_batch(storage_trie_nodes)
             .await?;

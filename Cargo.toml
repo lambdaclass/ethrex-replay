@@ -14,23 +14,24 @@ inherits = "release"
 debug = 2
 
 [dependencies]
-ethrex-config = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-config", branch = "main" }
-ethrex-storage = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-storage", branch = "main" }
-ethrex-common = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-common", branch = "main" }
-ethrex-vm = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-vm", branch = "main" }
-ethrex-levm = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-levm", branch = "main" }
-ethrex-rpc = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-rpc", branch = "main" }
-ethrex-p2p = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-p2p", branch = "main" }
-ethrex-trie = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-trie", branch = "main" }
-ethrex-rlp = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-rlp", branch = "main" }
-ethrex-blockchain = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-blockchain", branch = "main" }
-ethrex-l2 = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2", branch = "main", optional = true }
-ethrex-l2-common = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2-common", branch = "main" }
-ethrex-storage-rollup = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-storage-rollup", branch = "main", optional = true }
-ethrex-sdk = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-sdk", branch = "main" }
-ethrex-l2-rpc = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2-rpc", branch = "main" }
-ethrex-prover = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-prover", branch = "main", default-features = false }
-ethrex-guest-program = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-guest-program", branch = "main", default-features = false }
+ethrex-config = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-config", branch = "refactor/remove-keys-from-execution-witness" }
+ethrex-storage = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-storage", branch = "refactor/remove-keys-from-execution-witness" }
+ethrex-common = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-common", branch = "refactor/remove-keys-from-execution-witness" }
+ethrex-vm = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-vm", branch = "refactor/remove-keys-from-execution-witness" }
+ethrex-levm = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-levm", branch = "refactor/remove-keys-from-execution-witness" }
+ethrex-rpc = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-rpc", branch = "refactor/remove-keys-from-execution-witness" }
+ethrex-p2p = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-p2p", branch = "refactor/remove-keys-from-execution-witness" }
+ethrex-trie = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-trie", branch = "refactor/remove-keys-from-execution-witness" }
+ethrex-rlp = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-rlp", branch = "refactor/remove-keys-from-execution-witness" }
+ethrex-blockchain = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-blockchain", branch = "refactor/remove-keys-from-execution-witness" }
+ethrex-l2 = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2", branch = "refactor/remove-keys-from-execution-witness", optional = true }
+ethrex-l2-common = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2-common", branch = "refactor/remove-keys-from-execution-witness" }
+ethrex-storage-rollup = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-storage-rollup", branch = "refactor/remove-keys-from-execution-witness", optional = true }
+ethrex-sdk = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-sdk", branch = "refactor/remove-keys-from-execution-witness" }
+ethrex-l2-rpc = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-l2-rpc", branch = "refactor/remove-keys-from-execution-witness" }
+ethrex-prover = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-prover", branch = "refactor/remove-keys-from-execution-witness", default-features = false }
+ethrex-guest-program = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-guest-program", branch = "refactor/remove-keys-from-execution-witness", default-features = false }
+ethrex-crypto = { git = "https://github.com/lambdaclass/ethrex", package = "ethrex-crypto", branch = "refactor/remove-keys-from-execution-witness" }
 
 serde = { version = "1.0.203", features = ["derive"] }
 hex = "0.4.3"
