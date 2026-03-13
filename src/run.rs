@@ -5,6 +5,7 @@ use ethrex_common::{
     H256,
     types::{AccountUpdate, Receipt, block_execution_witness::GuestProgramState},
 };
+use ethrex_crypto::NativeCrypto;
 use ethrex_guest_program::input::ProgramInput;
 use ethrex_levm::{db::gen_db::GeneralizedDatabase, vm::VMType};
 #[cfg(feature = "openvm")]
@@ -148,16 +149,16 @@ pub async fn run_tx(cache: Cache, tx_hash: H256) -> eyre::Result<(Receipt, Vec<A
     let changes = {
         let store: Arc<DynVmDatabase> = Arc::new(Box::new(wrapped_db.clone()));
         let mut db = GeneralizedDatabase::new(store.clone());
-        LEVM::prepare_block(block, &mut db, vm_type)?;
+        LEVM::prepare_block(block, &mut db, vm_type, &NativeCrypto)?;
         LEVM::get_state_transitions(&mut db)?
     };
     wrapped_db.apply_account_updates(&changes)?;
 
-    for (tx, tx_sender) in block.body.get_transactions_with_sender()? {
+    for (tx, tx_sender) in block.body.get_transactions_with_sender(&NativeCrypto)? {
         #[cfg(feature = "l2")]
-        let mut vm = Evm::new_for_l2(wrapped_db.clone(), fee_config)?;
+        let mut vm = Evm::new_for_l2(wrapped_db.clone(), fee_config, Arc::new(NativeCrypto))?;
         #[cfg(not(feature = "l2"))]
-        let mut vm = Evm::new_for_l1(wrapped_db.clone());
+        let mut vm = Evm::new_for_l1(wrapped_db.clone(), Arc::new(NativeCrypto));
         let mut cumulative_gas_spent = 0;
         let (receipt, _) = vm.execute_tx(
             tx,

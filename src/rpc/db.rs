@@ -6,6 +6,7 @@ use crate::rpc::{get_account, get_block, retry};
 
 use bytes::Bytes;
 use ethrex_common::constants::EMPTY_KECCACK_HASH;
+use ethrex_crypto::NativeCrypto;
 use ethrex_common::types::block_execution_witness::RpcExecutionWitness;
 use ethrex_common::types::{AccountState, ChainConfig, Code, CodeMetadata, code_hash};
 use ethrex_common::{
@@ -112,7 +113,7 @@ impl RpcDB {
     async fn cache_accounts(&mut self, block: &Block) -> eyre::Result<()> {
         let txs = &block.body.transactions;
 
-        let callers = txs.iter().filter_map(|tx| tx.sender().ok());
+        let callers = txs.iter().filter_map(|tx| tx.sender(&NativeCrypto).ok());
         let to = txs.iter().filter_map(|tx| match tx.to() {
             TxKind::Call(to) => Some(to),
             TxKind::Create => None,
@@ -330,7 +331,7 @@ impl RpcDB {
         let mut db = GeneralizedDatabase::new(Arc::new(self.clone()));
 
         // pre-execute and get all state changes
-        let _ = LEVM::execute_block(block, &mut db, self.vm_type).map_err(Box::new)?;
+        let _ = LEVM::execute_block(block, &mut db, self.vm_type, &NativeCrypto).map_err(Box::new)?;
         let execution_updates = LEVM::get_state_transitions(&mut db).map_err(Box::new)?;
 
         info!(
