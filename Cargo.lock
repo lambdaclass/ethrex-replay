@@ -159,7 +159,7 @@ dependencies = [
  "sp1-sdk",
  "tokio",
  "tracing",
- "tracing-subscriber 0.3.22",
+ "tracing-subscriber 0.3.23",
 ]
 
 [[package]]
@@ -214,12 +214,12 @@ dependencies = [
 
 [[package]]
 name = "alloy-chains"
-version = "0.2.30"
+version = "0.2.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90f374d3c6d729268bbe2d0e0ff992bb97898b2df756691a62ee1d5f0506bc39"
+checksum = "6d9d22005bf31b018f31ef9ecadb5d2c39cf4f6acc8db0456f72c815f3d7f757"
 dependencies = [
  "alloy-primitives",
- "num_enum 0.7.5",
+ "num_enum 0.7.6",
  "strum 0.27.2",
 ]
 
@@ -800,13 +800,12 @@ dependencies = [
 
 [[package]]
 name = "alloy-trie"
-version = "0.9.4"
+version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d7fd448ab0a017de542de1dcca7a58e7019fe0e7a34ed3f9543ebddf6aceffa"
+checksum = "3f14b5d9b2c2173980202c6ff470d96e7c5e202c65a9f67884ad565226df7fbb"
 dependencies = [
  "alloy-primitives",
  "alloy-rlp",
- "arrayvec",
  "derive_more 2.1.1",
  "nybbles",
  "serde",
@@ -847,9 +846,9 @@ dependencies = [
 
 [[package]]
 name = "anstream"
-version = "0.6.21"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43d5b281e737544384e969a5ccad3f1cdd24b48086a0fc1b2a5262a26b8f4f4a"
+checksum = "824a212faf96e9acacdbd09febd34438f8f711fb84e09a8916013cd7815ca28d"
 dependencies = [
  "anstyle",
  "anstyle-parse",
@@ -862,15 +861,15 @@ dependencies = [
 
 [[package]]
 name = "anstyle"
-version = "1.0.13"
+version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5192cca8006f1fd4f7237516f40fa183bb07f8fbdfedaa0036de5ea9b0b45e78"
+checksum = "940b3a0ca603d1eade50a4846a2afffd5ef57a9feac2c0e2ec2e14f9ead76000"
 
 [[package]]
 name = "anstyle-parse"
-version = "0.2.7"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e7644824f0aa2c7b9384579234ef10eb7efb6a0deb83f9630a49594dd9c15c2"
+checksum = "52ce7f38b242319f7cabaa6813055467063ecdc9d355bbb4ce0c68908cd8130e"
 dependencies = [
  "utf8parse",
 ]
@@ -1274,9 +1273,6 @@ name = "arrayvec"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
-dependencies = [
- "serde",
-]
 
 [[package]]
 name = "as_derive_utils"
@@ -1857,9 +1853,9 @@ dependencies = [
 
 [[package]]
 name = "bon"
-version = "3.9.0"
+version = "3.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d13a61f2963b88eef9c1be03df65d42f6996dfeac1054870d950fcf66686f83"
+checksum = "f47dbe92550676ee653353c310dfb9cf6ba17ee70396e1f7cf0a2020ad49b2fe"
 dependencies = [
  "bon-macros",
  "rustversion",
@@ -1867,9 +1863,9 @@ dependencies = [
 
 [[package]]
 name = "bon-macros"
-version = "3.9.0"
+version = "3.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d314cc62af2b6b0c65780555abb4d02a03dd3b799cd42419044f0c38d99738c0"
+checksum = "519bd3116aeeb42d5372c29d982d16d0170d3d4a5ed85fc7dd91642ffff3c67c"
 dependencies = [
  "darling 0.23.0",
  "ident_case",
@@ -1994,9 +1990,9 @@ checksum = "6bd91ee7b2422bcb158d90ef4d14f75ef67f340943fc4149891dcce8f8b972a3"
 
 [[package]]
 name = "c-kzg"
-version = "2.1.6"
+version = "2.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a0f582957c24870b7bfd12bf562c40b4734b533cafbaf8ded31d6d85f462c01"
+checksum = "6648ed1e4ea8e8a1a4a2c78e1cda29a3fd500bc622899c340d8525ea9a76b24a"
 dependencies = [
  "blst",
  "cc",
@@ -2089,9 +2085,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.2.56"
+version = "1.2.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aebf35691d1bfb0ac386a69bac2fde4dd276fb618cf8bf4f5318fe285e821bb2"
+checksum = "7a0dd1ca384932ff3641c8718a02769f1698e7563dc6974ffd03346116310423"
 dependencies = [
  "find-msvc-tools",
  "jobserver",
@@ -2207,9 +2203,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.60"
+version = "4.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2797f34da339ce31042b27d23607e051786132987f595b02ba4f6a6dffb7030a"
+checksum = "b193af5b67834b676abd72466a96c1024e6a6ad978a1f484bd90b85c94041351"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -2217,9 +2213,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.5.60"
+version = "4.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24a241312cea5059b13574bb9b3861cabf758b879c15190b37b6d6fd63ab6876"
+checksum = "714a53001bf66416adb0e2ef5ac857140e7dc3a0c48fb28b2f10762fc4b5069f"
 dependencies = [
  "anstream",
  "anstyle",
@@ -2229,9 +2225,9 @@ dependencies = [
 
 [[package]]
 name = "clap_derive"
-version = "4.5.55"
+version = "4.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a92793da1a46a5f2a02a6f4c46c6496b28c43638adea8306fcb0caa1634f24e5"
+checksum = "1110bd8a634a1ab8cb04345d8d878267d57c3cf1b38d91b71af6686408bbca6a"
 dependencies = [
  "heck 0.5.0",
  "proc-macro2",
@@ -2241,9 +2237,9 @@ dependencies = [
 
 [[package]]
 name = "clap_lex"
-version = "1.0.0"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a822ea5bc7590f9d40f1ba12c0dc3c2760f3482c6984db1573ad11031420831"
+checksum = "c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9"
 
 [[package]]
 name = "cobs"
@@ -2289,9 +2285,9 @@ checksum = "3d7b894f5411737b7867f4827955924d7c254fc9f4d91a6aad6b097804b1018b"
 
 [[package]]
 name = "colorchoice"
-version = "1.0.4"
+version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b05b61dc5112cbb17e4b6cd61790d9845d13888356391624cbe7e41efeac1e75"
+checksum = "1d07550c9036bf2ae0c684c4297d503f838287c83c53686d05370d0e139ae570"
 
 [[package]]
 name = "compact_str"
@@ -3697,7 +3693,7 @@ dependencies = [
 [[package]]
 name = "ethrex-blockchain"
 version = "9.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=refactor%2Fremove-keys-from-execution-witness#adf071156c1ea969f756ace903ee1f09e4c2fbd9"
+source = "git+https://github.com/lambdaclass/ethrex?rev=b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6#b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6"
 dependencies = [
  "bytes",
  "ethrex-common",
@@ -3718,7 +3714,7 @@ dependencies = [
 [[package]]
 name = "ethrex-common"
 version = "9.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=refactor%2Fremove-keys-from-execution-witness#adf071156c1ea969f756ace903ee1f09e4c2fbd9"
+source = "git+https://github.com/lambdaclass/ethrex?rev=b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6#b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6"
 dependencies = [
  "bytes",
  "crc32fast",
@@ -3751,7 +3747,7 @@ dependencies = [
 [[package]]
 name = "ethrex-config"
 version = "9.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=refactor%2Fremove-keys-from-execution-witness#adf071156c1ea969f756ace903ee1f09e4c2fbd9"
+source = "git+https://github.com/lambdaclass/ethrex?rev=b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6#b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6"
 dependencies = [
  "ethrex-common",
  "ethrex-p2p",
@@ -3763,7 +3759,7 @@ dependencies = [
 [[package]]
 name = "ethrex-crypto"
 version = "9.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=refactor%2Fremove-keys-from-execution-witness#adf071156c1ea969f756ace903ee1f09e4c2fbd9"
+source = "git+https://github.com/lambdaclass/ethrex?rev=b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6#b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6"
 dependencies = [
  "ark-bn254",
  "ark-ec",
@@ -3786,7 +3782,7 @@ dependencies = [
 [[package]]
 name = "ethrex-dev"
 version = "9.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=refactor%2Fremove-keys-from-execution-witness#adf071156c1ea969f756ace903ee1f09e4c2fbd9"
+source = "git+https://github.com/lambdaclass/ethrex?rev=b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6#b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6"
 dependencies = [
  "bytes",
  "envy",
@@ -3806,7 +3802,7 @@ dependencies = [
 [[package]]
 name = "ethrex-guest-program"
 version = "9.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=refactor%2Fremove-keys-from-execution-witness#adf071156c1ea969f756ace903ee1f09e4c2fbd9"
+source = "git+https://github.com/lambdaclass/ethrex?rev=b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6#b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6"
 dependencies = [
  "bytes",
  "ethereum-types 0.15.1",
@@ -3831,7 +3827,7 @@ dependencies = [
 [[package]]
 name = "ethrex-l2"
 version = "9.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=refactor%2Fremove-keys-from-execution-witness#adf071156c1ea969f756ace903ee1f09e4c2fbd9"
+source = "git+https://github.com/lambdaclass/ethrex?rev=b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6#b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6"
 dependencies = [
  "agg_mode_sdk",
  "alloy",
@@ -3890,7 +3886,7 @@ dependencies = [
 [[package]]
 name = "ethrex-l2-common"
 version = "9.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=refactor%2Fremove-keys-from-execution-witness#adf071156c1ea969f756ace903ee1f09e4c2fbd9"
+source = "git+https://github.com/lambdaclass/ethrex?rev=b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6#b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6"
 dependencies = [
  "bytes",
  "ethereum-types 0.15.1",
@@ -3914,7 +3910,7 @@ dependencies = [
 [[package]]
 name = "ethrex-l2-rpc"
 version = "9.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=refactor%2Fremove-keys-from-execution-witness#adf071156c1ea969f756ace903ee1f09e4c2fbd9"
+source = "git+https://github.com/lambdaclass/ethrex?rev=b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6#b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6"
 dependencies = [
  "axum 0.8.8",
  "bytes",
@@ -3938,14 +3934,14 @@ dependencies = [
  "tokio",
  "tower-http",
  "tracing",
- "tracing-subscriber 0.3.22",
+ "tracing-subscriber 0.3.23",
  "url",
 ]
 
 [[package]]
 name = "ethrex-levm"
 version = "9.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=refactor%2Fremove-keys-from-execution-witness#adf071156c1ea969f756ace903ee1f09e4c2fbd9"
+source = "git+https://github.com/lambdaclass/ethrex?rev=b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6#b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6"
 dependencies = [
  "bitvec",
  "bytes",
@@ -3969,23 +3965,23 @@ dependencies = [
 [[package]]
 name = "ethrex-metrics"
 version = "9.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=refactor%2Fremove-keys-from-execution-witness#adf071156c1ea969f756ace903ee1f09e4c2fbd9"
+source = "git+https://github.com/lambdaclass/ethrex?rev=b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6#b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6"
 dependencies = [
  "axum 0.8.8",
  "ethrex-common",
- "prometheus 0.13.4",
+ "prometheus",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
- "tracing-subscriber 0.3.22",
+ "tracing-subscriber 0.3.23",
 ]
 
 [[package]]
 name = "ethrex-monitor"
 version = "9.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=refactor%2Fremove-keys-from-execution-witness#adf071156c1ea969f756ace903ee1f09e4c2fbd9"
+source = "git+https://github.com/lambdaclass/ethrex?rev=b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6#b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6"
 dependencies = [
  "bytes",
  "chrono",
@@ -4018,7 +4014,7 @@ dependencies = [
 [[package]]
 name = "ethrex-p2p"
 version = "9.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=refactor%2Fremove-keys-from-execution-witness#adf071156c1ea969f756ace903ee1f09e4c2fbd9"
+source = "git+https://github.com/lambdaclass/ethrex?rev=b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6#b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6"
 dependencies = [
  "aes",
  "aes-gcm",
@@ -4042,7 +4038,7 @@ dependencies = [
  "hmac",
  "indexmap 2.13.0",
  "lazy_static",
- "prometheus 0.14.0",
+ "prometheus",
  "rand 0.8.5",
  "rayon",
  "rustc-hash 2.1.1",
@@ -4063,7 +4059,7 @@ dependencies = [
 [[package]]
 name = "ethrex-prover"
 version = "9.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=refactor%2Fremove-keys-from-execution-witness#adf071156c1ea969f756ace903ee1f09e4c2fbd9"
+source = "git+https://github.com/lambdaclass/ethrex?rev=b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6#b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6"
 dependencies = [
  "anyhow",
  "bincode 1.3.3",
@@ -4095,7 +4091,7 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
- "tracing-subscriber 0.3.22",
+ "tracing-subscriber 0.3.23",
  "url",
 ]
 
@@ -4139,13 +4135,13 @@ dependencies = [
  "tikv-jemallocator",
  "tokio",
  "tracing",
- "tracing-subscriber 0.3.22",
+ "tracing-subscriber 0.3.23",
 ]
 
 [[package]]
 name = "ethrex-rlp"
 version = "9.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=refactor%2Fremove-keys-from-execution-witness#adf071156c1ea969f756ace903ee1f09e4c2fbd9"
+source = "git+https://github.com/lambdaclass/ethrex?rev=b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6#b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6"
 dependencies = [
  "bytes",
  "ethereum-types 0.15.1",
@@ -4159,7 +4155,7 @@ dependencies = [
 [[package]]
 name = "ethrex-rpc"
 version = "9.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=refactor%2Fremove-keys-from-execution-witness#adf071156c1ea969f756ace903ee1f09e4c2fbd9"
+source = "git+https://github.com/lambdaclass/ethrex?rev=b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6#b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6"
 dependencies = [
  "axum 0.8.8",
  "axum-extra",
@@ -4191,14 +4187,14 @@ dependencies = [
  "tokio-util",
  "tower-http",
  "tracing",
- "tracing-subscriber 0.3.22",
+ "tracing-subscriber 0.3.23",
  "uuid 1.22.0",
 ]
 
 [[package]]
 name = "ethrex-sdk"
 version = "9.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=refactor%2Fremove-keys-from-execution-witness#adf071156c1ea969f756ace903ee1f09e4c2fbd9"
+source = "git+https://github.com/lambdaclass/ethrex?rev=b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6#b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6"
 dependencies = [
  "bytes",
  "ethereum-types 0.15.1",
@@ -4224,7 +4220,7 @@ dependencies = [
 [[package]]
 name = "ethrex-sdk-contract-utils"
 version = "9.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=refactor%2Fremove-keys-from-execution-witness#adf071156c1ea969f756ace903ee1f09e4c2fbd9"
+source = "git+https://github.com/lambdaclass/ethrex?rev=b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6#b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6"
 dependencies = [
  "thiserror 2.0.18",
  "tracing",
@@ -4233,7 +4229,7 @@ dependencies = [
 [[package]]
 name = "ethrex-storage"
 version = "9.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=refactor%2Fremove-keys-from-execution-witness#adf071156c1ea969f756ace903ee1f09e4c2fbd9"
+source = "git+https://github.com/lambdaclass/ethrex?rev=b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6#b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4258,7 +4254,7 @@ dependencies = [
 [[package]]
 name = "ethrex-storage-rollup"
 version = "9.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=refactor%2Fremove-keys-from-execution-witness#adf071156c1ea969f756ace903ee1f09e4c2fbd9"
+source = "git+https://github.com/lambdaclass/ethrex?rev=b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6#b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4278,7 +4274,7 @@ dependencies = [
 [[package]]
 name = "ethrex-trie"
 version = "9.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=refactor%2Fremove-keys-from-execution-witness#adf071156c1ea969f756ace903ee1f09e4c2fbd9"
+source = "git+https://github.com/lambdaclass/ethrex?rev=b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6#b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6"
 dependencies = [
  "anyhow",
  "bytes",
@@ -4302,7 +4298,7 @@ dependencies = [
 [[package]]
 name = "ethrex-vm"
 version = "9.0.0"
-source = "git+https://github.com/lambdaclass/ethrex?branch=refactor%2Fremove-keys-from-execution-witness#adf071156c1ea969f756ace903ee1f09e4c2fbd9"
+source = "git+https://github.com/lambdaclass/ethrex?rev=b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6#b962fbfbacb9980a0d3682c20ec2be1bc2fd33a6"
 dependencies = [
  "bincode 1.3.3",
  "bytes",
@@ -4729,23 +4725,23 @@ checksum = "1d758ba1b47b00caf47f24925c0074ecb20d6dfcffe7f6d53395c0465674841a"
 
 [[package]]
 name = "gdbstub"
-version = "0.7.9"
+version = "0.7.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6bf845b08f7c2ef3b5ad19f80779d43ae20d278652b91bb80adda65baf2d8ed6"
+checksum = "5bafc7e33650ab9f05dcc16325f05d56b8d10393114e31a19a353b86fa60cfe7"
 dependencies = [
  "bitflags 2.11.0",
  "cfg-if 1.0.4",
  "log",
  "managed",
  "num-traits",
- "paste",
+ "pastey",
 ]
 
 [[package]]
 name = "gdbstub_arch"
-version = "0.3.2"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22dde0e1b68787036ccedd0b1ff6f953527a0e807e571fbe898975203027278f"
+checksum = "6c02bfe7bd65f42bcda751456869dfa1eb2bd1c36e309b9ec27f4888d41cf258"
 dependencies = [
  "gdbstub",
  "num-traits",
@@ -5813,9 +5809,9 @@ dependencies = [
 
 [[package]]
 name = "instability"
-version = "0.3.11"
+version = "0.3.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "357b7205c6cd18dd2c86ed312d1e70add149aea98e7ef72b9fdf0270e555c11d"
+checksum = "5eb2d60ef19920a3a9193c3e371f726ec1dafc045dac788d0fb3704272458971"
 dependencies = [
  "darling 0.23.0",
  "indoc",
@@ -6139,9 +6135,9 @@ source = "git+https://github.com/0xPolygonHermez/zisk.git?tag=v0.15.0#b3ca745b80
 
 [[package]]
 name = "libc"
-version = "0.2.182"
+version = "0.2.183"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6800badb6cb2082ffd7b6a67e6125bb39f18782f793520caee8cb8846be06112"
+checksum = "b5b646652bf6661599e1da8901b3b9522896f01e736bad5f723fe7a3a27f899d"
 
 [[package]]
 name = "libgit2-sys"
@@ -6212,9 +6208,9 @@ dependencies = [
 
 [[package]]
 name = "libtest-mimic"
-version = "0.8.1"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5297962ef19edda4ce33aaa484386e0a5b3d7f2f4e037cbeee00503ef6b29d33"
+checksum = "14e6ba06f0ade6e504aff834d7c34298e5155c6baca353cc6a4aaff2f9fd7f33"
 dependencies = [
  "anstream",
  "anstyle",
@@ -6224,9 +6220,9 @@ dependencies = [
 
 [[package]]
 name = "libz-sys"
-version = "1.1.24"
+version = "1.1.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4735e9cbde5aac84a5ce588f6b23a90b9b0b528f6c5a8db8a4aff300463a0839"
+checksum = "d52f4c29e2a68ac30c9087e1b772dc9f44a2b66ed44edf2266cf2be9b03dafc1"
 dependencies = [
  "cc",
  "libc",
@@ -6590,7 +6586,7 @@ dependencies = [
  "once_cell",
  "tracing",
  "tracing-core",
- "tracing-subscriber 0.3.22",
+ "tracing-subscriber 0.3.23",
 ]
 
 [[package]]
@@ -6974,11 +6970,11 @@ dependencies = [
 
 [[package]]
 name = "num_enum"
-version = "0.7.5"
+version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1207a7e20ad57b847bbddc6776b968420d38292bbfe2089accff5e19e82454c"
+checksum = "5d0bca838442ec211fa11de3a8b0e0e8f3a4522575b5c4c06ed722e005036f26"
 dependencies = [
- "num_enum_derive 0.7.5",
+ "num_enum_derive 0.7.6",
  "rustversion",
 ]
 
@@ -6996,9 +6992,9 @@ dependencies = [
 
 [[package]]
 name = "num_enum_derive"
-version = "0.7.5"
+version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff32365de1b6743cb203b710788263c44a03de03802daf96092f2da4fe6ba4d7"
+checksum = "680998035259dcfcafe653688bf2aa6d3e2dc05e98be6ab46afb089dc84f1df8"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7101,9 +7097,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.21.3"
+version = "1.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
+checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 
 [[package]]
 name = "once_cell_polyfill"
@@ -7119,9 +7115,9 @@ checksum = "c08d65885ee38876c4f86fa503fb49d7b507c2b62552df7c70b2fce627e06381"
 
 [[package]]
 name = "openssl"
-version = "0.10.75"
+version = "0.10.76"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08838db121398ad17ab8531ce9de97b244589089e290a384c900cb9ff7434328"
+checksum = "951c002c75e16ea2c65b8c7e4d3d51d5530d8dfa7d060b4776828c88cfb18ecf"
 dependencies = [
  "bitflags 2.11.0",
  "cfg-if 1.0.4",
@@ -7151,9 +7147,9 @@ checksum = "7c87def4c32ab89d880effc9e097653c8da5d6ef28e6b539d313baaacfbafcbe"
 
 [[package]]
 name = "openssl-sys"
-version = "0.9.111"
+version = "0.9.112"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "82cab2d520aa75e3c58898289429321eb788c3106963d0dc886ec7a5f4adc321"
+checksum = "57d55af3b3e226502be1526dfdba67ab0e9c96fc293004e79576b2b9edb0dbdb"
 dependencies = [
  "cc",
  "libc",
@@ -8129,7 +8125,7 @@ dependencies = [
  "toml",
  "tracing",
  "tracing-forest",
- "tracing-subscriber 0.3.22",
+ "tracing-subscriber 0.3.23",
  "zkhash 0.2.0 (git+https://github.com/HorizenLabs/poseidon2.git?rev=bb476b9)",
 ]
 
@@ -8167,7 +8163,7 @@ dependencies = [
  "toml",
  "tracing",
  "tracing-forest",
- "tracing-subscriber 0.3.22",
+ "tracing-subscriber 0.3.23",
  "zkhash 0.2.0 (git+https://github.com/HorizenLabs/poseidon2.git?rev=bb476b9)",
 ]
 
@@ -9407,6 +9403,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
+name = "pastey"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b867cad97c0791bbd3aaa6472142568c6c9e8f71937e98379f584cfb0cf35bec"
+
+[[package]]
 name = "pathdiff"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9603,9 +9605,9 @@ checksum = "c33a9471896f1c69cecef8d20cbe2f7accd12527ce60845ff44c153bb2a21b49"
 
 [[package]]
 name = "portable-atomic-util"
-version = "0.2.5"
+version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a9db96d7fa8782dd8c15ce32ffe8680bbd1e978a43bf51a34d39483540495f5"
+checksum = "091397be61a01d4be58e7841595bd4bfedb15f1cd54977d79b8271e94ed799a3"
 dependencies = [
  "portable-atomic",
 ]
@@ -9792,42 +9794,24 @@ dependencies = [
 
 [[package]]
 name = "procfs"
-version = "0.16.0"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "731e0d9356b0c25f16f33b5be79b1c57b562f141ebfcdb0ad8ac2c13a24293b4"
+checksum = "cc5b72d8145275d844d4b5f6d4e1eef00c8cd889edb6035c21675d1bb1f45c9f"
 dependencies = [
  "bitflags 2.11.0",
  "hex",
- "lazy_static",
  "procfs-core",
  "rustix 0.38.44",
 ]
 
 [[package]]
 name = "procfs-core"
-version = "0.16.0"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d3554923a69f4ce04c4a754260c338f505ce22642d3830e049a399fc2059a29"
+checksum = "239df02d8349b06fc07398a3a1697b06418223b1c7725085e801e7c0fc6a12ec"
 dependencies = [
  "bitflags 2.11.0",
  "hex",
-]
-
-[[package]]
-name = "prometheus"
-version = "0.13.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d33c28a30771f7f96db69893f78b857f7450d7e0237e9c8fc6427a81bae7ed1"
-dependencies = [
- "cfg-if 1.0.4",
- "fnv",
- "lazy_static",
- "libc",
- "memchr",
- "parking_lot 0.12.5",
- "procfs",
- "protobuf 2.28.0",
- "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -9839,9 +9823,11 @@ dependencies = [
  "cfg-if 1.0.4",
  "fnv",
  "lazy_static",
+ "libc",
  "memchr",
  "parking_lot 0.12.5",
- "protobuf 3.7.2",
+ "procfs",
+ "protobuf",
  "thiserror 2.0.18",
 ]
 
@@ -9915,12 +9901,6 @@ checksum = "52c2c1bf36ddb1a1c396b3601a3cec27c2462e45f07c386894ec3ccf5332bd16"
 dependencies = [
  "prost",
 ]
-
-[[package]]
-name = "protobuf"
-version = "2.28.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "106dd99e98437432fed6519dedecfade6a06a73bb7b2a1e019fdd2bee5778d94"
 
 [[package]]
 name = "protobuf"
@@ -10028,9 +10008,9 @@ dependencies = [
 
 [[package]]
 name = "quinn-proto"
-version = "0.11.13"
+version = "0.11.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1906b49b0c3bc04b5fe5d86a77925ae6524a19b816ae38ce1e426255f1d8a31"
+checksum = "434b42fec591c96ef50e21e886936e66d3cc3f737104fdb9b737c40ffb94c098"
 dependencies = [
  "bytes",
  "getrandom 0.3.4",
@@ -10914,7 +10894,7 @@ dependencies = [
  "getrandom 0.2.17",
  "getrandom 0.3.4",
  "libm",
- "num_enum 0.7.5",
+ "num_enum 0.7.6",
  "paste",
  "stability",
 ]
@@ -11324,9 +11304,9 @@ dependencies = [
 
 [[package]]
 name = "schannel"
-version = "0.1.28"
+version = "0.1.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "891d81b926048e76efe18581bf793546b4c0eaf8448d72be8de2bbee5fd166e1"
+checksum = "91c1b7e4904c873ef0710c1f407dde2e6287de2bebc1bbbf7d430bb7cbffd939"
 dependencies = [
  "windows-sys 0.61.2",
 ]
@@ -11619,9 +11599,9 @@ dependencies = [
 
 [[package]]
 name = "serde_with"
-version = "3.17.0"
+version = "3.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "381b283ce7bc6b476d903296fb59d0d36633652b633b27f64db4fb46dcbfc3b9"
+checksum = "dd5414fad8e6907dbdd5bc441a50ae8d6e26151a03b1de04d89a5576de61d01f"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -11638,11 +11618,11 @@ dependencies = [
 
 [[package]]
 name = "serde_with_macros"
-version = "3.17.0"
+version = "3.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a6d4e30573c8cb306ed6ab1dca8423eec9a463ea0e155f45399455e0368b27e0"
+checksum = "d3db8978e608f1fe7357e211969fd9abdcae80bac1ba7a3369bb7eb6b404eb65"
 dependencies = [
- "darling 0.21.3",
+ "darling 0.23.0",
  "proc-macro2",
  "quote",
  "syn 2.0.117",
@@ -12161,7 +12141,7 @@ dependencies = [
  "thiserror 1.0.69",
  "tracing",
  "tracing-forest",
- "tracing-subscriber 0.3.22",
+ "tracing-subscriber 0.3.23",
  "typenum",
  "web-time",
 ]
@@ -12312,7 +12292,7 @@ dependencies = [
  "thiserror 1.0.69",
  "tracing",
  "tracing-appender",
- "tracing-subscriber 0.3.22",
+ "tracing-subscriber 0.3.23",
 ]
 
 [[package]]
@@ -12569,7 +12549,7 @@ dependencies = [
  "tokio-stream",
  "tokio-util",
  "tracing",
- "tracing-subscriber 0.3.22",
+ "tracing-subscriber 0.3.23",
 ]
 
 [[package]]
@@ -12866,9 +12846,9 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 
 [[package]]
 name = "tempfile"
-version = "3.26.0"
+version = "3.27.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "82a72c767771b47409d2345987fda8628641887d5466101319899796367354a0"
+checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
  "getrandom 0.4.2",
@@ -13079,9 +13059,9 @@ dependencies = [
 
 [[package]]
 name = "tinyvec"
-version = "1.10.0"
+version = "1.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfa5fdc3bce6191a1dbc8c02d5c8bffcf557bafa17c124c5264a458f1b0613fa"
+checksum = "3e61e67053d25a4e82c844e8424039d9745781b3fc4f32b8d55ed50f5f667ef3"
 dependencies = [
  "tinyvec_macros",
 ]
@@ -13380,7 +13360,7 @@ dependencies = [
  "crossbeam-channel 0.5.15",
  "thiserror 2.0.18",
  "time",
- "tracing-subscriber 0.3.22",
+ "tracing-subscriber 0.3.23",
 ]
 
 [[package]]
@@ -13411,7 +13391,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b1581020d7a273442f5b45074a6a57d5757ad0a47dac0e9f0bd57b81936f3db"
 dependencies = [
  "tracing",
- "tracing-subscriber 0.3.22",
+ "tracing-subscriber 0.3.23",
 ]
 
 [[package]]
@@ -13424,7 +13404,7 @@ dependencies = [
  "smallvec",
  "thiserror 1.0.69",
  "tracing",
- "tracing-subscriber 0.3.22",
+ "tracing-subscriber 0.3.23",
 ]
 
 [[package]]
@@ -13449,9 +13429,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-subscriber"
-version = "0.3.22"
+version = "0.3.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f30143827ddab0d256fd843b7a66d164e9f271cfa0dde49142c5ca0ca291f1e"
+checksum = "cb7f578e5945fb242538965c2d0b04418d38ec25c79d160cd279bf0731c8d319"
 dependencies = [
  "matchers",
  "nu-ansi-term",
@@ -13527,7 +13507,7 @@ dependencies = [
  "parking_lot 0.12.5",
  "ratatui",
  "tracing",
- "tracing-subscriber 0.3.22",
+ "tracing-subscriber 0.3.23",
  "unicode-segmentation",
 ]
 
@@ -14822,18 +14802,18 @@ dependencies = [
 
 [[package]]
 name = "zerocopy"
-version = "0.8.40"
+version = "0.8.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a789c6e490b576db9f7e6b6d661bcc9799f7c0ac8352f56ea20193b2681532e5"
+checksum = "f2578b716f8a7a858b7f02d5bd870c14bf4ddbbcf3a4c05414ba6503640505e3"
 dependencies = [
  "zerocopy-derive",
 ]
 
 [[package]]
 name = "zerocopy-derive"
-version = "0.8.40"
+version = "0.8.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f65c489a7071a749c849713807783f70672b28094011623e200cb86dcb835953"
+checksum = "7e6cc098ea4d3bd6246687de65af3f920c430e236bee1e3bf2e441463f08a02f"
 dependencies = [
  "proc-macro2",
  "quote",

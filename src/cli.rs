@@ -60,7 +60,7 @@ use crate::{
     slack::try_send_report_to_slack,
 };
 use ethrex_config::networks::{
-    HOLESKY_CHAIN_ID, HOODI_CHAIN_ID, MAINNET_CHAIN_ID, Network, PublicNetwork, SEPOLIA_CHAIN_ID,
+    HOODI_CHAIN_ID, MAINNET_CHAIN_ID, Network, PublicNetwork, SEPOLIA_CHAIN_ID,
 };
 
 pub const VERSION_STRING: &str = env!("CARGO_PKG_VERSION");
@@ -1316,7 +1316,6 @@ pub fn backend(zkvm: &Option<ZKVM>) -> eyre::Result<BackendType> {
 pub(crate) fn network_from_chain_id(chain_id: u64) -> Network {
     match chain_id {
         MAINNET_CHAIN_ID => Network::PublicNetwork(PublicNetwork::Mainnet),
-        HOLESKY_CHAIN_ID => Network::PublicNetwork(PublicNetwork::Holesky),
         HOODI_CHAIN_ID => Network::PublicNetwork(PublicNetwork::Hoodi),
         SEPOLIA_CHAIN_ID => Network::PublicNetwork(PublicNetwork::Sepolia),
         _ => {
