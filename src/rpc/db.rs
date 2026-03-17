@@ -6,13 +6,13 @@ use crate::rpc::{get_account, get_block, retry};
 
 use bytes::Bytes;
 use ethrex_common::constants::EMPTY_KECCACK_HASH;
-use ethrex_crypto::NativeCrypto;
 use ethrex_common::types::block_execution_witness::RpcExecutionWitness;
 use ethrex_common::types::{AccountState, ChainConfig, Code, CodeMetadata, code_hash};
 use ethrex_common::{
     Address, H256, U256,
     types::{Block, TxKind},
 };
+use ethrex_crypto::NativeCrypto;
 use ethrex_levm::db::Database as LevmDatabase;
 use ethrex_levm::db::gen_db::GeneralizedDatabase;
 use ethrex_levm::errors::DatabaseError;
@@ -331,7 +331,8 @@ impl RpcDB {
         let mut db = GeneralizedDatabase::new(Arc::new(self.clone()));
 
         // pre-execute and get all state changes
-        let _ = LEVM::execute_block(block, &mut db, self.vm_type, &NativeCrypto).map_err(Box::new)?;
+        let _ =
+            LEVM::execute_block(block, &mut db, self.vm_type, &NativeCrypto).map_err(Box::new)?;
         let execution_updates = LEVM::get_state_transitions(&mut db).map_err(Box::new)?;
 
         info!(
