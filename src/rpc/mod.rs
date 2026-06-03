@@ -134,7 +134,11 @@ pub async fn get_account(
     let (storage, storage_proofs) = storage_proof
         .into_iter()
         .map(|proof| -> eyre::Result<_> {
-            let key: H256 = proof.key.parse()?;
+            // Some clients (e.g. ethrex) return storage proof keys as quantities
+            // ("0x1") which H256's fixed-length parser rejects; parse as U256
+            // and left-pad back to the full 32-byte key.
+            let key_u256: U256 = proof.key.parse()?;
+            let key = H256(key_u256.to_big_endian());
             let value: U256 = proof.value.parse()?;
             let proofs = proof
                 .proof
