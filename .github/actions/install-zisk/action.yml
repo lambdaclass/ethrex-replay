@@ -12,11 +12,14 @@ runs:
 
     - name: Install ZisK
       shell: bash
+      # Must match the `ziskos` tag in the ethrex guest program Cargo.toml.
       env:
-        SETUP_KEY: none
+        ZISK_VERSION: "0.16.1"
       run: |
-        curl https://raw.githubusercontent.com/0xPolygonHermez/zisk/v0.14.0/ziskup/install.sh | bash
+        source "$GITHUB_WORKSPACE/.github/scripts/retry.sh"
 
-    - name: Add ZisK to PATH
-      shell: bash
-      run: echo "$HOME/.zisk/bin" >> $GITHUB_PATH
+        mkdir -p "$HOME/.zisk/bin"
+        retry curl -fsSL "https://raw.githubusercontent.com/0xPolygonHermez/zisk/v${ZISK_VERSION}/ziskup/ziskup" -o "$HOME/.zisk/bin/ziskup"
+        chmod +x "$HOME/.zisk/bin/ziskup"
+        retry "$HOME/.zisk/bin/ziskup" -v "${ZISK_VERSION}"
+        echo "$HOME/.zisk/bin" >> $GITHUB_PATH

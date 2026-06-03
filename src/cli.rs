@@ -1842,6 +1842,7 @@ pub async fn produce_custom_l2_block(
         receipts: payload_build_result.receipts,
         requests: Vec::new(),
         block_gas_used: new_block.header.gas_used,
+        tx_gas_breakdowns: Vec::new(),
     };
 
     let account_updates_list = store
