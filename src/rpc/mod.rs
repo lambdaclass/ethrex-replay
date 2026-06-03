@@ -5,7 +5,7 @@ use std::time::Duration;
 use again::{RetryPolicy, Task};
 
 use bytes::Bytes;
-use ethrex_common::{Address, H256, U256, constants::EMPTY_KECCACK_HASH, types::AccountState};
+use ethrex_common::{Address, H256, U256, constants::EMPTY_KECCAK_HASH, types::AccountState};
 use ethrex_rlp::decode::RLPDecode;
 use ethrex_rpc::types::block::RpcBlock;
 use ethrex_storage::hash_address;
@@ -172,7 +172,7 @@ pub async fn get_account(
         code_hash: code_hash.parse()?,
     };
 
-    let code = if account_state.code_hash != *EMPTY_KECCACK_HASH {
+    let code = if account_state.code_hash != *EMPTY_KECCAK_HASH {
         if let Some(cached_code) = codes.lock().unwrap().get(&account_state.code_hash) {
             Some(cached_code.clone())
         } else {

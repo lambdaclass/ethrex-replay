@@ -24,20 +24,20 @@ use ethrex_blockchain::{
     payload::{BuildPayloadArgs, PayloadBuildResult, create_payload},
 };
 use ethrex_common::{
-    Address, H256,
+    Address, H256, NativeCrypto,
     types::{
         AccountState, AccountUpdate, Block, Code, DEFAULT_BUILDER_GAS_CEIL, ELASTICITY_MULTIPLIER,
         Receipt,
-        block_execution_witness::{GuestProgramState, RpcExecutionWitness},
+        block_execution_witness::{GuestProgramState, RpcExecutionWitness, decode_witness_headers},
     },
     utils::keccak,
 };
 #[cfg(feature = "l2")]
 use ethrex_common::{U256, types::GenesisAccount};
 use ethrex_prover::BackendType;
+use ethrex_rpc::EthClient;
 #[cfg(not(feature = "l2"))]
 use ethrex_rpc::types::block_identifier::BlockIdentifier;
-use ethrex_rpc::{EthClient, debug::execution_witness::execution_witness_from_rpc_chain_config};
 use ethrex_storage::hash_address;
 use ethrex_storage::{EngineType, Store};
 #[cfg(feature = "l2")]
@@ -61,7 +61,7 @@ use crate::{
     slack::try_send_report_to_slack,
 };
 use ethrex_config::networks::{
-    HOLESKY_CHAIN_ID, HOODI_CHAIN_ID, MAINNET_CHAIN_ID, Network, PublicNetwork, SEPOLIA_CHAIN_ID,
+    HOODI_CHAIN_ID, MAINNET_CHAIN_ID, Network, PublicNetwork, SEPOLIA_CHAIN_ID,
 };
 
 pub const VERSION_STRING: &str = env!("CARGO_PKG_VERSION");
@@ -1001,13 +1001,14 @@ async fn prepare_no_zkvm_state(cache: &Cache) -> eyre::Result<(Store, Block, Str
     let chain_config = cache.get_chain_config()?;
     let block = cache.blocks[0].clone();
 
-    let witness = execution_witness_from_rpc_chain_config(
-        cache.witness.clone(),
+    let decoded_headers = decode_witness_headers(&cache.witness.headers)?;
+    let witness = cache.witness.clone().into_execution_witness(
         chain_config,
         cache.get_first_block_number()?,
+        &decoded_headers,
     )?;
 
-    let guest_program = GuestProgramState::try_from(witness.clone())?;
+    let guest_program = GuestProgramState::from_witness(witness, &NativeCrypto)?;
 
     // This will contain all code hashes with the corresponding bytecode
     // For the code hashes that we don't have we'll fill it with <CodeHash, Bytes::new()>
@@ -1040,7 +1041,8 @@ async fn prepare_no_zkvm_state(cache: &Cache) -> eyre::Result<(Store, Block, Str
     trie.db().put_batch(state_trie_nodes)?;
 
     // - Set up all storage tries for all addresses in the execution witness
-    let addresses: Vec<Address> = witness
+    let addresses: Vec<Address> = cache
+        .witness
         .keys
         .iter()
         .filter(|k| k.len() == Address::len_bytes())
@@ -1312,7 +1314,6 @@ pub fn backend(zkvm: &Option<ZKVM>) -> eyre::Result<BackendType> {
 pub(crate) fn network_from_chain_id(chain_id: u64) -> Network {
     match chain_id {
         MAINNET_CHAIN_ID => Network::PublicNetwork(PublicNetwork::Mainnet),
-        HOLESKY_CHAIN_ID => Network::PublicNetwork(PublicNetwork::Holesky),
         HOODI_CHAIN_ID => Network::PublicNetwork(PublicNetwork::Hoodi),
         SEPOLIA_CHAIN_ID => Network::PublicNetwork(PublicNetwork::Sepolia),
         _ => {
@@ -1880,7 +1881,7 @@ async fn fetch_latest_block_number(
 ) -> eyre::Result<u64> {
     let eth_client = EthClient::new(rpc_url)?;
 
-    let mut latest_block_number = eth_client.get_block_number().await?.as_u64();
+    let mut latest_block_number = eth_client.get_block_number().await?;
 
     while only_eth_proofs_blocks && latest_block_number % 100 != 0 {
         let blocks_left_for_next_eth_proofs_block = 100 - (latest_block_number % 100);
@@ -1897,7 +1898,7 @@ async fn fetch_latest_block_number(
 
         tokio::time::sleep(time_for_next_eth_proofs_block).await;
 
-        latest_block_number = eth_client.get_block_number().await?.as_u64();
+        latest_block_number = eth_client.get_block_number().await?;
     }
 
     Ok(latest_block_number)

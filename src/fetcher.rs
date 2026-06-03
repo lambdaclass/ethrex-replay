@@ -79,7 +79,7 @@ async fn get_blockdata_rpc(
     block_identifier: BlockIdentifier,
     cache_dir: PathBuf,
 ) -> eyre::Result<Cache> {
-    let latest_block_number = eth_client.get_block_number().await?.as_u64();
+    let latest_block_number = eth_client.get_block_number().await?;
 
     let requested_block_number = match block_identifier {
         BlockIdentifier::Number(some_number) => some_number,
