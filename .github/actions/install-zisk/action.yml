@@ -13,8 +13,11 @@ runs:
     - name: Install ZisK
       shell: bash
       # Must match the `ziskos` tag in the ethrex guest program Cargo.toml.
+      # SETUP_KEY=none skips the proving key download (only needed for proving,
+      # CI only builds the guest ELF).
       env:
         ZISK_VERSION: "0.16.1"
+        SETUP_KEY: none
       run: |
         source "$GITHUB_WORKSPACE/.github/scripts/retry.sh"
 
