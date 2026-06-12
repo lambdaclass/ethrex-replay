@@ -5,7 +5,8 @@ use std::time::{Duration, Instant};
 use crate::rpc::{get_account, get_block, retry};
 
 use bytes::Bytes;
-use ethrex_common::constants::EMPTY_KECCACK_HASH;
+use ethrex_common::NativeCrypto;
+use ethrex_common::constants::EMPTY_KECCAK_HASH;
 use ethrex_common::types::block_execution_witness::RpcExecutionWitness;
 use ethrex_common::types::{AccountState, ChainConfig, Code, CodeMetadata, code_hash};
 use ethrex_common::{
@@ -112,7 +113,7 @@ impl RpcDB {
     async fn cache_accounts(&mut self, block: &Block) -> eyre::Result<()> {
         let txs = &block.body.transactions;
 
-        let callers = txs.iter().filter_map(|tx| tx.sender().ok());
+        let callers = txs.iter().filter_map(|tx| tx.sender(&NativeCrypto).ok());
         let to = txs.iter().filter_map(|tx| match tx.to() {
             TxKind::Call(to) => Some(to),
             TxKind::Create => None,
@@ -302,7 +303,7 @@ impl RpcDB {
                     code: Some(code), ..
                 } = account
                 {
-                    codes.insert(code_hash(code), code.clone());
+                    codes.insert(code_hash(code, &NativeCrypto), code.clone());
                 }
             }
         }
@@ -330,7 +331,8 @@ impl RpcDB {
         let mut db = GeneralizedDatabase::new(Arc::new(self.clone()));
 
         // pre-execute and get all state changes
-        let _ = LEVM::execute_block(block, &mut db, self.vm_type).map_err(Box::new)?;
+        let _ =
+            LEVM::execute_block(block, &mut db, self.vm_type, &NativeCrypto).map_err(Box::new)?;
         let execution_updates = LEVM::get_state_transitions(&mut db).map_err(Box::new)?;
 
         info!(
@@ -484,14 +486,14 @@ impl RpcDB {
 
 impl LevmDatabase for RpcDB {
     fn get_account_code(&self, code_hash: H256) -> Result<Code, DatabaseError> {
-        if code_hash == *EMPTY_KECCACK_HASH {
+        if code_hash == *EMPTY_KECCAK_HASH {
             return Ok(Code::default());
         }
         let codes = self.codes.lock().unwrap();
         let bytecode = codes.get(&code_hash).cloned().ok_or_else(|| {
             DatabaseError::Custom("Code not found on already fetched accounts".to_string())
         })?;
-        Ok(Code::from_bytecode(bytecode))
+        Ok(Code::from_bytecode(bytecode, &NativeCrypto))
     }
 
     fn get_code_metadata(&self, code_hash: H256) -> Result<CodeMetadata, DatabaseError> {
@@ -525,7 +527,7 @@ impl LevmDatabase for RpcDB {
             if let Some(code) = code {
                 let mut codes = self.codes.lock().unwrap();
                 codes
-                    .entry(code_hash(&code))
+                    .entry(code_hash(&code, &NativeCrypto))
                     .or_insert_with(|| code.clone());
             }
             Ok(account_state)
@@ -599,7 +601,7 @@ pub fn get_potential_child_nodes(proof: &[NodeRLP], key: &PathRLP) -> Option<Vec
     let hash = if let Some(root) = proof.first() {
         H256::from_slice(&Keccak256::digest(root))
     } else {
-        *EMPTY_KECCACK_HASH
+        *EMPTY_KECCAK_HASH
     };
     let trie = Trie::from_nodes(hash, &state_nodes).ok()?;
 

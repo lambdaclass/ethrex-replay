@@ -1,12 +1,12 @@
 #[cfg(not(feature = "l2"))]
 use crate::helpers::get_block_numbers_in_cache_dir;
-use crate::helpers::get_trie_nodes_with_dummies;
+use crate::helpers::{collect_accounts_from_trie, get_trie_nodes_with_dummies};
 use bytes::Bytes;
 use ethrex_guest_program::input::ProgramInput;
 use ethrex_l2_common::prover::ProofFormat;
 use ethrex_l2_rpc::signer::{LocalSigner, Signer};
 use ethrex_rlp::decode::RLPDecode;
-use ethrex_trie::{EMPTY_TRIE_HASH, InMemoryTrieDB, Node};
+use ethrex_trie::{EMPTY_TRIE_HASH, InMemoryTrieDB, Nibbles, Node};
 use eyre::{Context, OptionExt};
 use std::{
     cmp::max,
@@ -24,21 +24,19 @@ use ethrex_blockchain::{
     payload::{BuildPayloadArgs, PayloadBuildResult, create_payload},
 };
 use ethrex_common::{
-    Address, H256,
+    Address, H256, NativeCrypto,
     types::{
-        AccountState, AccountUpdate, Block, Code, DEFAULT_BUILDER_GAS_CEIL, ELASTICITY_MULTIPLIER,
-        Receipt,
-        block_execution_witness::{GuestProgramState, RpcExecutionWitness},
+        AccountUpdate, Block, Code, DEFAULT_BUILDER_GAS_CEIL, ELASTICITY_MULTIPLIER, Receipt,
+        block_execution_witness::{GuestProgramState, RpcExecutionWitness, decode_witness_headers},
     },
     utils::keccak,
 };
 #[cfg(feature = "l2")]
 use ethrex_common::{U256, types::GenesisAccount};
 use ethrex_prover::BackendType;
+use ethrex_rpc::EthClient;
 #[cfg(not(feature = "l2"))]
 use ethrex_rpc::types::block_identifier::BlockIdentifier;
-use ethrex_rpc::{EthClient, debug::execution_witness::execution_witness_from_rpc_chain_config};
-use ethrex_storage::hash_address;
 use ethrex_storage::{EngineType, Store};
 #[cfg(feature = "l2")]
 use ethrex_storage_rollup::EngineTypeRollup;
@@ -61,7 +59,7 @@ use crate::{
     slack::try_send_report_to_slack,
 };
 use ethrex_config::networks::{
-    HOLESKY_CHAIN_ID, HOODI_CHAIN_ID, MAINNET_CHAIN_ID, Network, PublicNetwork, SEPOLIA_CHAIN_ID,
+    HOODI_CHAIN_ID, MAINNET_CHAIN_ID, Network, PublicNetwork, SEPOLIA_CHAIN_ID,
 };
 
 pub const VERSION_STRING: &str = env!("CARGO_PKG_VERSION");
@@ -1001,13 +999,14 @@ async fn prepare_no_zkvm_state(cache: &Cache) -> eyre::Result<(Store, Block, Str
     let chain_config = cache.get_chain_config()?;
     let block = cache.blocks[0].clone();
 
-    let witness = execution_witness_from_rpc_chain_config(
-        cache.witness.clone(),
+    let decoded_headers = decode_witness_headers(&cache.witness.headers)?;
+    let witness = cache.witness.clone().into_execution_witness(
         chain_config,
         cache.get_first_block_number()?,
+        &decoded_headers,
     )?;
 
-    let guest_program = GuestProgramState::try_from(witness.clone())?;
+    let guest_program = GuestProgramState::from_witness(witness, &NativeCrypto)?;
 
     // This will contain all code hashes with the corresponding bytecode
     // For the code hashes that we don't have we'll fill it with <CodeHash, Bytes::new()>
@@ -1039,27 +1038,19 @@ async fn prepare_no_zkvm_state(cache: &Cache) -> eyre::Result<(Store, Block, Str
 
     trie.db().put_batch(state_trie_nodes)?;
 
-    // - Set up all storage tries for all addresses in the execution witness
-    let addresses: Vec<Address> = witness
-        .keys
-        .iter()
-        .filter(|k| k.len() == Address::len_bytes())
-        .map(|k| Address::from_slice(k))
-        .collect();
+    // - Set up all storage tries for all accounts in the execution witness.
+    // Witnesses no longer populate `keys` (removed from the RPC spec), so
+    // discover accounts by walking the state trie over the witness nodes.
+    let mut accounts = Vec::new();
+    if let Some(root) = all_nodes.get(&state_root) {
+        collect_accounts_from_trie(root, Nibbles::default(), &mut accounts, &all_nodes);
+    }
 
-    for address in &addresses {
-        let hashed_address = hash_address(address);
-
-        // Account state may not be in the state trie
-        let Some(account_state_rlp) = guest_program.state_trie.get(&hashed_address)? else {
-            continue;
-        };
-
-        let account_state = AccountState::decode(&account_state_rlp)?;
-
+    for (hashed_address, account_state) in accounts {
         // If code hash of account isn't present insert empty code so that if not found the execution doesn't break.
-        let code_hash = account_state.code_hash;
-        all_codes_hashed.entry(code_hash).or_insert(Code::default());
+        all_codes_hashed
+            .entry(account_state.code_hash)
+            .or_insert(Code::default());
 
         let storage_root = account_state.storage_root;
         let Ok(storage_trie) = InMemoryTrieDB::from_nodes(storage_root, &all_nodes) else {
@@ -1073,7 +1064,7 @@ async fn prepare_no_zkvm_state(cache: &Cache) -> eyre::Result<(Store, Block, Str
             continue;
         }
 
-        let storage_trie_nodes = vec![(H256::from_slice(&hashed_address), storage_trie_nodes)];
+        let storage_trie_nodes = vec![(hashed_address, storage_trie_nodes)];
 
         store
             .write_storage_trie_nodes_batch(storage_trie_nodes)
@@ -1312,7 +1303,6 @@ pub fn backend(zkvm: &Option<ZKVM>) -> eyre::Result<BackendType> {
 pub(crate) fn network_from_chain_id(chain_id: u64) -> Network {
     match chain_id {
         MAINNET_CHAIN_ID => Network::PublicNetwork(PublicNetwork::Mainnet),
-        HOLESKY_CHAIN_ID => Network::PublicNetwork(PublicNetwork::Holesky),
         HOODI_CHAIN_ID => Network::PublicNetwork(PublicNetwork::Hoodi),
         SEPOLIA_CHAIN_ID => Network::PublicNetwork(PublicNetwork::Sepolia),
         _ => {
@@ -1852,6 +1842,7 @@ pub async fn produce_custom_l2_block(
         receipts: payload_build_result.receipts,
         requests: Vec::new(),
         block_gas_used: new_block.header.gas_used,
+        tx_gas_breakdowns: Vec::new(),
     };
 
     let account_updates_list = store
@@ -1880,7 +1871,7 @@ async fn fetch_latest_block_number(
 ) -> eyre::Result<u64> {
     let eth_client = EthClient::new(rpc_url)?;
 
-    let mut latest_block_number = eth_client.get_block_number().await?.as_u64();
+    let mut latest_block_number = eth_client.get_block_number().await?;
 
     while only_eth_proofs_blocks && latest_block_number % 100 != 0 {
         let blocks_left_for_next_eth_proofs_block = 100 - (latest_block_number % 100);
@@ -1897,7 +1888,7 @@ async fn fetch_latest_block_number(
 
         tokio::time::sleep(time_for_next_eth_proofs_block).await;
 
-        latest_block_number = eth_client.get_block_number().await?.as_u64();
+        latest_block_number = eth_client.get_block_number().await?;
     }
 
     Ok(latest_block_number)

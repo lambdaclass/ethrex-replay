@@ -2,7 +2,7 @@ use ethrex_config::networks::Network;
 use ethrex_levm::vm::VMType;
 use ethrex_rpc::{
     EthClient,
-    clients::EthClientError,
+    clients::{EthClientError, eth::errors::RpcRequestError},
     types::block_identifier::{BlockIdentifier, BlockTag},
 };
 use eyre::{OptionExt, WrapErr};
@@ -79,7 +79,7 @@ async fn get_blockdata_rpc(
     block_identifier: BlockIdentifier,
     cache_dir: PathBuf,
 ) -> eyre::Result<Cache> {
-    let latest_block_number = eth_client.get_block_number().await?.as_u64();
+    let latest_block_number = eth_client.get_block_number().await?;
 
     let requested_block_number = match block_identifier {
         BlockIdentifier::Number(some_number) => some_number,
@@ -144,7 +144,7 @@ async fn get_blockdata_rpc(
         .await
     {
         Ok(witness) => witness,
-        Err(EthClientError::RequestError(_)) => {
+        Err(e) if witness_endpoint_unavailable(&e) => {
             warn!("debug_executionWitness endpoint not implemented, using fallback eth_getProof");
 
             #[cfg(feature = "l2")]
@@ -207,6 +207,20 @@ async fn get_blockdata_rpc(
         chain_config,
         cache_dir,
     ))
+}
+
+/// Returns true if the error means the node doesn't expose `debug_executionWitness`,
+/// either because the request couldn't be sent or because the node answered with a
+/// "Method not found" RPC error (e.g. ethrex without `--http.api debug`, or
+/// non-ethrex clients).
+fn witness_endpoint_unavailable(error: &EthClientError) -> bool {
+    match error {
+        EthClientError::RequestError(_) => true,
+        EthClientError::RpcRequestError(RpcRequestError::RPCError { message, .. }) => {
+            message.contains("Method not found")
+        }
+        _ => false,
+    }
 }
 
 #[cfg(feature = "l2")]

@@ -2,8 +2,11 @@ use crate::{cache::Cache, cli::ProofType};
 #[cfg(feature = "l2")]
 use ethrex_common::types::{ELASTICITY_MULTIPLIER, fee_config::FeeConfig};
 use ethrex_common::{
-    H256,
-    types::{AccountUpdate, Receipt, block_execution_witness::GuestProgramState},
+    H256, NativeCrypto,
+    types::{
+        AccountUpdate, Receipt,
+        block_execution_witness::{GuestProgramState, decode_witness_headers},
+    },
 };
 use ethrex_guest_program::input::ProgramInput;
 use ethrex_levm::{db::gen_db::GeneralizedDatabase, vm::VMType};
@@ -16,7 +19,6 @@ use ethrex_prover::Sp1Backend;
 #[cfg(feature = "zisk")]
 use ethrex_prover::ZiskBackend;
 use ethrex_prover::{BackendType, ExecBackend, ProverBackend};
-use ethrex_rpc::debug::execution_witness::execution_witness_from_rpc_chain_config;
 use ethrex_vm::{DynVmDatabase, Evm, GuestProgramStateWrapper, backends::levm::LEVM};
 use eyre::Context;
 use std::{
@@ -116,8 +118,6 @@ pub async fn run_tx(cache: Cache, tx_hash: H256) -> eyre::Result<(Receipt, Vec<A
         .first()
         .ok_or(eyre::Error::msg("missing block data"))?;
 
-    let mut remaining_gas = block.header.gas_limit;
-
     let execution_witness = cache.witness;
     let network = cache.network;
     let chain_config = network
@@ -125,17 +125,16 @@ pub async fn run_tx(cache: Cache, tx_hash: H256) -> eyre::Result<(Receipt, Vec<A
         .map_err(|_| eyre::Error::msg("Failed to get genesis block"))?
         .config;
 
-    let execution_witness = execution_witness_from_rpc_chain_config(
-        execution_witness,
-        chain_config,
-        block.header.number,
-    )
-    .wrap_err("Failed to convert execution witness")?;
+    let decoded_headers = decode_witness_headers(&execution_witness.headers)
+        .wrap_err("Failed to decode witness headers")?;
+    let execution_witness = execution_witness
+        .into_execution_witness(chain_config, block.header.number, &decoded_headers)
+        .wrap_err("Failed to convert execution witness")?;
 
-    let guest_program_state: GuestProgramState =
-        execution_witness.try_into().map_err(eyre::Error::msg)?;
+    let guest_program_state = GuestProgramState::from_witness(execution_witness, &NativeCrypto)
+        .map_err(eyre::Error::msg)?;
 
-    let mut wrapped_db = GuestProgramStateWrapper::new(guest_program_state);
+    let mut wrapped_db = GuestProgramStateWrapper::new(guest_program_state, Arc::new(NativeCrypto));
 
     #[cfg(feature = "l2")]
     let fee_config = FeeConfig::default();
@@ -148,24 +147,19 @@ pub async fn run_tx(cache: Cache, tx_hash: H256) -> eyre::Result<(Receipt, Vec<A
     let changes = {
         let store: Arc<DynVmDatabase> = Arc::new(Box::new(wrapped_db.clone()));
         let mut db = GeneralizedDatabase::new(store.clone());
-        LEVM::prepare_block(block, &mut db, vm_type)?;
+        LEVM::prepare_block(block, &mut db, vm_type, &NativeCrypto)?;
         LEVM::get_state_transitions(&mut db)?
     };
     wrapped_db.apply_account_updates(&changes)?;
 
-    for (tx, tx_sender) in block.body.get_transactions_with_sender()? {
+    for (tx, tx_sender) in block.body.get_transactions_with_sender(&NativeCrypto)? {
         #[cfg(feature = "l2")]
-        let mut vm = Evm::new_for_l2(wrapped_db.clone(), fee_config)?;
+        let mut vm = Evm::new_for_l2(wrapped_db.clone(), fee_config, Arc::new(NativeCrypto))?;
         #[cfg(not(feature = "l2"))]
-        let mut vm = Evm::new_for_l1(wrapped_db.clone());
+        let mut vm = Evm::new_for_l1(wrapped_db.clone(), Arc::new(NativeCrypto));
         let mut cumulative_gas_spent = 0;
-        let (receipt, _) = vm.execute_tx(
-            tx,
-            &block.header,
-            &mut remaining_gas,
-            &mut cumulative_gas_spent,
-            tx_sender,
-        )?;
+        let (receipt, _) =
+            vm.execute_tx(tx, &block.header, &mut cumulative_gas_spent, tx_sender)?;
         let account_updates = vm.get_state_transitions()?;
         wrapped_db.apply_account_updates(&account_updates)?;
         if tx.hash() == tx_hash {
@@ -200,8 +194,11 @@ pub fn get_l1_input(cache: Cache) -> eyre::Result<ProgramInput> {
         .map_err(|_| eyre::Error::msg("Failed to get genesis block"))?
         .config;
 
-    let execution_witness =
-        execution_witness_from_rpc_chain_config(db, chain_config, first_block_number)?;
+    let decoded_headers =
+        decode_witness_headers(&db.headers).wrap_err("Failed to decode witness headers")?;
+    let execution_witness = db
+        .into_execution_witness(chain_config, first_block_number, &decoded_headers)
+        .wrap_err("Failed to convert execution witness")?;
 
     Ok(ProgramInput {
         blocks,
@@ -237,9 +234,11 @@ pub fn get_l2_input(cache: Cache) -> eyre::Result<ProgramInput> {
     let l2_fields = l2_fields.ok_or_else(|| eyre::eyre!("Missing L2 fields in cache"))?;
     let chain_config = chain_config.ok_or_else(|| eyre::eyre!("Missing chain config in cache"))?;
 
-    let execution_witness =
-        execution_witness_from_rpc_chain_config(db, chain_config, first_block_number)
-            .wrap_err("Failed to convert execution witness")?;
+    let decoded_headers =
+        decode_witness_headers(&db.headers).wrap_err("Failed to decode witness headers")?;
+    let execution_witness = db
+        .into_execution_witness(chain_config, first_block_number, &decoded_headers)
+        .wrap_err("Failed to convert execution witness")?;
 
     let block_len = blocks.len();
     Ok(ProgramInput {
