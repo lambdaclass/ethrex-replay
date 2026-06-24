@@ -115,9 +115,6 @@ impl Cache {
             return Err(eyre::Error::msg("cache can't be empty"));
         }
 
-        // Ensure the cache directory exists
-        std::fs::create_dir_all(&self.dir)?;
-
         let file_name = get_block_cache_file_name(
             &self.network.clone(),
             self.blocks[0].header.number,
@@ -127,6 +124,20 @@ impl Cache {
                 self.blocks.last().map(|b| b.header.number)
             },
         );
+
+        self.write_named(&file_name)
+    }
+
+    /// Write the cache under an explicit file name. Used by custom block
+    /// generation, whose blocks always start at number 1 and so cannot be
+    /// distinguished by the block-number naming scheme.
+    pub fn write_named(&self, file_name: &str) -> eyre::Result<()> {
+        if self.blocks.is_empty() {
+            return Err(eyre::Error::msg("cache can't be empty"));
+        }
+
+        // Ensure the cache directory exists
+        std::fs::create_dir_all(&self.dir)?;
 
         let full_path = self.dir.join(file_name);
 

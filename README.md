@@ -11,7 +11,7 @@ A tool for executing and proving Ethereum blocks, transactions, and L2 batches â
 | `ethrex-replay block`             | Replay a single block.                                                                                                                 |
 | `ethrex-replay blocks`            | Replay a list of specific block numbers, a range of blocks, or from a specific block to the latest (see `ethrex-replay blocks --help`) |
 | `ethrex-replay block-composition` |                                                                                                                                        |
-| `ethrex-replay custom`            | Build your block before to replay it.                                                                                                  |
+| `ethrex-replay custom`            | Generate and replay synthetic benchmark blocks (transfers, ERC20, Uniswap, deploys, compute/state stress). See [Custom Blocks](docs/custom_blocks.md). |
 | `ethrex-replay transaction`       | Replay a single transaction of a block.                                                                                                |
 | `ethrex-replay cache`             | Generate witness data prior to block replay (see `ethrex-replay cache --help`)                                                         |
 | `ethrex-replay generate-input`    | Generate binary input for the guest program to invoke the zkVM directly (see [Generate Input](#generate-input))                        |
