@@ -4,10 +4,13 @@ use crate::helpers::{collect_accounts_from_trie, get_trie_nodes_with_dummies};
 use bytes::Bytes;
 use ethrex_guest_program::input::ProgramInput;
 use ethrex_l2_common::prover::ProofFormat;
+#[cfg(feature = "l2")]
 use ethrex_l2_rpc::signer::{LocalSigner, Signer};
 use ethrex_rlp::decode::RLPDecode;
 use ethrex_trie::{EMPTY_TRIE_HASH, InMemoryTrieDB, Nibbles, Node};
-use eyre::{Context, OptionExt};
+use eyre::Context;
+#[cfg(any(feature = "l2", test))]
+use eyre::OptionExt;
 use std::{
     cmp::max,
     collections::BTreeMap,
@@ -24,15 +27,14 @@ use ethrex_blockchain::{
     payload::{BuildPayloadArgs, PayloadBuildResult, create_payload},
 };
 use ethrex_common::{
-    Address, H256, NativeCrypto,
+    Address, H256, NativeCrypto, U256,
     types::{
-        AccountUpdate, Block, Code, DEFAULT_BUILDER_GAS_CEIL, ELASTICITY_MULTIPLIER, Receipt,
+        AccountUpdate, Block, Code, DEFAULT_BUILDER_GAS_CEIL, ELASTICITY_MULTIPLIER, Genesis,
+        GenesisAccount, Receipt, Transaction,
         block_execution_witness::{GuestProgramState, RpcExecutionWitness, decode_witness_headers},
     },
     utils::keccak,
 };
-#[cfg(feature = "l2")]
-use ethrex_common::{U256, types::GenesisAccount};
 use ethrex_prover::BackendType;
 use ethrex_rpc::EthClient;
 #[cfg(not(feature = "l2"))]
@@ -47,13 +49,18 @@ use std::collections::HashMap;
 use std::path::Path;
 #[cfg(not(feature = "l2"))]
 use tracing::debug;
-use tracing::info;
+use tracing::{info, warn};
 
 #[cfg(feature = "l2")]
 use crate::fetcher::get_batchdata;
 #[cfg(not(feature = "l2"))]
 use crate::plot_composition::analyze_and_display;
-use crate::{cache::Cache, fetcher::get_blockdata, report::Report, tx_builder::TxBuilder};
+use crate::{
+    cache::Cache,
+    fetcher::get_blockdata,
+    report::Report,
+    workloads::{GenCtx, Workload, WorkloadParams},
+};
 use crate::{
     run::{exec, prove, run_tx},
     slack::try_send_report_to_slack,
@@ -66,6 +73,7 @@ pub const VERSION_STRING: &str = env!("CARGO_PKG_VERSION");
 // 0x941e103320615d394a55708be13e45994c7d93b932b064dbcb2b511fe3254e2e is the
 // private key for address 0x4417092b70a3e5f10dc504d0947dd256b965fc62, a
 // pre-funded account in the local devnet genesis.
+#[cfg(feature = "l2")]
 const LOCAL_DEVNET_PREFUNDED_PRIVATE_KEY: &str =
     "941e103320615d394a55708be13e45994c7d93b932b064dbcb2b511fe3254e2e";
 
@@ -406,29 +414,108 @@ pub struct BatchOptions {
 }
 
 #[derive(Parser)]
+#[command(group(ArgGroup::new("block_size").args(["n_txs", "gas_target"]).multiple(false)))]
 pub struct CustomBlockOptions {
     #[command(flatten)]
     pub common: CommonOptions,
     #[arg(
         long,
-        help = "Number of transactions to include in the block.",
+        help = "Number of transactions to include in each block.",
         help_heading = "Command Options",
         requires = "tx"
     )]
     pub n_txs: Option<u64>,
     #[arg(
         long,
-        help = "Kind of transactions to include in the block.",
+        help = "Fill each block to this gas target instead of a fixed transaction count.",
         help_heading = "Command Options",
-        requires = "n_txs"
+        requires = "tx"
     )]
-    pub tx: Option<TxVariant>,
+    pub gas_target: Option<u64>,
+    #[arg(
+        long,
+        help = "Kind of transactions to include in the block.",
+        help_heading = "Command Options"
+    )]
+    pub tx: Option<Workload>,
+    #[arg(
+        long,
+        default_value_t = 0,
+        help = "Seed for deterministic generation: identical invocations produce identical blocks.",
+        help_heading = "Command Options"
+    )]
+    pub seed: u64,
+    #[arg(
+        long,
+        default_value_t = 8,
+        help = "Number of seed-derived sender accounts, funded in genesis.",
+        help_heading = "Command Options"
+    )]
+    pub n_senders: u64,
+    #[arg(
+        long,
+        default_value_t = 1_000_000,
+        help = "Per-transaction gas budget for loop workloads (keccak, mulmod, ecrecover, sstore-fresh, sload-cold).",
+        help_heading = "Command Options"
+    )]
+    pub tx_gas: u64,
+    #[arg(
+        long,
+        default_value_t = 1_024,
+        help = "Deployed runtime size in bytes for the contract-deploy workload.",
+        help_heading = "Command Options"
+    )]
+    pub deploy_code_size: usize,
+    #[arg(
+        long,
+        default_value_t = 100_000,
+        help = "Pre-seeded storage slots for the sload-cold workload.",
+        help_heading = "Command Options"
+    )]
+    pub prestate_slots: u64,
     #[arg(
         long,
         help = "Save the serialized ProgramInput to this file.",
         help_heading = "Command Options"
     )]
     pub save_program_input: Option<PathBuf>,
+    #[arg(
+        long,
+        help = "Reuse a previously generated custom block from the cache instead of regenerating it.",
+        help_heading = "Replay Options"
+    )]
+    pub cached: bool,
+    #[arg(
+        long,
+        help = "Execute with `Blockchain::add_block`, without using zkvm as backend",
+        help_heading = "Replay Options",
+        conflicts_with_all = ["zkvm", "proof_type"]
+    )]
+    pub no_zkvm: bool,
+    #[arg(
+        long,
+        default_value_t = 1,
+        help = "Number of times to repeat execution for profiling",
+        help_heading = "Replay Options",
+        requires = "no_zkvm"
+    )]
+    pub repeat: u32,
+    #[arg(
+        long,
+        help = "Generate a benchmark file named `bench_latest.json` with the latest execution rate in Mgas/s",
+        help_heading = "CI Options",
+        requires = "zkvm",
+        default_value_t = false
+    )]
+    pub bench: bool,
+    #[arg(
+        long,
+        help = "Directory to store and load cache files",
+        value_parser,
+        default_value = "./replay_cache",
+        help_heading = "Replay Options"
+    )]
+    pub cache_dir: PathBuf,
 }
 
 #[derive(Parser)]
@@ -441,13 +528,6 @@ pub struct CustomBatchOptions {
     n_blocks: u64,
     #[command(flatten)]
     block_opts: CustomBlockOptions,
-}
-
-#[derive(ValueEnum, Clone, Debug, PartialEq, Eq, Default)]
-pub enum TxVariant {
-    #[default]
-    ETHTransfer,
-    ERC20Transfer,
 }
 
 #[derive(Parser)]
@@ -718,16 +798,18 @@ impl EthrexReplayCommand {
                 n_blocks,
                 block_opts,
             })) => {
+                // Custom blocks are built in-process: there is no data source,
+                // so the data-source-related options stay disabled.
                 let opts = EthrexReplayOptions {
-                    rpc_url: Some(Url::parse("http://localhost:8545")?),
+                    rpc_url: None,
                     cached: false,
-                    no_zkvm: false,
-                    repeat: 1,
+                    no_zkvm: block_opts.no_zkvm,
+                    repeat: block_opts.repeat,
                     cache_level: CacheLevel::default(),
                     common: block_opts.common.clone(),
                     slack_webhook_url: None,
-                    bench: false,
-                    cache_dir: PathBuf::from("./replay_cache"),
+                    bench: block_opts.bench,
+                    cache_dir: block_opts.cache_dir.clone(),
                     network: None,
                     notification_level: NotificationLevel::default(),
                 };
@@ -1366,47 +1448,11 @@ pub async fn replay_custom_l1_blocks(
 ) -> eyre::Result<()> {
     let network = Network::LocalDevnet;
 
-    let genesis = network.get_genesis()?;
     #[cfg(not(feature = "l2"))]
     let save_program_input = block_opts.save_program_input.clone();
 
-    let mut store = {
-        let mut store_inner = Store::new("./", EngineType::InMemory)?;
-        store_inner.add_initial_state(genesis.clone()).await?;
-        store_inner
-    };
-
-    let blockchain = Arc::new(Blockchain::new(
-        store.clone(),
-        ethrex_blockchain::BlockchainOptions::default(),
-    ));
-
-    let signer = Signer::Local(LocalSigner::new(
-        LOCAL_DEVNET_PREFUNDED_PRIVATE_KEY
-            .parse()
-            .expect("invalid private key"),
-    ));
-
-    let blocks = produce_l1_blocks(
-        block_opts,
-        blockchain.clone(),
-        &mut store,
-        genesis.get_block().hash(),
-        genesis.timestamp + 12,
-        n_blocks,
-        &signer,
-    )
-    .await?;
-
-    let execution_witness = blockchain.generate_witness_for_blocks(&blocks).await?;
-    let chain_config = execution_witness.chain_config;
-
-    let cache = Cache::new(
-        blocks,
-        RpcExecutionWitness::try_from(execution_witness)?,
-        chain_config,
-        opts.cache_dir,
-    );
+    let cache =
+        load_or_build_custom_l1_cache(n_blocks, &block_opts, opts.cache_dir.clone()).await?;
 
     #[cfg(not(feature = "l2"))]
     if let Some(output_path) = save_program_input {
@@ -1415,27 +1461,31 @@ pub async fn replay_custom_l1_blocks(
         info!("Saved program input to {}", output_path.display());
     }
 
-    let backend = backend(&opts.common.zkvm)?;
+    let (execution_result, proving_result) = if opts.no_zkvm {
+        (Some(replay_no_zkvm(cache.clone(), &opts).await), None)
+    } else {
+        let backend = backend(&opts.common.zkvm)?;
 
-    let (execution_result, proving_result) = match opts.common.action {
-        Action::Execute => {
-            let execution_result = exec(backend, cache.clone()).await;
+        match opts.common.action {
+            Action::Execute => {
+                let execution_result = exec(backend, cache.clone()).await;
 
-            (Some(execution_result), None)
-        }
-        Action::Prove => {
-            // Always execute before proving, unless it's ZisK.
-            // This is because of ZisK's client initializing MPI, which can't be done
-            // more than once in the same process.
-            // https://docs.open-mpi.org/en/v5.0.1/man-openmpi/man3/MPI_Init_thread.3.html#description
-            #[cfg(not(feature = "zisk"))]
-            let execution_result = Some(exec(backend, cache.clone()).await);
-            #[cfg(feature = "zisk")]
-            let execution_result = None;
+                (Some(execution_result), None)
+            }
+            Action::Prove => {
+                // Always execute before proving, unless it's ZisK.
+                // This is because of ZisK's client initializing MPI, which can't be done
+                // more than once in the same process.
+                // https://docs.open-mpi.org/en/v5.0.1/man-openmpi/man3/MPI_Init_thread.3.html#description
+                #[cfg(not(feature = "zisk"))]
+                let execution_result = Some(exec(backend, cache.clone()).await);
+                #[cfg(feature = "zisk")]
+                let execution_result = None;
 
-            let proving_result = prove(backend, opts.common.proof_type, cache.clone()).await;
+                let proving_result = prove(backend, opts.common.proof_type, cache.clone()).await;
 
-            (execution_result, Some(proving_result))
+                (execution_result, Some(proving_result))
+            }
         }
     };
 
@@ -1457,17 +1507,270 @@ pub async fn replay_custom_l1_blocks(
         report.log();
     }
 
+    // Aggregate summary across the whole batch (the per-block report above
+    // covers only the first block), tagged with the workload and seed.
+    let total_gas: u64 = cache.blocks.iter().map(|b| b.header.gas_used).sum();
+    let total_txs: usize = cache.blocks.iter().map(|b| b.body.transactions.len()).sum();
+    info!(
+        "Custom workload '{}' (seed {}): {} block(s), {} transaction(s), {} total gas",
+        block_opts.tx.clone().unwrap_or_default().name(),
+        block_opts.seed,
+        cache.blocks.len(),
+        total_txs,
+        total_gas,
+    );
+
+    // CAUTION
+    // This piece of code is used to create a benchmark file that is used by our
+    // CI for updating benchmarks from https://docs.ethrex.xyz/benchmarks/.
+    // Do no remove it under any circumstances, unless you are refactoring how
+    // we do benchmarks in CI.
+    if opts.bench {
+        let benchmark_json = report.to_bench_file()?;
+        let file =
+            std::fs::File::create("bench_latest.json").expect("failed to create bench_latest.json");
+        serde_json::to_writer(file, &benchmark_json)
+            .map_err(|e| eyre::Error::msg(format!("failed to write to bench_latest.json: {e}")))?;
+    }
+
     Ok(())
 }
 
+/// Deterministic cache file name for a custom run. Includes the workload and
+/// seed so different configurations don't overwrite each other and `--cached`
+/// re-runs find the exact block they generated.
+pub fn custom_cache_file_name(block_opts: &CustomBlockOptions, n_blocks: u64) -> String {
+    let workload = block_opts.tx.clone().unwrap_or_default();
+    format!(
+        "cache_custom_{}_seed{}_blocks{}.json",
+        workload.name(),
+        block_opts.seed,
+        n_blocks
+    )
+}
+
+/// Load the custom cache from disk if `--cached` is set, otherwise build it
+/// (and persist it so it can be re-run with `--cached`).
+pub async fn load_or_build_custom_l1_cache(
+    n_blocks: u64,
+    block_opts: &CustomBlockOptions,
+    cache_dir: PathBuf,
+) -> eyre::Result<Cache> {
+    let file_name = custom_cache_file_name(block_opts, n_blocks);
+    if block_opts.cached {
+        info!("Loading custom block from cache {file_name}");
+        return Cache::load(&cache_dir, &file_name);
+    }
+
+    let cache = build_custom_l1_cache(n_blocks, block_opts, cache_dir).await?;
+    cache.write_named(&file_name)?;
+    Ok(cache)
+}
+
+/// Builds the custom chain and returns the cache (blocks + witness) for it.
+///
+/// Genesis is enriched before the chain starts (sender funding, workload
+/// injection, folded setup transactions), so every produced block contains
+/// only workload transactions.
+pub async fn build_custom_l1_cache(
+    n_blocks: u64,
+    block_opts: &CustomBlockOptions,
+    cache_dir: PathBuf,
+) -> eyre::Result<Cache> {
+    let network = Network::LocalDevnet;
+    let mut genesis = network.get_genesis()?;
+
+    let workload = block_opts.tx.clone().unwrap_or_default();
+    let params = WorkloadParams {
+        tx_gas: block_opts.tx_gas,
+        deploy_code_size: block_opts.deploy_code_size,
+        prestate_slots: block_opts.prestate_slots,
+    };
+
+    // Block size comes from either a fixed transaction count or a gas target.
+    // For a gas target we over-provision slightly and let the builder fill to
+    // the (raised) gas ceiling.
+    let (txs_per_block, gas_ceil) = match block_opts.gas_target {
+        Some(gas_target) => {
+            let estimate = workload.estimated_tx_gas(&params).max(1);
+            let txs = (gas_target / estimate).max(1) + 1;
+            // The block gas limit climbs at most 1/1024 per block from the
+            // parent, so the genesis (block 1's parent) must already allow the
+            // target. Add headroom so the target is reachable.
+            let gas_ceil = gas_target + gas_target / 10;
+            genesis.gas_limit = genesis.gas_limit.max(gas_ceil);
+            (txs, gas_ceil)
+        }
+        None => {
+            let txs = block_opts.n_txs.unwrap_or_default();
+            // Raise the block gas limit so all requested transactions fit
+            // instead of silently truncating at the default devnet limit when
+            // the count is large.
+            let estimated_total = txs.saturating_mul(workload.estimated_tx_gas(&params));
+            let gas_ceil = DEFAULT_BUILDER_GAS_CEIL.max(estimated_total + estimated_total / 10);
+            genesis.gas_limit = genesis.gas_limit.max(gas_ceil);
+            (txs, gas_ceil)
+        }
+    };
+
+    let mut ctx = GenCtx::new(
+        genesis.config.chain_id,
+        block_opts.seed,
+        block_opts.n_senders,
+        params,
+    )?;
+
+    if txs_per_block > 0 {
+        ctx.fund_senders(&mut genesis);
+        workload.prepare_genesis(&mut genesis, &ctx);
+
+        let setup_txs = workload.setup_txs(&mut ctx).await?;
+        if !setup_txs.is_empty() {
+            fold_setup_into_genesis(&mut genesis, setup_txs).await?;
+        }
+    }
+
+    let mut store = {
+        let mut store_inner = Store::new("./", EngineType::InMemory)?;
+        store_inner.add_initial_state(genesis.clone()).await?;
+        store_inner
+    };
+
+    let blockchain = Arc::new(Blockchain::new(
+        store.clone(),
+        ethrex_blockchain::BlockchainOptions::default(),
+    ));
+
+    // Senders that signed folded setup transactions start above nonce zero.
+    ctx.init_nonces(&store).await?;
+
+    let blocks = produce_l1_blocks(
+        &workload,
+        &mut ctx,
+        txs_per_block,
+        gas_ceil,
+        block_opts.gas_target.is_none(),
+        blockchain.clone(),
+        &mut store,
+        genesis.get_block().hash(),
+        genesis.timestamp + 12,
+        n_blocks,
+    )
+    .await?;
+
+    let execution_witness = blockchain.generate_witness_for_blocks(&blocks).await?;
+    let chain_config = execution_witness.chain_config;
+
+    Ok(Cache::new(
+        blocks,
+        RpcExecutionWitness::try_from(execution_witness)?,
+        chain_config,
+        cache_dir,
+    ))
+}
+
+/// Executes setup transactions on a scratch chain and folds the resulting
+/// state into the genesis allocation. This keeps provisioning (deploys,
+/// mints) out of produced blocks: genesis is the world, blocks are workload.
+async fn fold_setup_into_genesis(
+    genesis: &mut Genesis,
+    setup_txs: Vec<Transaction>,
+) -> eyre::Result<()> {
+    let setup_tx_count = setup_txs.len();
+
+    let mut store = Store::new("./", EngineType::InMemory)?;
+    store.add_initial_state(genesis.clone()).await?;
+    let blockchain = Arc::new(Blockchain::new(
+        store.clone(),
+        ethrex_blockchain::BlockchainOptions::default(),
+    ));
+
+    for tx in setup_txs {
+        blockchain.add_transaction_to_pool(tx).await?;
+    }
+
+    let mut head_block_hash = genesis.get_block().hash();
+    let mut timestamp = genesis.timestamp + 1;
+    let mut included = 0;
+
+    // Setup may not fit in a single block: keep building until drained. Use a
+    // high gas ceiling so large setups (e.g. token deploys) fit in few blocks.
+    let setup_gas_ceil = genesis.gas_limit.max(DEFAULT_BUILDER_GAS_CEIL);
+    while included < setup_tx_count {
+        let (block, _, account_updates) = build_block_from_mempool(
+            blockchain.clone(),
+            &mut store,
+            head_block_hash,
+            timestamp,
+            setup_gas_ceil,
+        )
+        .await?;
+
+        if block.body.transactions.is_empty() {
+            eyre::bail!("setup transactions stalled: {included}/{setup_tx_count} were included");
+        }
+        included += block.body.transactions.len();
+        head_block_hash = block.hash();
+        timestamp += 1;
+
+        for update in &account_updates {
+            apply_account_update_to_genesis(genesis, update);
+        }
+    }
+
+    Ok(())
+}
+
+fn apply_account_update_to_genesis(genesis: &mut Genesis, update: &AccountUpdate) {
+    if update.removed {
+        genesis.alloc.remove(&update.address);
+        return;
+    }
+
+    let account = genesis
+        .alloc
+        .entry(update.address)
+        .or_insert_with(|| GenesisAccount {
+            code: Bytes::new(),
+            storage: BTreeMap::new(),
+            balance: U256::zero(),
+            nonce: 0,
+        });
+
+    if update.removed_storage {
+        account.storage.clear();
+    }
+    if let Some(info) = &update.info {
+        account.balance = info.balance;
+        account.nonce = info.nonce;
+    }
+    if let Some(code) = &update.code {
+        account.code = code.bytecode.clone();
+    }
+    for (key, value) in &update.added_storage {
+        let key = U256::from_big_endian(key.as_bytes());
+        // A zero value means the slot was cleared: genesis allocations
+        // represent empty slots by absence.
+        if value.is_zero() {
+            account.storage.remove(&key);
+        } else {
+            account.storage.insert(key, *value);
+        }
+    }
+}
+
+#[expect(clippy::too_many_arguments)]
 pub async fn produce_l1_blocks(
-    block_opts: CustomBlockOptions,
+    workload: &Workload,
+    ctx: &mut GenCtx,
+    txs_per_block: u64,
+    gas_ceil: u64,
+    warn_truncation: bool,
     blockchain: Arc<Blockchain>,
     store: &mut Store,
     head_block_hash: H256,
     initial_timestamp: u64,
     n_blocks: u64,
-    signer: &Signer,
 ) -> eyre::Result<Vec<Block>> {
     let mut blocks = Vec::new();
     let mut current_parent_hash = head_block_hash;
@@ -1475,12 +1778,15 @@ pub async fn produce_l1_blocks(
 
     for _ in 0..n_blocks {
         let (block, block_hash) = produce_l1_block(
-            &block_opts,
+            workload,
+            ctx,
+            txs_per_block,
+            gas_ceil,
+            warn_truncation,
             blockchain.clone(),
             store,
             current_parent_hash,
             current_timestamp,
-            signer,
         )
         .await?;
         current_parent_hash = block_hash;
@@ -1491,15 +1797,52 @@ pub async fn produce_l1_blocks(
     Ok(blocks)
 }
 
+#[expect(clippy::too_many_arguments)]
 pub async fn produce_l1_block(
-    block_opts: &CustomBlockOptions,
+    workload: &Workload,
+    ctx: &mut GenCtx,
+    txs_per_block: u64,
+    gas_ceil: u64,
+    warn_truncation: bool,
     blockchain: Arc<Blockchain>,
     store: &mut Store,
     head_block_hash: H256,
     timestamp: u64,
-    signer: &Signer,
 ) -> eyre::Result<(Block, H256)> {
-    let chain_id = store.get_chain_config().chain_id;
+    for _ in 0..txs_per_block {
+        let tx = workload.next_tx(ctx).await?;
+        blockchain.add_transaction_to_pool(tx).await?;
+    }
+
+    let (block, block_hash, _) =
+        build_block_from_mempool(blockchain, store, head_block_hash, timestamp, gas_ceil).await?;
+
+    // In fixed-count mode, including fewer than requested means the block gas
+    // limit truncated the batch. In gas-target mode partial inclusion is the
+    // expected outcome, so the warning is suppressed.
+    let included = block.body.transactions.len() as u64;
+    if warn_truncation && included < txs_per_block {
+        warn!(
+            "block {} includes {included} of {txs_per_block} requested transactions \
+             (block gas limit reached; {} left out)",
+            block.header.number,
+            txs_per_block - included
+        );
+    }
+
+    Ok((block, block_hash))
+}
+
+/// Builds one block from the current mempool contents, adds it to the chain
+/// and applies fork choice. Returns the block with its hash uninitialized
+/// (the guest program needs it that way) along with the account updates.
+async fn build_block_from_mempool(
+    blockchain: Arc<Blockchain>,
+    store: &mut Store,
+    head_block_hash: H256,
+    timestamp: u64,
+    gas_ceil: u64,
+) -> eyre::Result<(Block, H256, Vec<AccountUpdate>)> {
     let build_payload_args = BuildPayloadArgs {
         parent: head_block_hash,
         timestamp,
@@ -1510,34 +1853,24 @@ pub async fn produce_l1_block(
         slot_number: None,
         version: 3,
         elasticity_multiplier: ELASTICITY_MULTIPLIER,
-        gas_ceil: DEFAULT_BUILDER_GAS_CEIL,
+        gas_ceil,
     };
 
     let payload_id = build_payload_args.id()?;
 
     let payload = create_payload(&build_payload_args, store, Bytes::new())?;
 
-    for n in 0..block_opts.n_txs.unwrap_or_default() {
-        let tx_builder = match block_opts
-            .tx
-            .as_ref()
-            .ok_or_eyre("--tx needs to be passed")?
-        {
-            TxVariant::ETHTransfer => TxBuilder::ETHTransfer,
-            TxVariant::ERC20Transfer => unimplemented!(),
-        };
-
-        let tx = tx_builder.build_tx(n, signer, chain_id).await;
-
-        blockchain.add_transaction_to_pool(tx).await?;
-    }
-
     blockchain
         .clone()
         .initiate_payload_build(payload, payload_id)
         .await;
 
-    let PayloadBuildResult { payload: block, .. } = blockchain
+    let PayloadBuildResult {
+        payload: block,
+        receipts,
+        account_updates,
+        ..
+    } = blockchain
         .get_payload(payload_id)
         .await
         .map_err(|err| match err {
@@ -1549,7 +1882,21 @@ pub async fn produce_l1_block(
             err => ethrex_rpc::RpcErr::Internal(err.to_string()),
         })?;
 
+    // A reverted transaction silently measures the wrong thing (e.g. an ERC20
+    // transfer without balance), so reject blocks containing failures.
+    if let Some(failed) = receipts.iter().position(|receipt| !receipt.succeeded) {
+        eyre::bail!(
+            "transaction {failed} in produced block {} reverted",
+            block.header.number
+        );
+    }
+
     blockchain.add_block(block.clone())?;
+
+    // In a full node the engine fork-choice handler does this; without it the
+    // included transactions linger in the mempool and poison the next block's
+    // payload build (stale nonces make the builder skip their senders).
+    blockchain.remove_block_transactions_from_pool(&block)?;
 
     // We clone here to avoid initializing the block hash, it is needed
     // uninitialized by the guest program.
@@ -1557,7 +1904,7 @@ pub async fn produce_l1_block(
 
     apply_fork_choice(store, new_block_hash, new_block_hash, new_block_hash).await?;
 
-    Ok((block, new_block_hash))
+    Ok((block, new_block_hash, account_updates))
 }
 
 #[cfg(feature = "l2")]
@@ -1795,19 +2142,15 @@ pub async fn produce_custom_l2_block(
 
     let tx_count = block_opts.n_txs.unwrap_or_default();
     if tx_count > 0 {
-        let tx_builder = match block_opts
+        let workload = block_opts
             .tx
             .as_ref()
-            .ok_or_eyre("--tx needs to be passed")?
-        {
-            TxVariant::ETHTransfer => TxBuilder::ETHTransfer,
-            TxVariant::ERC20Transfer => unimplemented!(),
-        };
+            .ok_or_eyre("--tx needs to be passed")?;
 
         let chain_id = store.get_chain_config().chain_id;
 
         for _ in 0..tx_count {
-            let tx = tx_builder.build_tx(*next_nonce, signer, chain_id).await;
+            let tx = workload.build_l2_tx(*next_nonce, signer, chain_id).await?;
             blockchain.add_transaction_to_pool(tx).await?;
             *next_nonce += 1;
         }
@@ -1841,8 +2184,8 @@ pub async fn produce_custom_l2_block(
     let execution_result = BlockExecutionResult {
         receipts: payload_build_result.receipts,
         requests: Vec::new(),
-        block_gas_used: new_block.header.gas_used,
         tx_gas_breakdowns: Vec::new(),
+        block_gas_used: new_block.header.gas_used,
     };
 
     let account_updates_list = store
@@ -1911,4 +2254,195 @@ fn format_duration(duration: &Duration) -> String {
     }
 
     format!("{minutes:02}m {seconds:02}s")
+}
+
+#[cfg(all(test, not(feature = "l2")))]
+mod tests {
+    use super::*;
+    use crate::workloads::bytecode;
+    use eyre::OptionExt;
+
+    /// The embedded ecrecover vector must be a valid signature, otherwise the
+    /// on-chain precompile early-returns empty output and measures nothing.
+    #[test]
+    fn ecrecover_vector_recovers_the_expected_address() -> eyre::Result<()> {
+        use ethrex_crypto::Crypto;
+
+        // Signature layout is r ‖ s ‖ recovery_id; the vector's v is 27 + id.
+        let mut sig = [0u8; 65];
+        sig[..32].copy_from_slice(&bytecode::ECRECOVER_R);
+        sig[32..64].copy_from_slice(&bytecode::ECRECOVER_S);
+        sig[64] = bytecode::ECRECOVER_V - 27;
+
+        let recovered = NativeCrypto
+            .recover_signer(&sig, &bytecode::ECRECOVER_HASH)
+            .map_err(|err| eyre::eyre!("recover failed: {err:?}"))?;
+        assert_eq!(
+            recovered.as_bytes(),
+            bytecode::ECRECOVER_EXPECTED,
+            "embedded ecrecover signature does not recover the expected address"
+        );
+        Ok(())
+    }
+
+    /// `contract-deploy` must deploy runtime code of exactly the requested size.
+    #[tokio::test]
+    async fn contract_deploy_produces_requested_code_size() -> eyre::Result<()> {
+        let code_size = 4_096usize;
+        let mut genesis = Network::LocalDevnet.get_genesis()?;
+        let mut ctx = GenCtx::new(
+            genesis.config.chain_id,
+            21,
+            1,
+            WorkloadParams {
+                deploy_code_size: code_size,
+                ..WorkloadParams::default()
+            },
+        )?;
+        ctx.fund_senders(&mut genesis);
+
+        let mut store = Store::new("./", EngineType::InMemory)?;
+        store.add_initial_state(genesis.clone()).await?;
+        let blockchain = Arc::new(Blockchain::new(
+            store.clone(),
+            ethrex_blockchain::BlockchainOptions::default(),
+        ));
+        ctx.init_nonces(&store).await?;
+
+        let deployer = ctx.senders()[0].address();
+        let tx = Workload::ContractDeploy.next_tx(&mut ctx).await?;
+        blockchain.add_transaction_to_pool(tx).await?;
+        let (_block, _hash, _updates) = build_block_from_mempool(
+            blockchain.clone(),
+            &mut store,
+            genesis.get_block().hash(),
+            genesis.timestamp + 1,
+            DEFAULT_BUILDER_GAS_CEIL,
+        )
+        .await?;
+
+        let created = ethrex_common::evm::calculate_create_address(deployer, 0);
+        let latest = store.get_latest_block_number().await?;
+        let info = store
+            .get_account_info(latest, created)
+            .await?
+            .ok_or_eyre("deployed contract not found")?;
+        let code = store
+            .get_account_code(info.code_hash)?
+            .ok_or_eyre("deployed code not found")?;
+        assert_eq!(
+            code.bytecode.len(),
+            code_size,
+            "deployed code size mismatch"
+        );
+        Ok(())
+    }
+
+    /// The genesis fold must be indistinguishable from actually executing the
+    /// setup transactions on a chain: every account it touches has to match
+    /// the directly executed state (balance, nonce, code and storage).
+    #[tokio::test]
+    async fn fold_matches_directly_executed_setup() -> eyre::Result<()> {
+        let mut base_genesis = Network::LocalDevnet.get_genesis()?;
+        let mut ctx = GenCtx::new(
+            base_genesis.config.chain_id,
+            7,
+            4,
+            WorkloadParams::default(),
+        )?;
+        ctx.fund_senders(&mut base_genesis);
+
+        let setup_txs = Workload::Erc20Transfer.setup_txs(&mut ctx).await?;
+        let token = ctx
+            .token_address
+            .ok_or_eyre("erc20 setup did not record the token address")?;
+
+        // Fold path.
+        let mut folded = base_genesis.clone();
+        fold_setup_into_genesis(&mut folded, setup_txs.clone()).await?;
+
+        // Direct path: execute the same transactions on a chain.
+        let mut store = Store::new("./", EngineType::InMemory)?;
+        store.add_initial_state(base_genesis.clone()).await?;
+        let blockchain = Arc::new(Blockchain::new(
+            store.clone(),
+            ethrex_blockchain::BlockchainOptions::default(),
+        ));
+        for tx in setup_txs.clone() {
+            blockchain.add_transaction_to_pool(tx).await?;
+        }
+        let mut head_block_hash = base_genesis.get_block().hash();
+        let mut timestamp = base_genesis.timestamp + 1;
+        let mut included = 0;
+        while included < setup_txs.len() {
+            let (block, block_hash, _) = build_block_from_mempool(
+                blockchain.clone(),
+                &mut store,
+                head_block_hash,
+                timestamp,
+                DEFAULT_BUILDER_GAS_CEIL,
+            )
+            .await?;
+            eyre::ensure!(
+                !block.body.transactions.is_empty(),
+                "setup transactions stalled"
+            );
+            included += block.body.transactions.len();
+            head_block_hash = block_hash;
+            timestamp += 1;
+        }
+        let latest = store.get_latest_block_number().await?;
+
+        // Token account: code and every folded storage slot must match.
+        let folded_token = folded
+            .alloc
+            .get(&token)
+            .ok_or_eyre("fold did not create the token account")?;
+        assert!(
+            !folded_token.code.is_empty(),
+            "fold did not record the token code"
+        );
+        assert!(
+            !folded_token.storage.is_empty(),
+            "fold did not record the token storage"
+        );
+        let token_info = store
+            .get_account_info(latest, token)
+            .await?
+            .ok_or_eyre("token account missing in directly executed chain")?;
+        let stored_code = store
+            .get_account_code(token_info.code_hash)?
+            .map(|code| code.bytecode)
+            .unwrap_or_default();
+        assert_eq!(stored_code, folded_token.code, "token code mismatch");
+        for (key, value) in &folded_token.storage {
+            let stored = store
+                .get_storage_at(latest, token, H256::from(key.to_big_endian()))?
+                .unwrap_or_default();
+            assert_eq!(stored, *value, "token storage mismatch at slot {key}");
+        }
+
+        // Senders: balances and nonces must match.
+        for sender in ctx.senders() {
+            let address = sender.address();
+            let folded_account = folded
+                .alloc
+                .get(&address)
+                .ok_or_eyre("sender missing from folded genesis")?;
+            let info = store
+                .get_account_info(latest, address)
+                .await?
+                .ok_or_eyre("sender missing in directly executed chain")?;
+            assert_eq!(
+                info.balance, folded_account.balance,
+                "balance mismatch for sender {address:#x}"
+            );
+            assert_eq!(
+                info.nonce, folded_account.nonce,
+                "nonce mismatch for sender {address:#x}"
+            );
+        }
+
+        Ok(())
+    }
 }
